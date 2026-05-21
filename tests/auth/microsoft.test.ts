@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   exchangeAuthorizationCode,
-  pollDeviceCode,
   refreshMicrosoftToken,
   startDeviceCode,
 } from "../../src/auth/microsoft";
@@ -46,82 +45,6 @@ describe("startDeviceCode", () => {
       expect(isErrorCode(error, "AUTH_DEVICE_CODE_FAILED")).toBe(true);
       const err = error as Error;
       expect(err.message).toMatch(/Allow public client flows/i);
-    }
-  });
-});
-
-describe("pollDeviceCode", () => {
-  it("returns Microsoft tokens once the user signs in", async () => {
-    const http = new FakeHttpClient().on(TOKEN_URL, {
-      body: JSON.stringify({
-        token_type: "Bearer",
-        scope: "XboxLive.signin offline_access",
-        expires_in: 3600,
-        access_token: "AT",
-        refresh_token: "RT",
-      }),
-    });
-    const token = await pollDeviceCode({
-      http,
-      state: {
-        deviceCode: "D",
-        userCode: "U",
-        verificationUri: "https://x",
-        message: "m",
-        // Polling sleeps for `interval` seconds before each request; 0 means "go now".
-        expiresIn: 1,
-        interval: 0,
-        clientId: "client-1",
-        expiresAt: Date.now() + 1000,
-      },
-    });
-    expect(token).toEqual({ accessToken: "AT", refreshToken: "RT", expiresIn: 3600 });
-  });
-
-  it("rejects when the device code expires before sign-in", async () => {
-    const http = new FakeHttpClient();
-    try {
-      await pollDeviceCode({
-        http,
-        state: {
-          deviceCode: "D",
-          userCode: "U",
-          verificationUri: "https://x",
-          message: "m",
-          expiresIn: 0,
-          interval: 0,
-          clientId: "c",
-          expiresAt: Date.now() - 1,
-        },
-      });
-      expect.fail("expected throw");
-    } catch (error) {
-      expect(isErrorCode(error, "AUTH_DEVICE_CODE_EXPIRED")).toBe(true);
-    }
-  });
-
-  it("rejects on authorization_declined", async () => {
-    const http = new FakeHttpClient().on(TOKEN_URL, {
-      status: 400,
-      body: JSON.stringify({ error: "authorization_declined" }),
-    });
-    try {
-      await pollDeviceCode({
-        http,
-        state: {
-          deviceCode: "D",
-          userCode: "U",
-          verificationUri: "https://x",
-          message: "m",
-          expiresIn: 1,
-          interval: 0,
-          clientId: "c",
-          expiresAt: Date.now() + 1000,
-        },
-      });
-      expect.fail("expected throw");
-    } catch (error) {
-      expect(isErrorCode(error, "AUTH_DEVICE_CODE_DECLINED")).toBe(true);
     }
   });
 });

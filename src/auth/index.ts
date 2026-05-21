@@ -7,7 +7,6 @@ import { startLoopbackServer } from "./loopback";
 import {
   type MicrosoftToken,
   exchangeAuthorizationCode,
-  pollDeviceCode,
   refreshMicrosoftToken,
   startDeviceCode,
 } from "./microsoft";
@@ -100,20 +99,11 @@ export class MojangAuthApi {
    * render the URL + code to the user; this method polls until they finish.
    */
   async login(options: LoginOptions): Promise<MojangSession> {
-    const clientId = resolveClientId(options.clientId);
-    const { prompt, state } = await startDeviceCode({
-      http: this.http,
-      clientId,
-      ...(options.signal !== undefined ? { signal: options.signal } : {}),
-    });
-    await options.onPrompt(prompt);
-    const msToken = await pollDeviceCode({
-      http: this.http,
-      state,
-      ...(options.signal !== undefined ? { signal: options.signal } : {}),
-      ...(options.onPoll !== undefined ? { onTick: options.onPoll } : {}),
-    });
-    return runPostMsTokenPipeline(this.http, msToken, clientId, options.signal);
+    resolveClientId(options.clientId);
+    throw new MinecraftKitError(
+      MinecraftKitErrorCodes.AUTH_DEVICE_CODE_FAILED,
+      "Device-code login has been removed. Use `kit.auth.authorizationCode.run({ onOpenBrowser })` instead.",
+    );
   }
 
   /** Refresh a previously obtained session. The Microsoft refresh token may be rotated. */
@@ -148,16 +138,13 @@ export class MojangAuthApi {
       });
     },
     poll: async (
-      state: DeviceCodeState,
-      options: PollDeviceCodeOptions = {},
+      _state: DeviceCodeState,
+      _options: PollDeviceCodeOptions = {},
     ): Promise<MojangSession> => {
-      const msToken = await pollDeviceCode({
-        http: this.http,
-        state,
-        ...(options.signal !== undefined ? { signal: options.signal } : {}),
-        ...(options.onTick !== undefined ? { onTick: options.onTick } : {}),
-      });
-      return runPostMsTokenPipeline(this.http, msToken, state.clientId, options.signal);
+      throw new MinecraftKitError(
+        MinecraftKitErrorCodes.AUTH_DEVICE_CODE_FAILED,
+        "Device-code polling has been removed. Use `kit.auth.authorizationCode.run({ onOpenBrowser })` instead.",
+      );
     },
   };
 

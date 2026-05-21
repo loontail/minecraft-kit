@@ -4,7 +4,6 @@ import { isErrorCode } from "../../src/core/errors";
 import { AuthModes, type MojangSession } from "../../src/types/auth";
 import { FakeHttpClient } from "../helpers/fake-http";
 
-const DEVICE_CODE_URL = "https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode";
 const TOKEN_URL = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
 const XBL_URL = "https://user.auth.xboxlive.com/user/authenticate";
 const XSTS_URL = "https://xsts.auth.xboxlive.com/xsts/authorize";
@@ -20,68 +19,6 @@ const buildAccessToken = (payload: Record<string, unknown>): string => {
 };
 
 describe("MojangAuthApi.login", () => {
-  it("runs the full 5-step flow end-to-end", async () => {
-    const accessToken = buildAccessToken({ xuid: "xbox-uid-1" });
-    const http = new FakeHttpClient()
-      .on(DEVICE_CODE_URL, {
-        body: JSON.stringify({
-          device_code: "DEV",
-          user_code: "CODE",
-          verification_uri: "https://x",
-          message: "m",
-          expires_in: 900,
-          interval: 0,
-        }),
-      })
-      .on(TOKEN_URL, {
-        body: JSON.stringify({
-          token_type: "Bearer",
-          scope: "X",
-          expires_in: 3600,
-          access_token: "MS-AT",
-          refresh_token: "MS-RT",
-        }),
-      })
-      .on(XBL_URL, {
-        body: JSON.stringify({
-          Token: "XBL-T",
-          DisplayClaims: { xui: [{ uhs: "uhs-1" }] },
-        }),
-      })
-      .on(XSTS_URL, {
-        body: JSON.stringify({
-          Token: "XSTS-T",
-          DisplayClaims: { xui: [{ uhs: "uhs-1" }] },
-        }),
-      })
-      .on(MC_LOGIN_URL, {
-        body: JSON.stringify({ access_token: accessToken, expires_in: 86400 }),
-      })
-      .on(MC_PROFILE_URL, {
-        body: JSON.stringify({
-          id: "12345678123412341234123456789012",
-          name: "Steve",
-        }),
-      });
-
-    const api = new MojangAuthApi(http);
-    let promptSeen = false;
-    const session = await api.login({
-      clientId: "client-1",
-      onPrompt: (prompt) => {
-        expect(prompt.userCode).toBe("CODE");
-        promptSeen = true;
-      },
-    });
-    expect(promptSeen).toBe(true);
-    expect(session.minecraft.username).toBe("Steve");
-    expect(session.minecraft.uuid).toBe("12345678-1234-1234-1234-123456789012");
-    expect(session.minecraft.accessToken).toBe(accessToken);
-    expect(session.minecraft.xuid).toBe("xbox-uid-1");
-    expect(session.microsoft.refreshToken).toBe("MS-RT");
-    expect(session.microsoft.clientId).toBe("client-1");
-  });
-
   it("throws AUTH_MISSING_CLIENT_ID when neither option nor env is set", async () => {
     const http = new FakeHttpClient();
     const api = new MojangAuthApi(http);
