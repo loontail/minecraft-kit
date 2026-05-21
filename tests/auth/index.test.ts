@@ -144,6 +144,66 @@ describe("MojangAuthApi.refresh", () => {
   });
 });
 
+describe("MojangAuthApi.authorizationCode.run", () => {
+  it("runs the full browser flow end-to-end via the loopback server", async () => {
+    const accessToken = buildAccessToken({ xuid: "xbox-uid-1" });
+    const http = new FakeHttpClient()
+      .on(TOKEN_URL, {
+        body: JSON.stringify({
+          token_type: "Bearer",
+          scope: "X",
+          expires_in: 3600,
+          access_token: "MS-AT",
+          refresh_token: "MS-RT",
+        }),
+      })
+      .on(XBL_URL, {
+        body: JSON.stringify({ Token: "XBL-T", DisplayClaims: { xui: [{ uhs: "uhs-1" }] } }),
+      })
+      .on(XSTS_URL, {
+        body: JSON.stringify({ Token: "XSTS-T", DisplayClaims: { xui: [{ uhs: "uhs-1" }] } }),
+      })
+      .on(MC_LOGIN_URL, {
+        body: JSON.stringify({ access_token: accessToken, expires_in: 86400 }),
+      })
+      .on(MC_PROFILE_URL, {
+        body: JSON.stringify({ id: "12345678123412341234123456789012", name: "Steve" }),
+      });
+
+    const api = new MojangAuthApi(http);
+    let capturedUrl: string | null = null;
+
+    const session = await api.authorizationCode.run({
+      clientId: "client-1",
+      onOpenBrowser: async (url) => {
+        capturedUrl = url;
+        // Simulate the browser landing on the loopback redirect with a fake code.
+        const parsed = new URL(url);
+        const redirectUri = parsed.searchParams.get("redirect_uri");
+        const state = parsed.searchParams.get("state");
+        const response = await fetch(`${redirectUri}?code=FAKE-CODE&state=${state}`);
+        expect(response.status).toBe(200);
+      },
+    });
+
+    expect(session.minecraft.username).toBe("Steve");
+    expect(session.minecraft.uuid).toBe("12345678-1234-1234-1234-123456789012");
+    expect(session.microsoft.refreshToken).toBe("MS-RT");
+    expect(session.microsoft.clientId).toBe("client-1");
+
+    // Authorize URL is well-formed with PKCE + state + select_account.
+    expect(capturedUrl).not.toBeNull();
+    const authorizeUrl = new URL(capturedUrl as unknown as string);
+    expect(authorizeUrl.searchParams.get("response_type")).toBe("code");
+    expect(authorizeUrl.searchParams.get("client_id")).toBe("client-1");
+    expect(authorizeUrl.searchParams.get("code_challenge_method")).toBe("S256");
+    expect(authorizeUrl.searchParams.get("code_challenge")).toBeTruthy();
+    expect(authorizeUrl.searchParams.get("state")).toBeTruthy();
+    expect(authorizeUrl.searchParams.get("prompt")).toBe("select_account");
+    expect(authorizeUrl.searchParams.get("redirect_uri")).toMatch(/^http:\/\/localhost:\d+$/);
+  });
+});
+
 describe("toOnlineAuth", () => {
   it("projects a session into the launch-compose OnlineAuth shape", () => {
     const session: MojangSession = {
@@ -153,6 +213,8 @@ describe("toOnlineAuth", () => {
         accessToken: "at",
         expiresAt: 0,
         xuid: "xuid",
+        skins: [],
+        capes: [],
       },
       microsoft: { refreshToken: "rt", clientId: "c" },
     };

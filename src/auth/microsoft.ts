@@ -44,6 +44,35 @@ type TokenError = {
   readonly error_description?: string;
 };
 
+type TokenResponse =
+  | { readonly ok: true; readonly status: number; readonly token: TokenSuccess }
+  | { readonly ok: false; readonly status: number; readonly error: TokenError };
+
+/**
+ * Shared POST to `/consumers/oauth2/v2.0/token` used by every grant — device_code,
+ * refresh_token, and authorization_code. Each caller decides how to interpret the
+ * Microsoft `error` field, so this helper just returns the parsed body either way.
+ */
+const postTokenRequest = async (
+  http: HttpClient,
+  body: URLSearchParams,
+  signal: AbortSignal | undefined,
+): Promise<TokenResponse> => {
+  const response = await http.request(TOKEN_URL, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
+    body: body.toString(),
+    acceptNonOk: true,
+    ...(signal !== undefined ? { signal } : {}),
+  });
+  if (response.status >= 200 && response.status < 300) {
+    const token = (await response.json()) as TokenSuccess;
+    return { ok: true, status: response.status, token };
+  }
+  const error = (await response.json().catch(() => ({}))) as TokenError;
+  return { ok: false, status: response.status, error };
+};
+
 /** Start a device-code session against Microsoft's `/devicecode` endpoint. */
 export const startDeviceCode = async (input: {
   readonly http: HttpClient;
@@ -134,27 +163,21 @@ export const pollDeviceCode = async (input: {
       client_id: input.state.clientId,
       device_code: input.state.deviceCode,
     });
-    const response = await input.http.request(TOKEN_URL, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
-      body: body.toString(),
-      acceptNonOk: true,
-    });
-    if (response.status >= 200 && response.status < 300) {
-      const ok = (await response.json()) as TokenSuccess;
-      if (!ok.refresh_token) {
+    const result = await postTokenRequest(input.http, body, input.signal);
+    if (result.ok) {
+      if (!result.token.refresh_token) {
         throw new MinecraftKitError(
           MinecraftKitErrorCodes.AUTH_DEVICE_CODE_FAILED,
           "Microsoft did not return a refresh token. Make sure `offline_access` is in the requested scopes.",
         );
       }
       return {
-        accessToken: ok.access_token,
-        refreshToken: ok.refresh_token,
-        expiresIn: ok.expires_in,
+        accessToken: result.token.access_token,
+        refreshToken: result.token.refresh_token,
+        expiresIn: result.token.expires_in,
       };
     }
-    const err = (await response.json().catch(() => ({}))) as TokenError;
+    const err = result.error;
     switch (err.error) {
       case "authorization_pending":
         continue;
@@ -177,7 +200,7 @@ export const pollDeviceCode = async (input: {
           `Microsoft device-code exchange failed: ${err.error ?? "unknown_error"}${
             err.error_description ? ` — ${err.error_description}` : ""
           }`,
-          { context: { httpStatus: response.status, microsoftError: err.error } },
+          { context: { httpStatus: result.status, microsoftError: err.error } },
         );
     }
   }
@@ -199,28 +222,65 @@ export const refreshMicrosoftToken = async (input: {
     refresh_token: input.refreshToken,
     scope: SCOPE,
   });
-  const response = await input.http.request(TOKEN_URL, {
-    method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
-    body: body.toString(),
-    acceptNonOk: true,
-    ...(input.signal !== undefined ? { signal: input.signal } : {}),
-  });
-  if (response.status < 200 || response.status >= 300) {
-    const err = (await response.json().catch(() => ({}))) as TokenError;
+  const result = await postTokenRequest(input.http, body, input.signal);
+  if (!result.ok) {
     throw new MinecraftKitError(
       MinecraftKitErrorCodes.AUTH_REFRESH_FAILED,
-      `Microsoft refused to refresh the token: ${err.error ?? "unknown_error"}${
-        err.error_description ? ` — ${err.error_description}` : ""
+      `Microsoft refused to refresh the token: ${result.error.error ?? "unknown_error"}${
+        result.error.error_description ? ` — ${result.error.error_description}` : ""
       }`,
-      { context: { httpStatus: response.status, microsoftError: err.error } },
+      { context: { httpStatus: result.status, microsoftError: result.error.error } },
     );
   }
-  const ok = (await response.json()) as TokenSuccess;
   return {
-    accessToken: ok.access_token,
-    refreshToken: ok.refresh_token ?? input.refreshToken,
-    expiresIn: ok.expires_in,
+    accessToken: result.token.access_token,
+    refreshToken: result.token.refresh_token ?? input.refreshToken,
+    expiresIn: result.token.expires_in,
+  };
+};
+
+/**
+ * Exchange a one-time authorization `code` (returned by Microsoft on the loopback
+ * redirect) for a Microsoft access + refresh token. PKCE-protected: the caller must
+ * pass the same `codeVerifier` whose hash they sent as `code_challenge` in the
+ * authorize URL.
+ */
+export const exchangeAuthorizationCode = async (input: {
+  readonly http: HttpClient;
+  readonly code: string;
+  readonly codeVerifier: string;
+  readonly redirectUri: string;
+  readonly clientId: string;
+  readonly signal?: AbortSignal;
+}): Promise<MicrosoftToken> => {
+  const body = new URLSearchParams({
+    grant_type: "authorization_code",
+    client_id: input.clientId,
+    code: input.code,
+    redirect_uri: input.redirectUri,
+    code_verifier: input.codeVerifier,
+    scope: SCOPE,
+  });
+  const result = await postTokenRequest(input.http, body, input.signal);
+  if (!result.ok) {
+    throw new MinecraftKitError(
+      MinecraftKitErrorCodes.AUTH_AUTHORIZATION_CODE_FAILED,
+      `Microsoft refused to exchange the authorization code: ${result.error.error ?? "unknown_error"}${
+        result.error.error_description ? ` — ${result.error.error_description}` : ""
+      }`,
+      { context: { httpStatus: result.status, microsoftError: result.error.error } },
+    );
+  }
+  if (!result.token.refresh_token) {
+    throw new MinecraftKitError(
+      MinecraftKitErrorCodes.AUTH_AUTHORIZATION_CODE_FAILED,
+      "Microsoft did not return a refresh token. Make sure `offline_access` is in the requested scopes.",
+    );
+  }
+  return {
+    accessToken: result.token.access_token,
+    refreshToken: result.token.refresh_token,
+    expiresIn: result.token.expires_in,
   };
 };
 

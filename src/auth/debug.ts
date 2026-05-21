@@ -26,6 +26,9 @@ export const buildAuthLogger = (base: Logger | undefined): Logger => {
  */
 export const authDebug = (message: string): void => {
   if (process.env[DEBUG_ENV_VAR]) {
-    process.stderr.write(`[auth] ${message}\n`);
+    // Use console.warn so Electron's logger (which hooks into console) picks
+    // it up alongside plain stderr. Important for Electron main processes
+    // where stderr isn't always tailed to the log file.
+    console.warn(`[auth] ${message}`);
   }
 };

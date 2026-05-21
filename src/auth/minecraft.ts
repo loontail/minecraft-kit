@@ -1,5 +1,11 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { parseJsonOrUndefined } from "../core/json";
+import type {
+  MojangAssetState,
+  MojangProfileCape,
+  MojangProfileSkin,
+  MojangSkinVariant,
+} from "../types/auth";
 import type { HttpClient } from "../types/http";
 import { authDebug } from "./debug";
 
@@ -19,10 +25,34 @@ type LoginResponse = {
   readonly username?: string;
 };
 
+type RawProfileSkin = {
+  readonly id?: string;
+  readonly state?: string;
+  readonly url?: string;
+  readonly variant?: string;
+};
+
+type RawProfileCape = {
+  readonly id?: string;
+  readonly state?: string;
+  readonly url?: string;
+  readonly alias?: string;
+};
+
 type ProfileResponse = {
   readonly id: string;
   readonly name: string;
   readonly errorMessage?: string;
+  readonly skins?: ReadonlyArray<RawProfileSkin>;
+  readonly capes?: ReadonlyArray<RawProfileCape>;
+};
+
+/** Rich `/minecraft/profile` payload — UUID + display name + all skin/cape slots. */
+export type MinecraftProfile = {
+  readonly uuid: string;
+  readonly username: string;
+  readonly skins: ReadonlyArray<MojangProfileSkin>;
+  readonly capes: ReadonlyArray<MojangProfileCape>;
 };
 
 /** Step 4 — trade the XSTS token for a Minecraft bearer token. */
@@ -92,12 +122,16 @@ export const loginWithXbox = async (input: {
   return { accessToken: parsed.access_token, expiresIn: parsed.expires_in };
 };
 
-/** Step 5 — fetch the player profile (UUID + display name) using the Minecraft bearer token. */
+/**
+ * Step 5 — fetch the player profile using the Minecraft bearer token. Returns the rich
+ * payload (UUID + display name + every skin/cape slot Mojang has issued) so callers can
+ * drive their skin-picker UI without an extra round-trip.
+ */
 export const fetchMinecraftProfile = async (input: {
   readonly http: HttpClient;
   readonly accessToken: string;
   readonly signal?: AbortSignal;
-}): Promise<{ readonly uuid: string; readonly username: string }> => {
+}): Promise<MinecraftProfile> => {
   const response = await input.http.request(MC_PROFILE_URL, {
     headers: {
       authorization: `Bearer ${input.accessToken}`,
@@ -128,7 +162,45 @@ export const fetchMinecraftProfile = async (input: {
       parsed.errorMessage ?? "Minecraft profile response was malformed.",
     );
   }
-  return { uuid: dashUuid(parsed.id), username: parsed.name };
+  return {
+    uuid: dashUuid(parsed.id),
+    username: parsed.name,
+    skins: (parsed.skins ?? []).flatMap(toProfileSkin),
+    capes: (parsed.capes ?? []).flatMap(toProfileCape),
+  };
+};
+
+const ASSET_STATES: ReadonlySet<MojangAssetState> = new Set(["ACTIVE", "INACTIVE"]);
+const SKIN_VARIANTS: ReadonlySet<MojangSkinVariant> = new Set(["CLASSIC", "SLIM"]);
+
+// Drop rows whose required fields Mojang omitted. Unknown variants/states are
+// rejected rather than coerced — better an empty list than a row that violates
+// our union types and corrupts downstream UI assumptions.
+const toProfileSkin = (raw: RawProfileSkin): ReadonlyArray<MojangProfileSkin> => {
+  if (!raw.id || !raw.url || !raw.state || !raw.variant) return [];
+  if (!ASSET_STATES.has(raw.state as MojangAssetState)) return [];
+  if (!SKIN_VARIANTS.has(raw.variant as MojangSkinVariant)) return [];
+  return [
+    {
+      id: raw.id,
+      url: raw.url,
+      state: raw.state as MojangAssetState,
+      variant: raw.variant as MojangSkinVariant,
+    },
+  ];
+};
+
+const toProfileCape = (raw: RawProfileCape): ReadonlyArray<MojangProfileCape> => {
+  if (!raw.id || !raw.url || !raw.state) return [];
+  if (!ASSET_STATES.has(raw.state as MojangAssetState)) return [];
+  return [
+    {
+      id: raw.id,
+      url: raw.url,
+      state: raw.state as MojangAssetState,
+      ...(raw.alias !== undefined ? { alias: raw.alias } : {}),
+    },
+  ];
 };
 
 /**

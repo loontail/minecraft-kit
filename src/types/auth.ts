@@ -61,12 +61,36 @@ export type DeviceCodeState = {
   readonly expiresAt: number;
 };
 
+/** Lifecycle state of a Mojang-issued skin or cape. */
+export type MojangAssetState = "ACTIVE" | "INACTIVE";
+
+/** Skin model variant Mojang serves for the player. */
+export type MojangSkinVariant = "CLASSIC" | "SLIM";
+
+/** A single skin slot returned by `/minecraft/profile`. */
+export type MojangProfileSkin = {
+  readonly id: string;
+  readonly state: MojangAssetState;
+  readonly url: string;
+  readonly variant: MojangSkinVariant;
+};
+
+/** A cape slot returned by `/minecraft/profile`. */
+export type MojangProfileCape = {
+  readonly id: string;
+  readonly state: MojangAssetState;
+  readonly url: string;
+  readonly alias?: string;
+};
+
 /**
- * Combined Microsoft + Minecraft session returned by `kit.auth.login` and `kit.auth.refresh`.
+ * Combined Microsoft + Minecraft session returned by `kit.auth.login`,
+ * `kit.auth.refresh`, and `kit.auth.authorizationCode.run`.
  *
- * The fields under {@link minecraft} are everything {@link OnlineAuth} needs. The fields under
- * {@link microsoft} are needed only by the launcher to refresh the session later — persist them
- * to durable storage (encrypted) alongside the user's profile.
+ * The fields under {@link minecraft} are everything {@link OnlineAuth} needs plus the
+ * raw `/minecraft/profile` payload so callers do not have to re-fetch it for skin/cape UI.
+ * The fields under {@link microsoft} are needed only to refresh the session later —
+ * persist them to durable storage (encrypted) alongside the user's profile.
  */
 export type MojangSession = {
   readonly minecraft: {
@@ -80,6 +104,10 @@ export type MojangSession = {
     readonly expiresAt: number;
     /** Xbox User ID (XUID) as a numeric string. */
     readonly xuid: string;
+    /** Every skin slot Mojang has issued for the user (active + inactive). */
+    readonly skins: ReadonlyArray<MojangProfileSkin>;
+    /** Every cape slot Mojang has issued for the user. Empty when the user owns no capes. */
+    readonly capes: ReadonlyArray<MojangProfileCape>;
   };
   readonly microsoft: {
     /** Microsoft refresh token; used to obtain a fresh session without re-prompting. */

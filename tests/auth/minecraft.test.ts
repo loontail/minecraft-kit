@@ -100,6 +100,61 @@ describe("fetchMinecraftProfile", () => {
       expect(isErrorCode(error, "AUTH_MINECRAFT_FAILED")).toBe(true);
     }
   });
+
+  it("defaults skins/capes to empty arrays when Mojang omits them", async () => {
+    const http = new FakeHttpClient().on(PROFILE_URL, {
+      body: JSON.stringify({ id: "12345678123412341234123456789012", name: "Steve" }),
+    });
+    const profile = await fetchMinecraftProfile({ http, accessToken: "AT" });
+    expect(profile.skins).toEqual([]);
+    expect(profile.capes).toEqual([]);
+  });
+
+  it("plumbs skin + cape slots through, dropping malformed rows", async () => {
+    const http = new FakeHttpClient().on(PROFILE_URL, {
+      body: JSON.stringify({
+        id: "12345678123412341234123456789012",
+        name: "Steve",
+        skins: [
+          {
+            id: "skin-a",
+            state: "ACTIVE",
+            url: "http://textures/skin-a.png",
+            variant: "CLASSIC",
+          },
+          { id: "skin-b", state: "WEIRD", url: "http://x", variant: "CLASSIC" }, // unknown state → dropped
+          { id: "skin-c", state: "INACTIVE", variant: "SLIM" }, // missing url → dropped
+        ],
+        capes: [
+          {
+            id: "cape-1",
+            state: "ACTIVE",
+            url: "http://textures/cape.png",
+            alias: "Migrator",
+          },
+          { id: "cape-2", state: "INACTIVE", url: "http://textures/cape2.png" },
+        ],
+      }),
+    });
+    const profile = await fetchMinecraftProfile({ http, accessToken: "AT" });
+    expect(profile.skins).toEqual([
+      {
+        id: "skin-a",
+        state: "ACTIVE",
+        url: "http://textures/skin-a.png",
+        variant: "CLASSIC",
+      },
+    ]);
+    expect(profile.capes).toEqual([
+      {
+        id: "cape-1",
+        state: "ACTIVE",
+        url: "http://textures/cape.png",
+        alias: "Migrator",
+      },
+      { id: "cape-2", state: "INACTIVE", url: "http://textures/cape2.png" },
+    ]);
+  });
 });
 
 describe("extractXuid", () => {
