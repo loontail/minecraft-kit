@@ -215,9 +215,6 @@ export const buildUi = (clack: ClackModule): Ui => {
         ...(input.validate !== undefined ? { validate: input.validate } : {}),
       });
       if (clack.isCancel(value)) return { kind: "cancel" };
-      // clack.text may return undefined when the user submits without typing and no
-      // initialValue was supplied. Normalize to an empty string so callers can safely
-      // call `.trim()` etc. without runtime crashes.
       return { kind: "ok", value: typeof value === "string" ? value : "" };
     },
     select: async (input) => runSelect(clack, input),
@@ -230,10 +227,6 @@ export const buildUi = (clack: ClackModule): Ui => {
       if (clack.isCancel(value)) return { kind: "cancel" };
       return { kind: "ok", value: value as boolean };
     },
-    // Bypass clack.spinner() for progress: clack's spinner sometimes prints a fresh line
-    // per update on Windows / older versions, defeating in-place rendering. Our own
-    // {@link createInPlaceSpinner} writes raw ANSI escapes to stdout so updates always
-    // overwrite the previous line.
     spinner: () => createInPlaceSpinner(),
   };
 };
@@ -261,10 +254,32 @@ export type InPlaceSpinnerInput = {
 };
 
 /**
+ * Write `message` to the spinner sink, overwriting whatever is currently on
+ * the spinner line. Emits a carriage return + ANSI clear-line escape
+ * (`\r\x1b[2K`) on a TTY; falls back to `${message}\n` on non-TTYs.
+ *
+ * @internal
+ */
+const writeClearedLine = (
+  out: { write(chunk: string): void; isTTY: boolean },
+  message: string,
+): void => {
+  if (out.isTTY) {
+    out.write(`\r\x1b[2K${message}`);
+  } else {
+    out.write(`${message}\n`);
+  }
+};
+
+/**
  * Build a {@link UiSpinner} that updates a single terminal line in place by writing raw
  * ANSI escape codes (`\r\x1b[2K` — carriage return + clear-line) before each update. Falls
  * back to one line per call when the stream is not a TTY (CI logs, redirected stdout) so it
  * never spams the output.
+ *
+ * Used in preference to `clack.spinner()` because clack's spinner sometimes
+ * prints a fresh line per update on Windows / older versions, defeating
+ * in-place rendering.
  *
  * Exposed for tests; the production {@link Ui} created by {@link createClackUi} already uses
  * this internally.
@@ -274,24 +289,18 @@ export type InPlaceSpinnerInput = {
 export const createInPlaceSpinner = (input: InPlaceSpinnerInput = {}): UiSpinner => {
   const out = input.out ?? DEFAULT_OUT;
   let started = false;
-  let lastLine = "";
+  let currentMessage = "";
   return {
     start(message: string): void {
       if (started) {
-        // Treat a second `start` as an in-place update so callers don't accidentally print
-        // a fresh line by re-starting.
-        if (message !== lastLine) {
-          lastLine = message;
-          if (out.isTTY) {
-            out.write(`\r\x1b[2K${message}`);
-          } else {
-            out.write(`${message}\n`);
-          }
+        if (message !== currentMessage) {
+          currentMessage = message;
+          writeClearedLine(out, message);
         }
         return;
       }
       started = true;
-      lastLine = message;
+      currentMessage = message;
       if (out.isTTY) {
         out.write(message);
       } else {
@@ -300,12 +309,11 @@ export const createInPlaceSpinner = (input: InPlaceSpinnerInput = {}): UiSpinner
     },
     message(message: string): void {
       if (!started) return;
-      if (message === lastLine) return;
-      lastLine = message;
+      if (message === currentMessage) return;
+      currentMessage = message;
       if (out.isTTY) {
         out.write(`\r\x1b[2K${message}`);
       }
-      // Non-TTY: drop in-flight updates entirely so the log isn't spammed.
     },
     stop(message?: string): void {
       if (!started) {
@@ -314,14 +322,14 @@ export const createInPlaceSpinner = (input: InPlaceSpinnerInput = {}): UiSpinner
         }
         return;
       }
-      const finalText = message ?? lastLine;
+      const finalText = message ?? currentMessage;
       if (out.isTTY) {
         out.write(`\r\x1b[2K${finalText}\n`);
       } else {
         out.write(`${finalText}\n`);
       }
       started = false;
-      lastLine = "";
+      currentMessage = "";
     },
   };
 };
@@ -358,6 +366,16 @@ const runSelect = async <T>(
   return { kind: "ok", value: result as T };
 };
 
+/**
+ * Run a select prompt that clips long lists to the first {@link MAX_VISIBLE_OPTIONS}
+ * entries (the caller is responsible for sorting newest-first or otherwise putting
+ * the likely-pick at the top). Lists at or below `searchThreshold` use the regular
+ * select. No inline-autocomplete affordance is offered because `clack.select` does
+ * not support it natively, and a dedicated "filter" entry adds noise without a
+ * clear win.
+ *
+ * @internal
+ */
 const searchableSelect = async <T>(
   clack: ClackModule,
   input: SearchableSelectInput<T>,
@@ -366,10 +384,6 @@ const searchableSelect = async <T>(
   if (input.options.length <= threshold) {
     return runSelect(clack, input);
   }
-  // Long lists: show only the first MAX_VISIBLE_OPTIONS items immediately. No filter
-  // sentinel — we render straight versions, sorted newest-first by the caller. There is no
-  // typing affordance because clack `select` does not support inline autocomplete, and an
-  // explicit "filter" entry adds noise that is not worth the extra step.
   const trimmed = input.options.slice(0, MAX_VISIBLE_OPTIONS);
   const truncatedHint =
     input.options.length > MAX_VISIBLE_OPTIONS
