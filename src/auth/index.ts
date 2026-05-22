@@ -110,10 +110,6 @@ export class MojangAuthApi {
     private readonly http: HttpClient,
     logger?: Logger,
   ) {
-    // `buildAuthLogger` wraps the supplied logger in an `auth` scope, or honours
-    // `MINECRAFT_KIT_AUTH_DEBUG=1` to route through `consoleLogger` when no logger
-    // was wired. Either way, the auth flow logs through the kit's structured logger
-    // interface rather than touching `console` directly.
     this.logger = buildAuthLogger(logger);
   }
 
@@ -156,14 +152,7 @@ export class MojangAuthApi {
       lap(`loopback bound on port ${server.port}`);
 
       try {
-        // Microsoft's loopback rule: register `http://localhost` (no port, no path),
-        // at runtime use `http://localhost:<any-port>` with the SAME path. Anything
-        // beyond the registered URI (a `/oauth/callback` suffix, for example) makes
-        // Microsoft reject the request with `invalid_request`. Stay on the root path.
-        // The launcher uses `localhost` (not `127.0.0.1`) because Microsoft treats
-        // those two as distinct strings; the loopback server still binds on the IPv4
-        // loopback only.
-        const redirectUri = `http://localhost:${server.port}`;
+        const redirectUri = buildLoopbackRedirectUri(server.port);
         const url = buildAuthorizeUrl({ clientId, redirectUri, state, codeChallenge });
         lap("authorize URL built — invoking onOpenBrowser");
         await options.onOpenBrowser(url);
@@ -262,6 +251,20 @@ export const toOnlineAuth = (session: MojangSession): OnlineAuth => {
     xuid: session.minecraft.xuid,
   };
 };
+
+/**
+ * Build the OAuth redirect URI Microsoft will redirect the browser to.
+ *
+ * Microsoft's loopback rule: register `http://localhost` (no port, no path) in the
+ * Azure AD application; at runtime use `http://localhost:<any-port>` with the SAME
+ * path. Anything beyond the registered URI (a `/oauth/callback` suffix, for example)
+ * makes Microsoft reject the request with `invalid_request`. We use `localhost`
+ * rather than `127.0.0.1` because Microsoft treats those two as distinct redirect
+ * strings; the loopback server itself still binds on the IPv4 loopback only.
+ *
+ * @internal
+ */
+const buildLoopbackRedirectUri = (port: number): string => `http://localhost:${port}`;
 
 const resolveClientId = (explicit: string | undefined): string => {
   if (typeof explicit === "string" && explicit.trim().length > 0) return explicit.trim();
