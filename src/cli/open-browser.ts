@@ -2,6 +2,16 @@ import { spawn } from "node:child_process";
 import process from "node:process";
 
 /**
+ * Safety-net deadline for the spawn promise. Some platforms/permissions can
+ * leave the promise hanging if neither `'spawn'` nor `'error'` fires; once
+ * this elapses we resolve `false` and let the caller fall back to printing
+ * the URL.
+ *
+ * @internal
+ */
+const SPAWN_TIMEOUT_MS = 1500;
+
+/**
  * Open `url` in the host's default browser without blocking. Resolves to `true` once the
  * child has actually started (`'spawn'` event), `false` on failure. The child is detached
  * + unref'd so the CLI can exit independently of the browser process.
@@ -37,9 +47,7 @@ export const openBrowser = async (url: string): Promise<boolean> => {
       });
       child.once("error", () => finish(false));
       child.once("spawn", () => finish(true));
-      // Safety net: some platforms/permissions can leave the promise hanging if neither
-      // 'spawn' nor 'error' fires. Cap at 1.5s and assume failure.
-      setTimeout(() => finish(false), 1500).unref();
+      setTimeout(() => finish(false), SPAWN_TIMEOUT_MS).unref();
       child.unref();
     } catch {
       finish(false);
@@ -47,9 +55,13 @@ export const openBrowser = async (url: string): Promise<boolean> => {
   });
 };
 
-// Reject anything that isn't a parseable http(s) URL — handing arbitrary strings
-// (e.g. `file://`, `data:`, or a string with quotes) to `cmd /c start` is a shell-quoting
-// hazard on Windows.
+/**
+ * Reject anything that isn't a parseable http(s) URL. Handing arbitrary
+ * strings (`file://`, `data:`, or anything containing quotes) to
+ * `cmd /c start` is a shell-quoting hazard on Windows.
+ *
+ * @internal
+ */
 const isSafeBrowserUrl = (url: string): boolean => {
   try {
     const parsed = new URL(url);

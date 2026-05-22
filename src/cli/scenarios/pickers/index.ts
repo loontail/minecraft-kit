@@ -1,5 +1,3 @@
-// Barrel — keeps existing `from "./pickers"` imports working while the implementation lives
-// in focused sibling files (version / loader / runtime / target).
 export {
   pickFabricLoader,
   pickForgeBuild,

@@ -39,7 +39,6 @@ export const scenarioLogin = async (ctx: ScenarioContext): Promise<ScenarioOutco
     if (action.value === "refresh") return await runRefresh(ctx);
     return await runSwitch(ctx);
   }
-  // Currently offline — let the user pick again (offline username / Microsoft).
   return await runSwitch(ctx);
 };
 
@@ -77,7 +76,6 @@ export const pickInitialAuth = async (
   }
   const session = await runMicrosoftBrowserLogin(ctx);
   if (!session) {
-    // Fall back to offline rather than abort — the user already committed to running the CLI.
     ctx.ui.log("warn", "Sign-in failed — continuing in offline mode.");
     const offline = await promptOfflineAuth(ctx);
     if (!offline) return false;

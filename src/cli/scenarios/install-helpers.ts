@@ -34,9 +34,6 @@ export const runInstallWithProgress = async (
     planSpinner.stop(`Plan ready: ${plan.totalActions} actions, ${formatBytes(plan.totalBytes)}.`);
   } catch (error) {
     planSpinner.stop("Planning failed.");
-    // The spinner only shows a generic label. Surface the real reason here so the user
-    // can see whether it was a network 404, an invalid manifest, etc., before the
-    // wizard bounces them back.
     ctx.ui.log("error", formatUserError(error));
     throw error;
   }
@@ -93,9 +90,6 @@ export const runInstallFromSelection = async (
     await runInstallWithProgress(ctx, target, describeLoader(sel));
     return InstallRunResults.OK;
   } catch {
-    // runInstallWithProgress already logged the error (plan-stage via ctx.ui.log,
-    // run-stage via renderer.fail). Bounce back to the main menu — looping inside
-    // the wizard would only re-trigger the same failure.
     return InstallRunResults.CANCELLED;
   }
 };

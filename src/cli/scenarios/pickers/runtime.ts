@@ -141,8 +141,12 @@ export const pickRuntimeInstallRoot = async (
   return { kind: "ok", value: trimmed };
 };
 
-// Mojang sometimes ships several entries per component (release history). Keep the first
-// (usually newest) per component for the picker.
+/**
+ * Mojang sometimes ships several entries per component (release history).
+ * Keep the first (usually newest) per component for the picker.
+ *
+ * @internal
+ */
 const dedupeComponents = (
   entries: ReadonlyArray<{ readonly component: string; readonly versionName: string }>,
 ): { component: string; versionName: string }[] => {

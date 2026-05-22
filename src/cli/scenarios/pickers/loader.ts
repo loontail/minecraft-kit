@@ -73,8 +73,6 @@ export const pickFabricLoader = async (
     });
   } catch (error) {
     spinner.stop("Failed to load Fabric loaders.");
-    // Conflate network failure with "loader not available" — both block the wizard from
-    // moving forward, and the warning surfaces the underlying error message either way.
     ctx.ui.log("warn", formatUserError(error));
     return { kind: "incompatible" };
   }
