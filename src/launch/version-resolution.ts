@@ -7,7 +7,18 @@ import { Loaders } from "../types/loader";
 import type { MinecraftVersionManifest } from "../types/minecraft";
 import type { Target } from "../types/target";
 
-/** Result of resolving the on-disk version JSON for a target. */
+/**
+ * Result of resolving the on-disk version JSON for a target.
+ *
+ * @example
+ * ```ts
+ * import { resolveLaunchVersion, type ResolvedLaunchVersion } from "@loontail/minecraft-kit";
+ *
+ * const resolved: ResolvedLaunchVersion = await resolveLaunchVersion(target);
+ * console.log(resolved.versionId, resolved.chain);
+ * console.log(resolved.merged.mainClass); // e.g. "net.fabricmc.loader.impl.launch.knot.KnotClient"
+ * ```
+ */
 export type ResolvedLaunchVersion = {
   /** Topmost version id (the one used as `${version_name}` and for the natives directory). */
   readonly versionId: string;
@@ -17,7 +28,20 @@ export type ResolvedLaunchVersion = {
   readonly chain: readonly string[];
 };
 
-/** Read the installed version JSON appropriate for a target's loader and merge inheritsFrom. */
+/**
+ * Read the installed version JSON appropriate for a target's loader and merge inheritsFrom.
+ *
+ * `kit.launch.compose` calls this internally; reach for it directly when you need the merged
+ * manifest (or the inheritsFrom chain) without composing a full JVM invocation.
+ *
+ * @example
+ * ```ts
+ * import { resolveLaunchVersion } from "@loontail/minecraft-kit";
+ *
+ * const { merged, versionId, chain } = await resolveLaunchVersion(target);
+ * console.log(`launching ${versionId} → ${chain.join(" → ")} via ${merged.mainClass}`);
+ * ```
+ */
 export const resolveLaunchVersion = async (target: Target): Promise<ResolvedLaunchVersion> => {
   if (target.loader.type === Loaders.VANILLA) {
     return {

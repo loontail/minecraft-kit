@@ -19,7 +19,22 @@ export type RunRepairInput = {
   readonly onEvent?: ProgressListener;
 };
 
-/** Execute any repair plan. Reuses the install runner. */
+/**
+ * Execute any repair plan. Reuses the install runner.
+ *
+ * Prefer `kit.repair.<aspect>.run(plan)` over importing this directly.
+ *
+ * @example
+ * ```ts
+ * import { MinecraftKit } from "@loontail/minecraft-kit";
+ *
+ * const kit = new MinecraftKit();
+ * const verification = await kit.verify.minecraft.run(target);
+ * const plan = await kit.repair.minecraft.plan(target, { from: verification });
+ * const report = await kit.repair.minecraft.run(plan);
+ * console.log(`repaired ${report.actionsCompleted} files in ${report.durationMs}ms`);
+ * ```
+ */
 export const runRepair = async (input: RunRepairInput): Promise<RepairReport> => {
   const report = await runInstall({
     plan: {

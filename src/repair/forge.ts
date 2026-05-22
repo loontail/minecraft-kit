@@ -29,6 +29,20 @@ export type PlanForgeRepairInput = AspectRepairInput;
  * download, and the Forge processors that produce the final installation. When the Forge
  * version JSON was missing during verify (so libraries couldn't be enumerated), every
  * forge-library download is added defensively — `downloadFile` skips files already on disk.
+ *
+ * Throws `INVALID_INPUT` when the target is not a Forge install.
+ *
+ * Prefer `kit.repair.forge.plan(target, { from })` over importing this directly.
+ *
+ * @example
+ * ```ts
+ * import { MinecraftKit } from "@loontail/minecraft-kit";
+ *
+ * const kit = new MinecraftKit();
+ * const verification = await kit.verify.forge.run(forgeTarget);
+ * const plan = await kit.repair.forge.plan(forgeTarget, { from: verification });
+ * await kit.repair.forge.run(plan);
+ * ```
  */
 export const planForgeRepair = async (input: PlanForgeRepairInput): Promise<RepairPlan> => {
   if (input.target.loader.type !== Loaders.FORGE) {

@@ -31,6 +31,17 @@ export type VerifyRuntimeInput = {
  * Verify the Java runtime files. Honours `target.runtime.installRoot` when set so a
  * shared/global runtime install is checked at its real location instead of the per-target
  * `runtime/` subfolder.
+ *
+ * Prefer `kit.verify.runtime.run(target)` over importing this directly.
+ *
+ * @example
+ * ```ts
+ * import { MinecraftKit } from "@loontail/minecraft-kit";
+ *
+ * const kit = new MinecraftKit();
+ * const result = await kit.verify.runtime.run(target);
+ * console.log(`runtime ${result.isValid ? "ok" : "broken"} — ${result.checkedFiles} files checked`);
+ * ```
  */
 export const verifyRuntime = async (input: VerifyRuntimeInput): Promise<VerificationResult> => {
   return runVerification(

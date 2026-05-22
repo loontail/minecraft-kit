@@ -4,6 +4,15 @@
  *
  * Codes are stable across releases — adding new codes is non-breaking; removing or renaming
  * a code is a breaking change.
+ *
+ * @example
+ * ```ts
+ * import { isMinecraftKitError, MinecraftKitErrorCodes } from "@loontail/minecraft-kit";
+ *
+ * if (isMinecraftKitError(e) && e.code === MinecraftKitErrorCodes.NETWORK_TIMEOUT) {
+ *   await scheduleRetry();
+ * }
+ * ```
  */
 export const MinecraftKitErrorCodes = {
   NETWORK_TIMEOUT: "NETWORK_TIMEOUT",
@@ -50,7 +59,17 @@ export const MinecraftKitErrorCodes = {
 export type MinecraftKitErrorCode =
   (typeof MinecraftKitErrorCodes)[keyof typeof MinecraftKitErrorCodes];
 
-/** Structured context attached to errors. */
+/**
+ * Structured context attached to errors. Always safe to serialize via `JSON.stringify`.
+ *
+ * @example
+ * ```ts
+ * if (isMinecraftKitError(e)) {
+ *   const ctx: MinecraftKitErrorContext = e.context;
+ *   logger.error("install failed", { code: e.code, url: ctx.url, status: ctx.httpStatus });
+ * }
+ * ```
+ */
 export type MinecraftKitErrorContext = {
   readonly url?: string;
   readonly filePath?: string;

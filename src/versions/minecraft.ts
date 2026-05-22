@@ -16,25 +16,69 @@ type VersionManifestRoot = {
   readonly versions: readonly MinecraftVersionSummary[];
 };
 
-/** Inputs to {@link MinecraftVersionsApi.list}. */
+/**
+ * Inputs to {@link MinecraftVersionsApi.list}.
+ *
+ * @example
+ * ```ts
+ * import { MinecraftChannels, type MinecraftListInput } from "@loontail/minecraft-kit";
+ *
+ * const input: MinecraftListInput = { channel: MinecraftChannels.RELEASE };
+ * const releases = await kit.versions.minecraft.list(input);
+ * ```
+ */
 export type MinecraftListInput = {
   readonly channel?: MinecraftChannel;
   readonly signal?: AbortSignal;
 };
 
-/** Inputs to {@link MinecraftVersionsApi.latest}. */
+/**
+ * Inputs to {@link MinecraftVersionsApi.latest}.
+ *
+ * @example
+ * ```ts
+ * import { MinecraftChannels, type MinecraftLatestInput } from "@loontail/minecraft-kit";
+ *
+ * const input: MinecraftLatestInput = { channel: MinecraftChannels.SNAPSHOT };
+ * const latestSnapshot = await kit.versions.minecraft.latest(input);
+ * ```
+ */
 export type MinecraftLatestInput = {
   readonly channel?: MinecraftChannel;
   readonly signal?: AbortSignal;
 };
 
-/** Inputs to {@link MinecraftVersionsApi.get} / `.resolve`. */
+/**
+ * Inputs to {@link MinecraftVersionsApi.get} / `.resolve`.
+ *
+ * @example
+ * ```ts
+ * import type { MinecraftGetInput } from "@loontail/minecraft-kit";
+ *
+ * const input: MinecraftGetInput = { version: "1.20.1" };
+ * const resolved = await kit.versions.minecraft.resolve(input);
+ * console.log(resolved.manifest.id, resolved.manifest.javaVersion?.majorVersion);
+ * ```
+ */
 export type MinecraftGetInput = {
   readonly version: string;
   readonly signal?: AbortSignal;
 };
 
-/** Public Minecraft versions API surface. */
+/**
+ * Public Minecraft versions API surface.
+ *
+ * Available off a kit instance as `kit.versions.minecraft`.
+ *
+ * @example
+ * ```ts
+ * import { MinecraftKit } from "@loontail/minecraft-kit";
+ *
+ * const kit = new MinecraftKit();
+ * const latest = await kit.versions.minecraft.latest();
+ * const resolved = await kit.versions.minecraft.resolve({ version: latest.id });
+ * ```
+ */
 export class MinecraftVersionsApi {
   constructor(private readonly ctx: ResolverContext) {}
 

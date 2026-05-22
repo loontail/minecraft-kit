@@ -11,6 +11,17 @@ export type { MinecraftKitErrorCode };
  * The single error class thrown by every public API in `@loontail/minecraft-kit`.
  *
  * Use {@link isMinecraftKitError} or {@link isErrorCode} for type-narrowing in `catch` blocks.
+ *
+ * @example
+ * ```ts
+ * import { MinecraftKitError, MinecraftKitErrorCodes } from "@loontail/minecraft-kit";
+ *
+ * throw new MinecraftKitError(
+ *   MinecraftKitErrorCodes.INTEGRITY_HASH_MISMATCH,
+ *   "Library hash mismatch",
+ *   { context: { filePath, expectedHash, actualHash } },
+ * );
+ * ```
  */
 export class MinecraftKitError extends Error {
   override readonly name = "MinecraftKitError";
@@ -47,12 +58,41 @@ export class MinecraftKitError extends Error {
   }
 }
 
-/** True when `e` is an {@link MinecraftKitError}. */
+/**
+ * True when `e` is an {@link MinecraftKitError}.
+ *
+ * @example
+ * ```ts
+ * import { isMinecraftKitError } from "@loontail/minecraft-kit";
+ *
+ * try {
+ *   await kit.install.run(plan);
+ * } catch (e) {
+ *   if (isMinecraftKitError(e)) console.error(e.code, e.context);
+ *   else throw e;
+ * }
+ * ```
+ */
 export const isMinecraftKitError = (e: unknown): e is MinecraftKitError => {
   return e instanceof MinecraftKitError;
 };
 
-/** True when `e` is an {@link MinecraftKitError} carrying the given code. */
+/**
+ * True when `e` is an {@link MinecraftKitError} carrying the given code.
+ *
+ * @example
+ * ```ts
+ * import { isErrorCode, MinecraftKitErrorCodes } from "@loontail/minecraft-kit";
+ *
+ * try {
+ *   await kit.auth.refresh({ refreshToken });
+ * } catch (e) {
+ *   if (isErrorCode(e, MinecraftKitErrorCodes.AUTH_REFRESH_FAILED)) {
+ *     await promptInteractiveSignIn();
+ *   } else throw e;
+ * }
+ * ```
+ */
 export const isErrorCode = <C extends MinecraftKitErrorCode>(
   e: unknown,
   code: C,

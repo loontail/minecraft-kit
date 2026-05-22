@@ -1,4 +1,13 @@
-/** Authentication modes accepted by the launch composer. */
+/**
+ * Authentication modes accepted by the launch composer.
+ *
+ * @example
+ * ```ts
+ * import { AuthModes, type LaunchAuth } from "@loontail/minecraft-kit";
+ *
+ * const auth: LaunchAuth = { mode: AuthModes.OFFLINE, username: "Steve" };
+ * ```
+ */
 export const AuthModes = {
   /** Offline-mode play with a chosen username and synthetic UUID. */
   OFFLINE: "offline",
@@ -6,10 +15,34 @@ export const AuthModes = {
   ONLINE: "online",
 } as const;
 
-/** Auth mode literal. */
+/**
+ * Auth mode literal.
+ *
+ * @example
+ * ```ts
+ * import { AuthModes, type AuthMode } from "@loontail/minecraft-kit";
+ *
+ * function label(mode: AuthMode): string {
+ *   return mode === AuthModes.OFFLINE ? "Offline play" : "Microsoft sign-in";
+ * }
+ * ```
+ */
 export type AuthMode = (typeof AuthModes)[keyof typeof AuthModes];
 
-/** Offline authentication. */
+/**
+ * Offline authentication.
+ *
+ * @example
+ * ```ts
+ * import { AuthModes, offlineUuidFor, type OfflineAuth } from "@loontail/minecraft-kit";
+ *
+ * const auth: OfflineAuth = {
+ *   mode: AuthModes.OFFLINE,
+ *   username: "Steve",
+ *   uuid: offlineUuidFor("Steve"),
+ * };
+ * ```
+ */
 export type OfflineAuth = {
   readonly mode: typeof AuthModes.OFFLINE;
   readonly username: string;
@@ -17,7 +50,25 @@ export type OfflineAuth = {
   readonly uuid?: string;
 };
 
-/** Online (token-based) authentication. */
+/**
+ * Online (token-based) authentication.
+ *
+ * Build via {@link toOnlineAuth} from a {@link MojangSession}; rarely constructed directly.
+ *
+ * @example
+ * ```ts
+ * import { AuthModes, type OnlineAuth } from "@loontail/minecraft-kit";
+ *
+ * const auth: OnlineAuth = {
+ *   mode: AuthModes.ONLINE,
+ *   username: session.minecraft.username,
+ *   uuid: session.minecraft.uuid,
+ *   accessToken: session.minecraft.accessToken,
+ *   userType: "msa",
+ *   xuid: session.minecraft.xuid,
+ * };
+ * ```
+ */
 export type OnlineAuth = {
   readonly mode: typeof AuthModes.ONLINE;
   readonly username: string;
@@ -28,16 +79,58 @@ export type OnlineAuth = {
   readonly xuid?: string;
 };
 
-/** Auth shape consumed by `kit.launch.compose`. */
+/**
+ * Auth shape consumed by `kit.launch.compose`. Either an {@link OfflineAuth} or {@link OnlineAuth}.
+ *
+ * @example
+ * ```ts
+ * import { AuthModes, toOnlineAuth, type LaunchAuth } from "@loontail/minecraft-kit";
+ *
+ * const auth: LaunchAuth = session
+ *   ? toOnlineAuth(session)
+ *   : { mode: AuthModes.OFFLINE, username: "Steve" };
+ * await kit.launch.compose(target, { auth });
+ * ```
+ */
 export type LaunchAuth = OfflineAuth | OnlineAuth;
 
-/** Lifecycle state of a Mojang-issued skin or cape. */
+/**
+ * Lifecycle state of a Mojang-issued skin or cape.
+ *
+ * @example
+ * ```ts
+ * import type { MojangAssetState, MojangProfileSkin } from "@loontail/minecraft-kit";
+ *
+ * const activeSkins = (skins: readonly MojangProfileSkin[]) =>
+ *   skins.filter((s): s is MojangProfileSkin & { state: MojangAssetState } => s.state === "ACTIVE");
+ * ```
+ */
 export type MojangAssetState = "ACTIVE" | "INACTIVE";
 
-/** Skin model variant Mojang serves for the player. */
+/**
+ * Skin model variant Mojang serves for the player.
+ *
+ * @example
+ * ```ts
+ * import type { MojangSkinVariant } from "@loontail/minecraft-kit";
+ *
+ * const armOffset = (variant: MojangSkinVariant): number => (variant === "SLIM" ? 3 : 4);
+ * ```
+ */
 export type MojangSkinVariant = "CLASSIC" | "SLIM";
 
-/** A single skin slot returned by `/minecraft/profile`. */
+/**
+ * A single skin slot returned by `/minecraft/profile`.
+ *
+ * @example
+ * ```ts
+ * import type { MojangProfileSkin } from "@loontail/minecraft-kit";
+ *
+ * const active = (skins: readonly MojangProfileSkin[]) =>
+ *   skins.find((s) => s.state === "ACTIVE");
+ * console.log(active(session.minecraft.skins)?.url);
+ * ```
+ */
 export type MojangProfileSkin = {
   readonly id: string;
   readonly state: MojangAssetState;
@@ -45,7 +138,18 @@ export type MojangProfileSkin = {
   readonly variant: MojangSkinVariant;
 };
 
-/** A cape slot returned by `/minecraft/profile`. */
+/**
+ * A cape slot returned by `/minecraft/profile`.
+ *
+ * @example
+ * ```ts
+ * import type { MojangProfileCape } from "@loontail/minecraft-kit";
+ *
+ * const equipped = (capes: readonly MojangProfileCape[]) =>
+ *   capes.find((c) => c.state === "ACTIVE");
+ * console.log(equipped(session.minecraft.capes)?.alias);
+ * ```
+ */
 export type MojangProfileCape = {
   readonly id: string;
   readonly state: MojangAssetState;
@@ -61,6 +165,15 @@ export type MojangProfileCape = {
  * raw `/minecraft/profile` payload so callers do not have to re-fetch it for skin/cape UI.
  * The fields under {@link microsoft} are needed only to refresh the session later —
  * persist them to durable storage (encrypted) alongside the user's profile.
+ *
+ * @example
+ * ```ts
+ * import { toOnlineAuth, type MojangSession } from "@loontail/minecraft-kit";
+ *
+ * const session: MojangSession = await kit.auth.authorizationCode.run({ onOpenBrowser });
+ * await secrets.save(session.microsoft.refreshToken);
+ * await kit.launch.compose(target, { auth: toOnlineAuth(session) });
+ * ```
  */
 export type MojangSession = {
   readonly minecraft: {

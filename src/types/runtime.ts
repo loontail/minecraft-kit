@@ -7,6 +7,16 @@ import type { RuntimeSystem } from "./system";
  * The launcher must respect the `javaVersion.component` field declared by the per-version
  * Minecraft manifest. This list captures the set we have direct knowledge about; unknown
  * components are still allowed and resolved dynamically against the runtime index.
+ *
+ * @example
+ * ```ts
+ * import { detectSystem, RuntimeComponents } from "@loontail/minecraft-kit";
+ *
+ * await kit.versions.runtime.resolve({
+ *   system: detectSystem(),
+ *   component: RuntimeComponents.JAVA_RUNTIME_GAMMA,
+ * });
+ * ```
  */
 export const RuntimeComponents = {
   JRE_LEGACY: "jre-legacy",
@@ -19,10 +29,34 @@ export const RuntimeComponents = {
   MINECRAFT_JAVA_EXE: "minecraft-java-exe",
 } as const;
 
-/** Runtime component literal. */
+/**
+ * Runtime component literal. Always a string; the {@link RuntimeComponents} const lists
+ * the components we know about but unknown ones (added by Mojang in the future) are
+ * resolved dynamically.
+ *
+ * @example
+ * ```ts
+ * import { RuntimeComponents, type RuntimeComponent } from "@loontail/minecraft-kit";
+ *
+ * const component: RuntimeComponent = resolved.manifest.javaVersion?.component
+ *   ?? RuntimeComponents.JAVA_RUNTIME_GAMMA;
+ * ```
+ */
 export type RuntimeComponent = string;
 
-/** User-supplied resolution preferences. */
+/**
+ * User-supplied resolution preferences.
+ *
+ * @example
+ * ```ts
+ * import { detectSystem, RuntimePreference } from "@loontail/minecraft-kit";
+ *
+ * await kit.versions.runtime.resolve({
+ *   system: detectSystem(),
+ *   preference: RuntimePreference.LATEST,
+ * });
+ * ```
+ */
 export const RuntimePreference = {
   /** Component declared by the Minecraft manifest. */
   RECOMMENDED: "recommended",
@@ -30,7 +64,16 @@ export const RuntimePreference = {
   LATEST: "latest",
 } as const;
 
-/** Runtime preference literal. */
+/**
+ * Runtime preference literal.
+ *
+ * @example
+ * ```ts
+ * import { RuntimePreference, type RuntimePreferenceKind } from "@loontail/minecraft-kit";
+ *
+ * const wantNewest = (p: RuntimePreferenceKind) => p === RuntimePreference.LATEST;
+ * ```
+ */
 export type RuntimePreferenceKind = (typeof RuntimePreference)[keyof typeof RuntimePreference];
 
 /**
@@ -108,7 +151,17 @@ export type RuntimeFileLink = {
   readonly target: string;
 };
 
-/** Resolved runtime ready to install or launch with. */
+/**
+ * Resolved runtime ready to install or launch with.
+ *
+ * @example
+ * ```ts
+ * import { detectSystem, type ResolvedRuntime } from "@loontail/minecraft-kit";
+ *
+ * const runtime: ResolvedRuntime = await kit.versions.runtime.resolve({ system: detectSystem() });
+ * console.log(`${runtime.component} ${runtime.versionName} on ${runtime.platformKey}`);
+ * ```
+ */
 export type ResolvedRuntime = {
   /** Mojang component name (e.g. `java-runtime-gamma`). */
   readonly component: string;

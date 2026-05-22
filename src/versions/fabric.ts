@@ -10,13 +10,36 @@ import type {
 import { Loaders, VersionPreference, type VersionPreferenceKind } from "../types/loader";
 import type { ResolverContext } from "./context";
 
-/** Inputs to {@link FabricVersionsApi.list}. */
+/**
+ * Inputs to {@link FabricVersionsApi.list}.
+ *
+ * @example
+ * ```ts
+ * import type { FabricListInput } from "@loontail/minecraft-kit";
+ *
+ * const input: FabricListInput = { minecraftVersion: "1.20.1" };
+ * const loaders = await kit.versions.fabric.list(input);
+ * ```
+ */
 export type FabricListInput = {
   readonly minecraftVersion?: string;
   readonly signal?: AbortSignal;
 };
 
-/** Inputs to {@link FabricVersionsApi.resolve}. */
+/**
+ * Inputs to {@link FabricVersionsApi.resolve}.
+ *
+ * @example
+ * ```ts
+ * import { VersionPreference, type FabricResolveInput } from "@loontail/minecraft-kit";
+ *
+ * const input: FabricResolveInput = {
+ *   minecraftVersion: "1.20.1",
+ *   preference: VersionPreference.RECOMMENDED,
+ * };
+ * const fabric = await kit.versions.fabric.resolve(input);
+ * ```
+ */
 export type FabricResolveInput = {
   readonly minecraftVersion: string;
   readonly preference?: VersionPreferenceKind;
@@ -24,7 +47,21 @@ export type FabricResolveInput = {
   readonly signal?: AbortSignal;
 };
 
-/** Public Fabric versions API surface. */
+/**
+ * Public Fabric versions API surface.
+ *
+ * Available off a kit instance as `kit.versions.fabric`; construct manually only when
+ * wiring a custom context.
+ *
+ * @example
+ * ```ts
+ * import { MinecraftKit } from "@loontail/minecraft-kit";
+ *
+ * const kit = new MinecraftKit();
+ * const fabric = await kit.versions.fabric.resolve({ minecraftVersion: "1.20.1" });
+ * console.log(fabric.loaderVersion, fabric.profile.id);
+ * ```
+ */
 export class FabricVersionsApi {
   constructor(private readonly ctx: ResolverContext) {}
 

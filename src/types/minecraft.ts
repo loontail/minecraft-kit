@@ -1,5 +1,13 @@
 /**
  * Minecraft release channels matching the `type` field of Mojang version manifest entries.
+ *
+ * @example
+ * ```ts
+ * import { MinecraftChannels } from "@loontail/minecraft-kit";
+ *
+ * const releases = await kit.versions.minecraft.list({ channel: MinecraftChannels.RELEASE });
+ * console.log(`${releases.length} releases since 2009`);
+ * ```
  */
 export const MinecraftChannels = {
   RELEASE: "release",
@@ -8,7 +16,16 @@ export const MinecraftChannels = {
   OLD_ALPHA: "old_alpha",
 } as const;
 
-/** Channel literal as it appears in version manifest entries. */
+/**
+ * Channel literal as it appears in version manifest entries.
+ *
+ * @example
+ * ```ts
+ * import { MinecraftChannels, type MinecraftChannel } from "@loontail/minecraft-kit";
+ *
+ * const isStable = (c: MinecraftChannel) => c === MinecraftChannels.RELEASE;
+ * ```
+ */
 export type MinecraftChannel = (typeof MinecraftChannels)[keyof typeof MinecraftChannels];
 
 /**
@@ -16,6 +33,15 @@ export type MinecraftChannel = (typeof MinecraftChannels)[keyof typeof Minecraft
  *
  * Note: this is a summary entry, not the full per-version manifest. Use
  * {@link ResolvedMinecraft} for the resolved/parsed full manifest.
+ *
+ * @example
+ * ```ts
+ * import type { MinecraftVersionSummary } from "@loontail/minecraft-kit";
+ *
+ * const versions: readonly MinecraftVersionSummary[] = await kit.versions.minecraft.list();
+ * const v1201 = versions.find((v) => v.id === "1.20.1");
+ * console.log(v1201?.releaseTime);
+ * ```
  */
 export type MinecraftVersionSummary = {
   /** Version id (e.g. `"1.20.1"`). */
@@ -34,7 +60,18 @@ export type MinecraftVersionSummary = {
   readonly complianceLevel: number;
 };
 
-/** Subset of the per-version manifest used by resolvers and consumers. */
+/**
+ * Subset of the per-version manifest used by resolvers and consumers.
+ *
+ * @example
+ * ```ts
+ * import type { MinecraftVersionManifest } from "@loontail/minecraft-kit";
+ *
+ * const resolved = await kit.versions.minecraft.resolve({ version: "1.20.1" });
+ * const manifest: MinecraftVersionManifest = resolved.manifest;
+ * console.log(manifest.mainClass, manifest.javaVersion?.majorVersion);
+ * ```
+ */
 export type MinecraftVersionManifest = {
   readonly id: string;
   readonly type: MinecraftChannel | string;
@@ -58,7 +95,17 @@ export type MinecraftVersionManifest = {
   readonly complianceLevel?: number;
 };
 
-/** Reference to the asset-index JSON file. */
+/**
+ * Reference to the asset-index JSON file.
+ *
+ * @example
+ * ```ts
+ * import type { AssetIndexReference } from "@loontail/minecraft-kit";
+ *
+ * const ref: AssetIndexReference = resolved.manifest.assetIndex;
+ * console.log(`assets-${ref.id}.json (${ref.size} bytes, sha1 ${ref.sha1})`);
+ * ```
+ */
 export type AssetIndexReference = {
   readonly id: string;
   readonly sha1: string;
@@ -67,7 +114,17 @@ export type AssetIndexReference = {
   readonly url: string;
 };
 
-/** Per-platform downloads block of the Minecraft per-version manifest. */
+/**
+ * Per-platform downloads block of the Minecraft per-version manifest.
+ *
+ * @example
+ * ```ts
+ * import type { MinecraftDownloads } from "@loontail/minecraft-kit";
+ *
+ * const downloads: MinecraftDownloads = resolved.manifest.downloads;
+ * console.log(downloads.client.url, downloads.client.size);
+ * ```
+ */
 export type MinecraftDownloads = {
   readonly client: ArtifactDownload;
   readonly server?: ArtifactDownload;
@@ -75,14 +132,35 @@ export type MinecraftDownloads = {
   readonly server_mappings?: ArtifactDownload;
 };
 
-/** A single hash-verified download. */
+/**
+ * A single hash-verified download.
+ *
+ * @example
+ * ```ts
+ * import type { ArtifactDownload } from "@loontail/minecraft-kit";
+ *
+ * const client: ArtifactDownload = resolved.manifest.downloads.client;
+ * console.log(`client jar: ${client.url} (sha1 ${client.sha1})`);
+ * ```
+ */
 export type ArtifactDownload = {
   readonly sha1: string;
   readonly size: number;
   readonly url: string;
 };
 
-/** Library entry. Combines vanilla, modern-natives, and legacy-classifier shapes. */
+/**
+ * Library entry. Combines vanilla, modern-natives, and legacy-classifier shapes.
+ *
+ * @example
+ * ```ts
+ * import type { MinecraftLibrary } from "@loontail/minecraft-kit";
+ *
+ * const libs: readonly MinecraftLibrary[] = resolved.manifest.libraries;
+ * const ruled = libs.filter((l) => l.rules !== undefined);
+ * console.log(`${libs.length} libraries, ${ruled.length} gated by rules`);
+ * ```
+ */
 export type MinecraftLibrary = {
   readonly name: string;
   readonly downloads?: MinecraftLibraryDownloads;
@@ -93,43 +171,116 @@ export type MinecraftLibrary = {
   readonly url?: string;
 };
 
-/** Library downloads block. */
+/**
+ * Library downloads block.
+ *
+ * @example
+ * ```ts
+ * import type { MinecraftLibraryDownloads } from "@loontail/minecraft-kit";
+ *
+ * const downloads: MinecraftLibraryDownloads | undefined = library.downloads;
+ * if (downloads?.artifact) console.log(`primary: ${downloads.artifact.path}`);
+ * ```
+ */
 export type MinecraftLibraryDownloads = {
   readonly artifact?: LibraryArtifact;
   readonly classifiers?: Readonly<Record<string, LibraryArtifact>>;
 };
 
-/** An individual library artifact (jar/zip). */
+/**
+ * An individual library artifact (jar/zip).
+ *
+ * @example
+ * ```ts
+ * import type { LibraryArtifact } from "@loontail/minecraft-kit";
+ *
+ * const lwjgl: LibraryArtifact | undefined = libraries[0]?.downloads?.artifact;
+ * if (lwjgl) console.log(`${lwjgl.path} ${lwjgl.size} bytes`);
+ * ```
+ */
 export interface LibraryArtifact extends ArtifactDownload {
   readonly path: string;
 }
 
-/** Rule entry used by libraries and modern arguments. */
+/**
+ * Rule entry used by libraries and modern arguments.
+ *
+ * @example
+ * ```ts
+ * import type { LibraryRule } from "@loontail/minecraft-kit";
+ *
+ * const allowOnLinux: LibraryRule = { action: "allow", os: { name: "linux" } };
+ * const denyOnArm: LibraryRule = { action: "disallow", os: { arch: "aarch64" } };
+ * ```
+ */
 export type LibraryRule = {
   readonly action: "allow" | "disallow";
   readonly os?: { readonly name?: string; readonly arch?: string; readonly version?: string };
   readonly features?: Readonly<Record<string, boolean>>;
 };
 
-/** Modern (1.13+) arguments structure. */
+/**
+ * Modern (1.13+) arguments structure.
+ *
+ * @example
+ * ```ts
+ * import type { MinecraftArguments } from "@loontail/minecraft-kit";
+ *
+ * const args: MinecraftArguments | undefined = resolved.manifest.arguments;
+ * console.log(`${args?.game.length ?? 0} game args, ${args?.jvm.length ?? 0} jvm args`);
+ * ```
+ */
 export type MinecraftArguments = {
   readonly game: readonly ArgumentEntry[];
   readonly jvm: readonly ArgumentEntry[];
 };
 
-/** A single argument entry: bare string or rule-gated value. */
+/**
+ * A single argument entry: bare string or rule-gated value.
+ *
+ * @example
+ * ```ts
+ * import type { ArgumentEntry } from "@loontail/minecraft-kit";
+ *
+ * const plain: ArgumentEntry = "--username";
+ * const gated: ArgumentEntry = {
+ *   rules: [{ action: "allow", features: { is_demo_user: true } }],
+ *   value: "--demo",
+ * };
+ * ```
+ */
 export type ArgumentEntry =
   | string
   | { readonly rules: readonly LibraryRule[]; readonly value: string | readonly string[] };
 
-/** Required Java runtime descriptor from the version manifest. */
+/**
+ * Required Java runtime descriptor from the version manifest.
+ *
+ * @example
+ * ```ts
+ * import type { MinecraftJavaVersion } from "@loontail/minecraft-kit";
+ *
+ * const jv: MinecraftJavaVersion | undefined = resolved.manifest.javaVersion;
+ * console.log(`needs ${jv?.component} (Java ${jv?.majorVersion}+)`);
+ * ```
+ */
 export type MinecraftJavaVersion = {
   /** Mojang java-runtime component name (e.g. `java-runtime-gamma`). */
   readonly component: string;
   readonly majorVersion: number;
 };
 
-/** Logging-config entry from the version manifest. */
+/**
+ * Logging-config entry from the version manifest.
+ *
+ * @example
+ * ```ts
+ * import type { MinecraftLogging } from "@loontail/minecraft-kit";
+ *
+ * const logging: MinecraftLogging | undefined = resolved.manifest.logging;
+ * console.log(logging?.client?.file.id); // → e.g. "client-1.12.xml"
+ * ```
+ */
 export type MinecraftLogging = {
   readonly client?: {
     readonly argument: string;
@@ -141,6 +292,14 @@ export type MinecraftLogging = {
 /**
  * Fully resolved Minecraft version: summary + parsed manifest, ready to feed into
  * `kit.targets.create` or `kit.install.plan`.
+ *
+ * @example
+ * ```ts
+ * import type { ResolvedMinecraft } from "@loontail/minecraft-kit";
+ *
+ * const resolved: ResolvedMinecraft = await kit.versions.minecraft.resolve({ version: "1.20.1" });
+ * console.log(resolved.version, resolved.channel, resolved.manifest.mainClass);
+ * ```
  */
 export type ResolvedMinecraft = {
   /** Version id (e.g. `"1.20.1"`). */

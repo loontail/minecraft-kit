@@ -30,6 +30,17 @@ export type PlanRuntimeInstallInput = {
  * The returned plan is a regular {@link InstallPlan}, so it can be passed to the existing
  * install runner — directory placeholders and symlinks declared by the runtime manifest are
  * still materialized after downloads complete.
+ *
+ * Prefer `kit.install.runtime.plan(target)` over importing this directly.
+ *
+ * @example
+ * ```ts
+ * import { MinecraftKit } from "@loontail/minecraft-kit";
+ *
+ * const kit = new MinecraftKit();
+ * const plan = await kit.install.runtime.plan(target);
+ * await kit.install.runtime.run(plan);
+ * ```
  */
 export const planRuntimeInstall = async (input: PlanRuntimeInstallInput): Promise<InstallPlan> => {
   const runtimePlan = await planRuntimeDownloads({
@@ -54,7 +65,23 @@ export const planRuntimeInstall = async (input: PlanRuntimeInstallInput): Promis
   };
 };
 
-/** Inputs to {@link planStandaloneRuntimeInstall}. */
+/**
+ * Inputs to {@link planStandaloneRuntimeInstall}.
+ *
+ * @example
+ * ```ts
+ * import { detectSystem, MinecraftKit, type PlanStandaloneRuntimeInstallInput } from "@loontail/minecraft-kit";
+ *
+ * const kit = new MinecraftKit();
+ * const runtime = await kit.versions.runtime.resolve({ system: detectSystem() });
+ * const input: Omit<PlanStandaloneRuntimeInstallInput, "http" | "cache"> = {
+ *   id: "shared-jre-21",
+ *   directory: "/opt/minecraft/runtimes",
+ *   runtime,
+ * };
+ * const plan = await kit.install.runtime.standalonePlan(input);
+ * ```
+ */
 export type PlanStandaloneRuntimeInstallInput = {
   readonly id: string;
   /** Where the runtime files live. Used as `directory` if `runtime.installRoot` is unset. */
@@ -71,6 +98,22 @@ export type PlanStandaloneRuntimeInstallInput = {
  * from. The returned plan is shaped exactly like a normal {@link InstallPlan} but uses a
  * {@link RuntimeOnlyInstallTarget} that carries only the runtime + directory — the runner skips
  * Minecraft/loader-specific stages because they have no actions in this plan.
+ *
+ * Prefer `kit.install.runtime.standalonePlan(input)` over importing this directly.
+ *
+ * @example
+ * ```ts
+ * import { detectSystem, MinecraftKit } from "@loontail/minecraft-kit";
+ *
+ * const kit = new MinecraftKit();
+ * const runtime = await kit.versions.runtime.resolve({ system: detectSystem() });
+ * const plan = await kit.install.runtime.standalonePlan({
+ *   id: "shared-jre-21",
+ *   directory: "/opt/minecraft/runtimes",
+ *   runtime,
+ * });
+ * await kit.install.runtime.run(plan);
+ * ```
  */
 export const planStandaloneRuntimeInstall = async (
   input: PlanStandaloneRuntimeInstallInput,

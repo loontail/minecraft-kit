@@ -23,7 +23,25 @@ export type VerifyFabricInput = {
   readonly onEvent?: ProgressListener;
 };
 
-/** Verify the Fabric loader slice: profile JSON + every library it pulls in. */
+/**
+ * Verify the Fabric loader slice: profile JSON + every library it pulls in.
+ *
+ * Throws `INVALID_INPUT` when the target is not a Fabric install.
+ *
+ * Prefer `kit.verify.fabric.run(target)` over importing this directly.
+ *
+ * @example
+ * ```ts
+ * import { MinecraftKit } from "@loontail/minecraft-kit";
+ *
+ * const kit = new MinecraftKit();
+ * const result = await kit.verify.fabric.run(fabricTarget);
+ * if (!result.isValid) {
+ *   const plan = await kit.repair.fabric.plan(fabricTarget, { from: result });
+ *   await kit.repair.fabric.run(plan);
+ * }
+ * ```
+ */
 export const verifyFabric = async (input: VerifyFabricInput): Promise<VerificationResult> => {
   if (input.target.loader.type !== Loaders.FABRIC) {
     throw new MinecraftKitError(

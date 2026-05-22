@@ -3,7 +3,18 @@ import { NODE_ARCH_TO_MOJANG_ARCH, NODE_PLATFORM_TO_MOJANG_OS } from "../constan
 import type { Architecture, OperatingSystem, RuntimeSystem } from "../types/system";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "./errors";
 
-/** Inputs allowing the host system to be derived from current Node values or overrides. */
+/**
+ * Inputs allowing the host system to be derived from current Node values or overrides.
+ *
+ * @example
+ * ```ts
+ * import { detectSystem, type DetectSystemInput } from "@loontail/minecraft-kit";
+ *
+ * // Force the runtime resolver to treat the host as macOS ARM64 regardless of process.platform:
+ * const input: DetectSystemInput = { platform: "darwin", arch: "arm64" };
+ * const system = detectSystem(input);
+ * ```
+ */
 export type DetectSystemInput = {
   readonly platform?: NodeJS.Platform;
   readonly arch?: NodeJS.Architecture;
@@ -21,6 +32,14 @@ export type DetectSystemInput = {
  *
  * @throws {@link MinecraftKitError} with code `RUNTIME_UNSUPPORTED_PLATFORM` when the
  * platform/arch combination is not understood.
+ *
+ * @example
+ * ```ts
+ * import { detectSystem } from "@loontail/minecraft-kit";
+ *
+ * const system = detectSystem();
+ * console.log(system.os, system.arch); // → e.g. "windows" "x64"
+ * ```
  */
 export const detectSystem = (input: DetectSystemInput = {}): RuntimeSystem => {
   const platform = input.platform ?? process.platform;

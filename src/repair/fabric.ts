@@ -20,7 +20,23 @@ import { planAspectRepair } from "./helpers";
  */
 export type PlanFabricRepairInput = AspectRepairInput;
 
-/** Build a repair plan covering the Fabric loader slice: profile JSON + libraries. */
+/**
+ * Build a repair plan covering the Fabric loader slice: profile JSON + libraries.
+ *
+ * Throws `INVALID_INPUT` when the target is not a Fabric install.
+ *
+ * Prefer `kit.repair.fabric.plan(target, { from })` over importing this directly.
+ *
+ * @example
+ * ```ts
+ * import { MinecraftKit } from "@loontail/minecraft-kit";
+ *
+ * const kit = new MinecraftKit();
+ * const verification = await kit.verify.fabric.run(fabricTarget);
+ * const plan = await kit.repair.fabric.plan(fabricTarget, { from: verification });
+ * await kit.repair.fabric.run(plan);
+ * ```
+ */
 export const planFabricRepair = async (input: PlanFabricRepairInput): Promise<RepairPlan> => {
   if (input.target.loader.type !== Loaders.FABRIC) {
     throw new MinecraftKitError(

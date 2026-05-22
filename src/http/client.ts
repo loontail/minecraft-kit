@@ -8,6 +8,14 @@ const TIMEOUT_REASON = Symbol("http-timeout");
 /**
  * Default {@link HttpClient} implementation backed by Node's built-in `fetch` (undici under
  * the hood). Maps fetch errors to {@link MinecraftKitError}.
+ *
+ * @example
+ * ```ts
+ * import { FetchHttpClient, MinecraftKit } from "@loontail/minecraft-kit";
+ *
+ * // Explicit instantiation — equivalent to leaving `httpClient` unset.
+ * const kit = new MinecraftKit({ httpClient: new FetchHttpClient() });
+ * ```
  */
 export class FetchHttpClient implements HttpClient {
   async request(url: string, options: HttpRequestOptions = {}): Promise<HttpResponse> {

@@ -1,14 +1,34 @@
 import { LogLevels } from "../types/logger";
 import type { LogLevel, Logger } from "../types/logger";
 
-/** Logger that drops every message. Default when no logger is supplied. */
+/**
+ * Logger that drops every message. Default when no logger is supplied.
+ *
+ * @example
+ * ```ts
+ * import { MinecraftKit, silentLogger } from "@loontail/minecraft-kit";
+ *
+ * // Explicit "no logging" — equivalent to omitting `logger` entirely.
+ * const kit = new MinecraftKit({ logger: silentLogger });
+ * ```
+ */
 export const silentLogger: Logger = {
   log() {
     // Intentionally empty.
   },
 };
 
-/** Logger that mirrors messages to `console.<level>` with structured fields. */
+/**
+ * Logger that mirrors messages to `console.<level>` with structured fields.
+ *
+ * @example
+ * ```ts
+ * import { consoleLogger, MinecraftKit } from "@loontail/minecraft-kit";
+ *
+ * const kit = new MinecraftKit({ logger: consoleLogger });
+ * // Each kit operation now writes "[info] ...", "[warn] ...", etc. via console.
+ * ```
+ */
 export const consoleLogger: Logger = {
   log(level, message, fields) {
     const target = pickConsole(level);
@@ -28,6 +48,15 @@ export const consoleLogger: Logger = {
  *
  * The merged `fields` argument lets a scope attach default context (e.g. a request id) without
  * the call site repeating it on every message.
+ *
+ * @example
+ * ```ts
+ * import { consoleLogger, scopedLogger } from "@loontail/minecraft-kit";
+ *
+ * const log = scopedLogger(consoleLogger, "fabric-installer", { profileId: "fabric-loader-0.15.7" });
+ * log.log("info", "patching profile");
+ * // → [info] [fabric-installer] patching profile { profileId: "fabric-loader-0.15.7" }
+ * ```
  */
 export const scopedLogger = (
   base: Logger,

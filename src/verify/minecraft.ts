@@ -33,6 +33,17 @@ export type VerifyMinecraftInput = {
  * Verify the vanilla Minecraft slice of an installation: the client jar, version JSON,
  * libraries (incl. native jars), assets (index + objects), logging config, and the
  * extracted natives directory.
+ *
+ * Prefer `kit.verify.minecraft.run(target)` over importing this directly.
+ *
+ * @example
+ * ```ts
+ * import { MinecraftKit } from "@loontail/minecraft-kit";
+ *
+ * const kit = new MinecraftKit();
+ * const result = await kit.verify.minecraft.run(target);
+ * if (!result.isValid) console.warn(`missing/corrupt: ${result.issues.length} files`);
+ * ```
  */
 export const verifyMinecraft = async (input: VerifyMinecraftInput): Promise<VerificationResult> => {
   return runVerification(

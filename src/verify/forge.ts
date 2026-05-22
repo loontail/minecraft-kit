@@ -39,6 +39,19 @@ export type VerifyForgeInput = {
  * Verify the Forge loader slice: the on-disk Forge version JSON and every library it
  * declares. Libraries can only be enumerated once the JSON is present *and parsable*; a
  * malformed JSON is surfaced as a CORRUPT issue so repair rewrites it before re-running.
+ *
+ * Throws `INVALID_INPUT` when the target is not a Forge install.
+ *
+ * Prefer `kit.verify.forge.run(target)` over importing this directly.
+ *
+ * @example
+ * ```ts
+ * import { MinecraftKit } from "@loontail/minecraft-kit";
+ *
+ * const kit = new MinecraftKit();
+ * const result = await kit.verify.forge.run(forgeTarget);
+ * for (const issue of result.issues) console.log(issue.status, issue.path);
+ * ```
  */
 export const verifyForge = async (input: VerifyForgeInput): Promise<VerificationResult> => {
   if (input.target.loader.type !== Loaders.FORGE) {

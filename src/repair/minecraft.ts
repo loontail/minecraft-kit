@@ -28,6 +28,18 @@ export type PlanMinecraftRepairInput = AspectRepairInput;
 /**
  * Build a repair plan covering only the vanilla Minecraft slice: client jar, version JSON,
  * libraries (incl. native jars), assets, logging config, and native extractions.
+ *
+ * Prefer `kit.repair.minecraft.plan(target, { from })` over importing this directly.
+ *
+ * @example
+ * ```ts
+ * import { MinecraftKit } from "@loontail/minecraft-kit";
+ *
+ * const kit = new MinecraftKit();
+ * const verification = await kit.verify.minecraft.run(target);
+ * const plan = await kit.repair.minecraft.plan(target, { from: verification });
+ * await kit.repair.minecraft.run(plan);
+ * ```
  */
 export const planMinecraftRepair = async (input: PlanMinecraftRepairInput): Promise<RepairPlan> => {
   const vanillaJsonPath = targetPaths.versionJson(

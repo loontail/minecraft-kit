@@ -4,6 +4,20 @@ import type { ResolvedMinecraft } from "./minecraft";
 /**
  * Trivial loader used when no mod loader is in play. Carries the resolved Minecraft so the
  * launch composer has a uniform view across vanilla / Fabric / Forge.
+ *
+ * @example
+ * ```ts
+ * import { Loaders, type ResolvedVanillaLoader } from "@loontail/minecraft-kit";
+ *
+ * const target = await kit.targets.resolve({
+ *   id: "v",
+ *   directory: "/games/v",
+ *   minecraft: { version: "1.20.1" },
+ *   loader: { type: Loaders.VANILLA },
+ * });
+ * const vanilla = target.loader as ResolvedVanillaLoader;
+ * console.log(vanilla.minecraft.manifest.mainClass);
+ * ```
  */
 export type ResolvedVanillaLoader = {
   readonly type: typeof Loaders.VANILLA;

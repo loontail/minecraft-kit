@@ -8,7 +8,22 @@ import {
   type InstallPlan,
 } from "../types/install";
 
-/** UI-oriented coarse progress stages, identical across install and repair flows. */
+/**
+ * UI-oriented coarse progress stages, identical across install and repair flows.
+ *
+ * @example
+ * ```ts
+ * import { InstallStages, type InstallStage } from "@loontail/minecraft-kit";
+ *
+ * const labels: Record<InstallStage, string> = {
+ *   [InstallStages.PREPARE]: "Preparing…",
+ *   [InstallStages.RUNTIME]: "Installing Java",
+ *   [InstallStages.MINECRAFT]: "Downloading game",
+ *   [InstallStages.LOADER]: "Installing mod loader",
+ *   [InstallStages.FINALIZE]: "Done",
+ * };
+ * ```
+ */
 export const InstallStages = {
   PREPARE: "prepare",
   RUNTIME: "runtime",
@@ -17,8 +32,33 @@ export const InstallStages = {
   FINALIZE: "finalize",
 } as const;
 
+/**
+ * Literal type of {@link InstallStages}. Use for exhaustive switches in UI code.
+ *
+ * @example
+ * ```ts
+ * import { InstallStages, type InstallStage } from "@loontail/minecraft-kit";
+ *
+ * function color(stage: InstallStage): string {
+ *   return stage === InstallStages.FINALIZE ? "green" : "blue";
+ * }
+ * ```
+ */
 export type InstallStage = (typeof InstallStages)[keyof typeof InstallStages];
 
+/**
+ * Snapshot pushed to {@link InstallProgressTracker} subscribers.
+ *
+ * @example
+ * ```ts
+ * import type { ProgressSnapshot } from "@loontail/minecraft-kit";
+ *
+ * const render = (s: ProgressSnapshot) => {
+ *   console.log(`${s.stage} ${s.stagePercent.toFixed(0)}% (overall ${s.overallPercent.toFixed(0)}%)`);
+ *   if (s.currentFile) console.log(`  ${s.currentFile}`);
+ * };
+ * ```
+ */
 export type ProgressSnapshot = {
   readonly stage: InstallStage;
   readonly stagePercent: number;
@@ -28,11 +68,37 @@ export type ProgressSnapshot = {
   readonly currentFile?: string;
 };
 
+/**
+ * Options for {@link createInstallProgressTracker}.
+ *
+ * @example
+ * ```ts
+ * import { createInstallProgressTracker, type ProgressTrackerOptions } from "@loontail/minecraft-kit";
+ *
+ * const options: ProgressTrackerOptions = { throttleMs: 250 };
+ * const tracker = createInstallProgressTracker(plan, options);
+ * ```
+ */
 export type ProgressTrackerOptions = {
   /** Milliseconds between snapshot pushes. Defaults to 100ms. */
   readonly throttleMs?: number;
 };
 
+/**
+ * Aggregator returned by {@link createInstallProgressTracker}. Wire `onEvent` into
+ * `install.run` / `repair.run`, and `subscribe` into your UI layer.
+ *
+ * @example
+ * ```ts
+ * import { createInstallProgressTracker, type InstallProgressTracker } from "@loontail/minecraft-kit";
+ *
+ * const tracker: InstallProgressTracker = createInstallProgressTracker(plan);
+ * const unsubscribe = tracker.subscribe((s) => renderBar(s));
+ * await kit.install.run(plan, { onEvent: tracker.onEvent });
+ * tracker.finish();
+ * unsubscribe();
+ * ```
+ */
 export type InstallProgressTracker = {
   /** Pass directly as the `onEvent` callback to `install.run` / `repair.run`. */
   readonly onEvent: ProgressListener;
@@ -79,7 +145,19 @@ const ALL_STAGES: readonly InstallStage[] = [
   InstallStages.FINALIZE,
 ];
 
-/** Aggregate `ProgressEvent`s from one install/repair run into throttled UI snapshots. */
+/**
+ * Aggregate `ProgressEvent`s from one install/repair run into throttled UI snapshots.
+ *
+ * @example
+ * ```ts
+ * import { createInstallProgressTracker, MinecraftKit } from "@loontail/minecraft-kit";
+ *
+ * const tracker = createInstallProgressTracker(plan, { throttleMs: 100 });
+ * tracker.subscribe(({ stage, stagePercent }) => console.log(stage, stagePercent));
+ * await kit.install.run(plan, { onEvent: tracker.onEvent });
+ * tracker.finish();
+ * ```
+ */
 export const createInstallProgressTracker = (
   plan: Pick<InstallPlan, "actions">,
   options: ProgressTrackerOptions = {},

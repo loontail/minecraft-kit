@@ -17,7 +17,22 @@ import type { ForgeVersionsApi } from "../versions/forge";
 import type { MinecraftVersionsApi } from "../versions/minecraft";
 import type { RuntimeVersionsApi } from "../versions/runtime";
 
-/** Inputs to {@link TargetsApi.resolve}. */
+/**
+ * Inputs to {@link TargetsApi.resolve}.
+ *
+ * @example
+ * ```ts
+ * import { Loaders, type TargetResolveInput } from "@loontail/minecraft-kit";
+ *
+ * const input: TargetResolveInput = {
+ *   id: "vanilla-1.20.1",
+ *   directory: "/games/minecraft/vanilla-1.20.1",
+ *   minecraft: { version: "1.20.1" },
+ *   loader: { type: Loaders.VANILLA },
+ * };
+ * const target = await kit.targets.resolve(input);
+ * ```
+ */
 export type TargetResolveInput = {
   readonly id: string;
   readonly directory: string;
@@ -37,7 +52,18 @@ export type TargetResolveInput = {
   readonly signal?: AbortSignal;
 };
 
-/** Loader input variants. */
+/**
+ * Loader input variants.
+ *
+ * @example
+ * ```ts
+ * import { Loaders, VersionPreference, type TargetLoaderInput } from "@loontail/minecraft-kit";
+ *
+ * const vanilla: TargetLoaderInput = { type: Loaders.VANILLA };
+ * const fabric: TargetLoaderInput = { type: Loaders.FABRIC, preference: VersionPreference.LATEST };
+ * const forge: TargetLoaderInput = { type: Loaders.FORGE, version: "47.4.0" };
+ * ```
+ */
 export type TargetLoaderInput =
   | { readonly type: typeof Loaders.VANILLA }
   | {
@@ -51,12 +77,47 @@ export type TargetLoaderInput =
       readonly version?: string;
     };
 
-/** Inputs to {@link TargetsApi.list}. */
+/**
+ * Inputs to {@link TargetsApi.list}.
+ *
+ * @example
+ * ```ts
+ * import type { TargetListInput } from "@loontail/minecraft-kit";
+ *
+ * const input: TargetListInput = { rootDir: "/games/minecraft" };
+ * const installs = await kit.targets.list(input);
+ * for (const t of installs) console.log(t.id, t.minecraftVersions);
+ * ```
+ */
 export type TargetListInput = {
   readonly rootDir: string;
 };
 
-/** Constructor inputs for {@link TargetsApi}. */
+/**
+ * Constructor inputs for {@link TargetsApi}.
+ *
+ * @example
+ * ```ts
+ * import {
+ *   detectSystem,
+ *   FabricVersionsApi,
+ *   ForgeVersionsApi,
+ *   MinecraftVersionsApi,
+ *   RuntimeVersionsApi,
+ *   TargetsApi,
+ *   type TargetsApiContext,
+ * } from "@loontail/minecraft-kit";
+ *
+ * const ctx: TargetsApiContext = {
+ *   minecraft: new MinecraftVersionsApi(resolverCtx),
+ *   fabric: new FabricVersionsApi(resolverCtx),
+ *   forge: new ForgeVersionsApi(resolverCtx),
+ *   runtime: new RuntimeVersionsApi(resolverCtx),
+ *   system: detectSystem(),
+ * };
+ * const targets = new TargetsApi(ctx);
+ * ```
+ */
 export type TargetsApiContext = {
   readonly minecraft: MinecraftVersionsApi;
   readonly fabric: FabricVersionsApi;
@@ -65,7 +126,24 @@ export type TargetsApiContext = {
   readonly system: RuntimeSystem;
 };
 
-/** Public Targets API surface. */
+/**
+ * Public Targets API surface.
+ *
+ * Available off a kit instance as `kit.targets`.
+ *
+ * @example
+ * ```ts
+ * import { Loaders, MinecraftKit } from "@loontail/minecraft-kit";
+ *
+ * const kit = new MinecraftKit();
+ * const target = await kit.targets.resolve({
+ *   id: "modded",
+ *   directory: "/games/minecraft/modded",
+ *   minecraft: { version: "1.20.1" },
+ *   loader: { type: Loaders.FABRIC },
+ * });
+ * ```
+ */
 export class TargetsApi {
   constructor(private readonly ctx: TargetsApiContext) {}
 

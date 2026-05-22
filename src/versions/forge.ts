@@ -6,13 +6,36 @@ import type { ForgeBuildSummary, ResolvedForgeLoader } from "../types/forge";
 import { Loaders, VersionPreference, type VersionPreferenceKind } from "../types/loader";
 import type { ResolverContext } from "./context";
 
-/** Inputs to {@link ForgeVersionsApi.list}. */
+/**
+ * Inputs to {@link ForgeVersionsApi.list}.
+ *
+ * @example
+ * ```ts
+ * import type { ForgeListInput } from "@loontail/minecraft-kit";
+ *
+ * const input: ForgeListInput = { minecraftVersion: "1.20.1" };
+ * const builds = await kit.versions.forge.list(input);
+ * ```
+ */
 export type ForgeListInput = {
   readonly minecraftVersion?: string;
   readonly signal?: AbortSignal;
 };
 
-/** Inputs to {@link ForgeVersionsApi.resolve}. */
+/**
+ * Inputs to {@link ForgeVersionsApi.resolve}.
+ *
+ * @example
+ * ```ts
+ * import { VersionPreference, type ForgeResolveInput } from "@loontail/minecraft-kit";
+ *
+ * const input: ForgeResolveInput = {
+ *   minecraftVersion: "1.20.1",
+ *   preference: VersionPreference.RECOMMENDED,
+ * };
+ * const forge = await kit.versions.forge.resolve(input);
+ * ```
+ */
 export type ForgeResolveInput = {
   readonly minecraftVersion: string;
   readonly preference?: VersionPreferenceKind;
@@ -20,7 +43,20 @@ export type ForgeResolveInput = {
   readonly signal?: AbortSignal;
 };
 
-/** Public Forge versions API surface. */
+/**
+ * Public Forge versions API surface.
+ *
+ * Available off a kit instance as `kit.versions.forge`.
+ *
+ * @example
+ * ```ts
+ * import { MinecraftKit } from "@loontail/minecraft-kit";
+ *
+ * const kit = new MinecraftKit();
+ * const forge = await kit.versions.forge.resolve({ minecraftVersion: "1.20.1" });
+ * console.log(forge.fullVersion, forge.installerUrl);
+ * ```
+ */
 export class ForgeVersionsApi {
   constructor(private readonly ctx: ResolverContext) {}
 

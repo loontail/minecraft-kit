@@ -46,7 +46,17 @@ import { ForgeVersionsApi } from "./versions/forge";
 import { MinecraftVersionsApi } from "./versions/minecraft";
 import { RuntimeVersionsApi } from "./versions/runtime";
 
-/** Constructor options for {@link MinecraftKit}. */
+/**
+ * Constructor options for {@link MinecraftKit}.
+ *
+ * @example
+ * ```ts
+ * import { consoleLogger, MinecraftKit, type MinecraftKitOptions } from "@loontail/minecraft-kit";
+ *
+ * const options: MinecraftKitOptions = { logger: consoleLogger };
+ * const kit = new MinecraftKit(options);
+ * ```
+ */
 export type MinecraftKitOptions = {
   readonly httpClient?: HttpClient;
   readonly cache?: MetadataCache;
@@ -241,7 +251,23 @@ export class MinecraftKit {
   }
 }
 
-/** Options accepted by `install.run` (and `install.runtime.run`). */
+/**
+ * Options accepted by `install.run` (and `install.runtime.run`).
+ *
+ * @example
+ * ```ts
+ * import { PauseController, type InstallRunOptions } from "@loontail/minecraft-kit";
+ *
+ * const pauseController = new PauseController();
+ * const controller = new AbortController();
+ * const options: InstallRunOptions = {
+ *   pauseController,
+ *   signal: controller.signal,
+ *   onEvent: (e) => console.log(e.type),
+ * };
+ * await kit.install.run(plan, options);
+ * ```
+ */
 export interface InstallRunOptions extends OperationOptions {
   /**
    * Cooperative pause/resume primitive — see {@link PauseController}. The runner checks the
@@ -269,19 +295,60 @@ export interface InstallRunOptions extends OperationOptions {
   readonly actionCategories?: ReadonlySet<DownloadAction["category"]>;
 }
 
-/** Options accepted by every `verify.<kind>.run`. */
+/**
+ * Options accepted by every `verify.<kind>.run`.
+ *
+ * @example
+ * ```ts
+ * import { EventTypes, type VerifyOperationOptions } from "@loontail/minecraft-kit";
+ *
+ * const options: VerifyOperationOptions = {
+ *   signal: AbortSignal.timeout(60_000),
+ *   onEvent: (e) => {
+ *     if (e.type === EventTypes.VERIFY_FILE_CHECKED) reportProgress(e.file.path);
+ *   },
+ * };
+ * const result = await kit.verify.minecraft.run(target, options);
+ * ```
+ */
 export type VerifyOperationOptions = {
   readonly signal?: AbortSignal;
   readonly onEvent?: ProgressListener;
 };
 
-/** Options for any `repair.<aspect>.plan` call. Accepts one or many verification results. */
+/**
+ * Options for any `repair.<aspect>.plan` call. Accepts one or many verification results.
+ *
+ * @example
+ * ```ts
+ * import type { RepairPlanOptions } from "@loontail/minecraft-kit";
+ *
+ * const mcResult = await kit.verify.minecraft.run(target);
+ * const runtimeResult = await kit.verify.runtime.run(target);
+ * const options: RepairPlanOptions = { from: [mcResult, runtimeResult] };
+ * const plan = await kit.repair.minecraft.plan(target, options);
+ * ```
+ */
 export type RepairPlanOptions = {
   readonly from: VerificationResult | readonly VerificationResult[];
   readonly signal?: AbortSignal;
 };
 
-/** Shared shape of every aspect-specific repair surface (`repair.minecraft`, `.fabric`, …). */
+/**
+ * Shared shape of every aspect-specific repair surface (`repair.minecraft`, `.fabric`, …).
+ *
+ * @example
+ * ```ts
+ * import type { RepairAspect } from "@loontail/minecraft-kit";
+ *
+ * const runAll = async (aspect: RepairAspect) => {
+ *   const verification = await kit.verify.minecraft.run(target);
+ *   const plan = await aspect.plan(target, { from: verification });
+ *   return aspect.run(plan);
+ * };
+ * await runAll(kit.repair.minecraft);
+ * ```
+ */
 export type RepairAspect = {
   plan(target: Target, options: RepairPlanOptions): Promise<RepairPlan>;
   run(plan: RepairPlan, options?: OperationOptions): Promise<RepairReport>;

@@ -1,7 +1,18 @@
 import type { Loaders } from "./loader";
 import type { MinecraftLibrary } from "./minecraft";
 
-/** Summary entry from `/v2/versions/loader`. */
+/**
+ * Summary entry from `/v2/versions/loader`.
+ *
+ * @example
+ * ```ts
+ * import type { FabricLoaderSummary } from "@loontail/minecraft-kit";
+ *
+ * const loaders: readonly FabricLoaderSummary[] = await kit.versions.fabric.list();
+ * const stable = loaders.filter((l) => l.stable);
+ * console.log(`${stable.length} stable loaders, latest: ${stable[0]?.version}`);
+ * ```
+ */
 export type FabricLoaderSummary = {
   readonly version: string;
   readonly stable: boolean;
@@ -24,7 +35,18 @@ export type FabricCompatibilityEntry = {
   };
 };
 
-/** Fabric profile JSON returned by `/v2/versions/loader/{mc}/{loader}/profile/json`. */
+/**
+ * Fabric profile JSON returned by `/v2/versions/loader/{mc}/{loader}/profile/json`.
+ *
+ * @example
+ * ```ts
+ * import type { FabricProfile } from "@loontail/minecraft-kit";
+ *
+ * const fabric = await kit.versions.fabric.resolve({ minecraftVersion: "1.20.1" });
+ * const profile: FabricProfile = fabric.profile;
+ * console.log(profile.mainClass, `${profile.libraries.length} libraries`);
+ * ```
+ */
 export type FabricProfile = {
   readonly id: string;
   readonly inheritsFrom: string;
@@ -34,7 +56,19 @@ export type FabricProfile = {
   readonly arguments?: { readonly game?: readonly string[]; readonly jvm?: readonly string[] };
 };
 
-/** Resolved Fabric loader for a specific Minecraft version. */
+/**
+ * Resolved Fabric loader for a specific Minecraft version.
+ *
+ * @example
+ * ```ts
+ * import { Loaders, type ResolvedFabricLoader } from "@loontail/minecraft-kit";
+ *
+ * const fabric: ResolvedFabricLoader = await kit.versions.fabric.resolve({
+ *   minecraftVersion: "1.20.1",
+ * });
+ * console.log(fabric.type === Loaders.FABRIC, fabric.loaderVersion);
+ * ```
+ */
 export type ResolvedFabricLoader = {
   readonly type: typeof Loaders.FABRIC;
   readonly minecraftVersion: string;

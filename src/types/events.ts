@@ -4,6 +4,18 @@ import type { VerificationFileResult } from "./verify";
 /**
  * Stable string constants for the `type` discriminator of every {@link ProgressEvent}.
  * Use these instead of bare string literals when filtering events.
+ *
+ * @example
+ * ```ts
+ * import { EventTypes } from "@loontail/minecraft-kit";
+ *
+ * await kit.install.run(plan, {
+ *   onEvent: (e) => {
+ *     if (e.type === EventTypes.DOWNLOAD_PROGRESS) updateBar(e.bytesDownloaded, e.totalBytes);
+ *     if (e.type === EventTypes.INSTALL_PHASE_CHANGED) setPhase(e.phase);
+ *   },
+ * });
+ * ```
  */
 export const EventTypes = {
   INSTALL_PHASE_CHANGED: "install:phase-changed",
@@ -27,17 +39,53 @@ export const EventTypes = {
   LAUNCH_ABORTED: "launch:aborted",
 } as const;
 
-/** Literal type of the `type` discriminator of a {@link ProgressEvent}. */
+/**
+ * Literal type of the `type` discriminator of a {@link ProgressEvent}.
+ *
+ * @example
+ * ```ts
+ * import { EventTypes, type EventType } from "@loontail/minecraft-kit";
+ *
+ * const interesting = new Set<EventType>([EventTypes.DOWNLOAD_FAILED, EventTypes.INTEGRITY_MISMATCH]);
+ * const onEvent = (e: { type: EventType }) => { if (interesting.has(e.type)) console.warn(e); };
+ * ```
+ */
 export type EventType = (typeof EventTypes)[keyof typeof EventTypes];
 
-/** Reference to a single file used in download events. */
+/**
+ * Reference to a single file used in download events.
+ *
+ * @example
+ * ```ts
+ * import { EventTypes, type FileRef } from "@loontail/minecraft-kit";
+ *
+ * await kit.install.run(plan, {
+ *   onEvent: (e) => {
+ *     if (e.type === EventTypes.DOWNLOAD_COMPLETED) {
+ *       const file: FileRef = e.file;
+ *       console.log(`fetched ${file.url} → ${file.target}`);
+ *     }
+ *   },
+ * });
+ * ```
+ */
 export type FileRef = {
   readonly url: string;
   readonly target: string;
   readonly category?: string;
 };
 
-/** A single processor description used in Forge events. */
+/**
+ * A single processor description used in Forge events.
+ *
+ * @example
+ * ```ts
+ * import { EventTypes, type ProcessorRef } from "@loontail/minecraft-kit";
+ *
+ * const onForge = (e: { type: typeof EventTypes.FORGE_PROCESSOR_STARTED; processor: ProcessorRef; total: number }) =>
+ *   console.log(`forge processor ${e.processor.index + 1}/${e.total}: ${e.processor.mainClass}`);
+ * ```
+ */
 export type ProcessorRef = {
   readonly index: number;
   readonly mainClass: string;
@@ -46,6 +94,16 @@ export type ProcessorRef = {
 /**
  * Discriminated union of all runtime progress events. Pass an `onEvent` callback to
  * `install.run`, `update.run`, `verify.run`, `repair.run`, or `launch.run` to receive these.
+ *
+ * @example
+ * ```ts
+ * import { EventTypes, type ProgressEvent } from "@loontail/minecraft-kit";
+ *
+ * const onEvent = (e: ProgressEvent) => {
+ *   if (e.type === EventTypes.DOWNLOAD_FAILED) console.error(e.file.target, e.error.message);
+ *   if (e.type === EventTypes.LAUNCH_EXITED) console.log("game exited", e.code);
+ * };
+ * ```
  */
 export type ProgressEvent =
   | {
@@ -125,10 +183,31 @@ export type ProgressEvent =
     }
   | { readonly type: "launch:aborted"; readonly reason: string };
 
-/** Listener signature accepted by every long-running operation. */
+/**
+ * Listener signature accepted by every long-running operation.
+ *
+ * @example
+ * ```ts
+ * import type { ProgressListener } from "@loontail/minecraft-kit";
+ *
+ * const listener: ProgressListener = (e) => console.log(e.type);
+ * await kit.install.run(plan, { onEvent: listener });
+ * ```
+ */
 export type ProgressListener = (event: ProgressEvent) => void;
 
-/** Common options accepted by long-running operations. */
+/**
+ * Common options accepted by long-running operations.
+ *
+ * @example
+ * ```ts
+ * import type { OperationOptions } from "@loontail/minecraft-kit";
+ *
+ * const controller = new AbortController();
+ * const options: OperationOptions = { signal: controller.signal, onEvent: console.log };
+ * await kit.install.run(plan, options);
+ * ```
+ */
 export type OperationOptions = {
   readonly signal?: AbortSignal;
   readonly onEvent?: ProgressListener;

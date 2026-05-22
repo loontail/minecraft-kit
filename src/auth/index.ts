@@ -14,17 +14,51 @@ import { extractXuid, fetchMinecraftProfile, loginWithXbox } from "./minecraft";
 import { buildAuthorizeUrl, generateOAuthState, generatePkcePair } from "./oauth";
 import { authenticateXbl, authenticateXsts } from "./xbox";
 
-/** Env var consulted when no explicit `clientId` is supplied. */
+/**
+ * Env var consulted when no explicit `clientId` is supplied.
+ *
+ * @example
+ * ```ts
+ * import { CLIENT_ID_ENV_VAR } from "@loontail/minecraft-kit";
+ *
+ * if (!process.env[CLIENT_ID_ENV_VAR]) {
+ *   throw new Error(`${CLIENT_ID_ENV_VAR} is not set — sign in is unavailable`);
+ * }
+ * ```
+ */
 export const CLIENT_ID_ENV_VAR = "MINECRAFT_KIT_MSA_CLIENT_ID";
 
-/** Options accepted by {@link MojangAuthApi.refresh}. */
+/**
+ * Options accepted by {@link MojangAuthApi.refresh}.
+ *
+ * @example
+ * ```ts
+ * import type { RefreshOptions } from "@loontail/minecraft-kit";
+ *
+ * const options: RefreshOptions = { clientId: "00000000-0000-0000-0000-000000000000" };
+ * const session = await kit.auth.refresh(savedRefreshToken, options);
+ * ```
+ */
 export type RefreshOptions = {
   /** Azure AD application id; defaults to `process.env.MINECRAFT_KIT_MSA_CLIENT_ID`. */
   readonly clientId?: string;
   readonly signal?: AbortSignal;
 };
 
-/** Options accepted by {@link MojangAuthApi.authorizationCode.run}. */
+/**
+ * Options accepted by {@link MojangAuthApi.authorizationCode.run}.
+ *
+ * @example
+ * ```ts
+ * import type { AuthorizationCodeRunOptions } from "@loontail/minecraft-kit";
+ *
+ * const options: AuthorizationCodeRunOptions = {
+ *   onOpenBrowser: (url) => open(url),
+ *   successHtml: "<h1>Signed in — return to the launcher.</h1>",
+ * };
+ * const session = await kit.auth.authorizationCode.run(options);
+ * ```
+ */
 export type AuthorizationCodeRunOptions = {
   /**
    * Azure AD application id. When omitted, the value of
@@ -56,6 +90,18 @@ export type AuthorizationCodeRunOptions = {
  * pipeline and returns a {@link MojangSession} carrying everything launch composition
  * needs plus the Microsoft refresh token. The library does NOT persist tokens —
  * that's the caller's job.
+ *
+ * @example
+ * ```ts
+ * import { MinecraftKit, toOnlineAuth } from "@loontail/minecraft-kit";
+ *
+ * const kit = new MinecraftKit();
+ * const session = await kit.auth.authorizationCode.run({
+ *   onOpenBrowser: (url) => open(url),
+ * });
+ * await saveRefreshToken(session.microsoft.refreshToken);
+ * const launch = await kit.launch.compose(target, { auth: toOnlineAuth(session) });
+ * ```
  */
 export class MojangAuthApi {
   private readonly logger: Logger;
@@ -195,6 +241,15 @@ const runPostMsTokenPipeline = async (
 /**
  * Project a {@link MojangSession} into the {@link OnlineAuth} shape that `kit.launch.compose`
  * accepts.
+ *
+ * @example
+ * ```ts
+ * import { toOnlineAuth } from "@loontail/minecraft-kit";
+ *
+ * const session = await kit.auth.refresh(savedRefreshToken);
+ * const composition = await kit.launch.compose(target, { auth: toOnlineAuth(session) });
+ * const proc = kit.launch.run(composition);
+ * ```
  */
 export const toOnlineAuth = (session: MojangSession): OnlineAuth => {
   return {

@@ -3,7 +3,17 @@ import { spawn } from "node:child_process";
 import { SPAWNER_MAX_LINE_BYTES } from "../constants/defaults";
 import type { ProcessStream, SpawnOptions, SpawnedProcess, Spawner } from "../types/spawner";
 
-/** Default spawner backed by `node:child_process.spawn`. */
+/**
+ * Default spawner backed by `node:child_process.spawn`.
+ *
+ * @example
+ * ```ts
+ * import { ChildProcessSpawner, MinecraftKit } from "@loontail/minecraft-kit";
+ *
+ * // Explicit instantiation — equivalent to leaving `spawner` unset.
+ * const kit = new MinecraftKit({ spawner: new ChildProcessSpawner() });
+ * ```
+ */
 export class ChildProcessSpawner implements Spawner {
   spawn(command: string, args: readonly string[], options: SpawnOptions): SpawnedProcess {
     const child = spawn(command, [...args], {

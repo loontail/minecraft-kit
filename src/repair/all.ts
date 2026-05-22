@@ -26,6 +26,19 @@ export type RepairAllInput = {
   readonly onEvent?: ProgressListener;
 };
 
+/**
+ * Result of {@link repairAll}: every verification it ran, every repair it performed, and the
+ * aggregate cost.
+ *
+ * @example
+ * ```ts
+ * import type { RepairAllReport } from "@loontail/minecraft-kit";
+ *
+ * const report: RepairAllReport = await kit.repair.all(target);
+ * console.log(`verified ${report.verifications.length} aspects`);
+ * console.log(`repaired ${report.repairs.size}, downloaded ${report.bytesDownloaded} bytes`);
+ * ```
+ */
 export type RepairAllReport = {
   readonly verifications: readonly VerificationResult[];
   /** Present only for aspects that actually needed work. */
@@ -34,7 +47,20 @@ export type RepairAllReport = {
   readonly durationMs: number;
 };
 
-/** Verify every applicable aspect and repair each broken one. */
+/**
+ * Verify every applicable aspect and repair each broken one.
+ *
+ * Prefer `kit.repair.all(target)` over importing this directly.
+ *
+ * @example
+ * ```ts
+ * import { MinecraftKit } from "@loontail/minecraft-kit";
+ *
+ * const kit = new MinecraftKit();
+ * const report = await kit.repair.all(target, { onEvent: (e) => console.log(e.type) });
+ * if (report.repairs.size === 0) console.log("everything was already valid");
+ * ```
+ */
 export const repairAll = async (input: RepairAllInput): Promise<RepairAllReport> => {
   const startedAt = Date.now();
   const ctx = {

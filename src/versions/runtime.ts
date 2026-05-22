@@ -8,14 +8,34 @@ import type { ResolvedRuntime, RuntimeIndex, RuntimeIndexEntry } from "../types/
 import type { RuntimeSystem } from "../types/system";
 import type { ResolverContext } from "./context";
 
-/** Inputs to {@link RuntimeVersionsApi.list}. */
+/**
+ * Inputs to {@link RuntimeVersionsApi.list}.
+ *
+ * @example
+ * ```ts
+ * import { detectSystem, type RuntimeListInput } from "@loontail/minecraft-kit";
+ *
+ * const input: RuntimeListInput = { system: detectSystem() };
+ * const runtimes = await kit.versions.runtime.list(input);
+ * ```
+ */
 export type RuntimeListInput = {
   readonly system: RuntimeSystem;
   readonly minecraftVersion?: string;
   readonly signal?: AbortSignal;
 };
 
-/** A summary entry for the list API. */
+/**
+ * A summary entry for the list API.
+ *
+ * @example
+ * ```ts
+ * import type { RuntimeListEntry } from "@loontail/minecraft-kit";
+ *
+ * const entries: readonly RuntimeListEntry[] = await kit.versions.runtime.list({ system });
+ * for (const e of entries) console.log(e.component, e.versionName, e.released);
+ * ```
+ */
 export type RuntimeListEntry = {
   readonly component: string;
   readonly platformKey: string;
@@ -24,7 +44,20 @@ export type RuntimeListEntry = {
   readonly manifestUrl: string;
 };
 
-/** Inputs to {@link RuntimeVersionsApi.resolve}. */
+/**
+ * Inputs to {@link RuntimeVersionsApi.resolve}.
+ *
+ * @example
+ * ```ts
+ * import { detectSystem, RuntimeComponents, type RuntimeResolveInput } from "@loontail/minecraft-kit";
+ *
+ * const input: RuntimeResolveInput = {
+ *   system: detectSystem(),
+ *   component: RuntimeComponents.JAVA_RUNTIME_GAMMA,
+ * };
+ * const runtime = await kit.versions.runtime.resolve(input);
+ * ```
+ */
 export type RuntimeResolveInput = {
   readonly system: RuntimeSystem;
   readonly minecraftVersion?: string;
@@ -33,7 +66,20 @@ export type RuntimeResolveInput = {
   readonly signal?: AbortSignal;
 };
 
-/** Public runtime versions API surface. */
+/**
+ * Public runtime versions API surface.
+ *
+ * Available off a kit instance as `kit.versions.runtime`.
+ *
+ * @example
+ * ```ts
+ * import { detectSystem, MinecraftKit } from "@loontail/minecraft-kit";
+ *
+ * const kit = new MinecraftKit();
+ * const runtime = await kit.versions.runtime.resolve({ system: detectSystem() });
+ * console.log(runtime.component, runtime.versionName);
+ * ```
+ */
 export class RuntimeVersionsApi {
   constructor(private readonly ctx: ResolverContext) {}
 
