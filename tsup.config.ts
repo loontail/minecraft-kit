@@ -1,4 +1,5 @@
 import { type Options, defineConfig } from "tsup";
+import pkg from "./package.json";
 
 const shared: Omit<Options, "entry" | "format" | "clean" | "banner"> = {
   target: "node20",
@@ -11,6 +12,7 @@ const shared: Omit<Options, "entry" | "format" | "clean" | "banner"> = {
   tsconfig: "./tsconfig.build.json",
   noExternal: ["p-limit", "yocto-queue"],
   outExtension: ({ format }) => ({ js: format === "esm" ? ".mjs" : ".cjs" }),
+  define: { __PKG_VERSION__: JSON.stringify(pkg.version) },
 };
 
 export default defineConfig([

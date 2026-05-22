@@ -56,7 +56,7 @@ export const runCli = async (input: RunCliInput): Promise<number> => {
     return 0;
   }
   if (hasFlag(input.args, CLI_FLAGS.VERSION)) {
-    input.ui.log("info", "0.1.0");
+    input.ui.log("info", __PKG_VERSION__);
     return 0;
   }
   const debug = hasFlag(input.args, CLI_FLAGS.DEBUG);
