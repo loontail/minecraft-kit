@@ -64,26 +64,33 @@ const libraryDedupeKey = (library: MinecraftLibrary): string | null => {
   }
 };
 
+/**
+ * Merge parent + child library lists with child-wins dedup on the Maven
+ * coordinate (`group:artifact[:classifier]`).
+ *
+ * Fabric Knot's classpath verifier rejects two copies of intrinsic libraries
+ * (ASM, mixin, intermediary, …) and crashes the game, so loader profiles pin
+ * versions known to be compatible with themselves and the child entry must
+ * win. Libraries without a parseable Maven coordinate fall through to a
+ * separate bucket so their ordering relative to one another is preserved.
+ *
+ * @internal
+ */
 const mergeLibraries = (
   parent: readonly MinecraftLibrary[],
   child: readonly MinecraftLibrary[],
 ): readonly MinecraftLibrary[] => {
-  // Fabric Knot's classpath verifier rejects two copies of intrinsic libraries
-  // (ASM, mixin, intermediary, …). Dedupe by `group:artifact[:classifier]` with
-  // child winning — loader profiles pin versions compatible with themselves.
-  // Libraries without a parseable Maven coordinate fall through to a separate
-  // bucket so their ordering relative to others is preserved.
-  const byKey = new Map<string, MinecraftLibrary>();
-  const unkeyed: MinecraftLibrary[] = [];
+  const childWinsByCoordinate = new Map<string, MinecraftLibrary>();
+  const withoutParseableCoordinate: MinecraftLibrary[] = [];
   for (const lib of [...parent, ...child]) {
     const key = libraryDedupeKey(lib);
     if (key === null) {
-      unkeyed.push(lib);
+      withoutParseableCoordinate.push(lib);
       continue;
     }
-    byKey.set(key, lib);
+    childWinsByCoordinate.set(key, lib);
   }
-  return [...byKey.values(), ...unkeyed];
+  return [...childWinsByCoordinate.values(), ...withoutParseableCoordinate];
 };
 
 const mergeArguments = (
