@@ -173,9 +173,7 @@ export class ProgressRenderer {
         break;
       case EventTypes.DOWNLOAD_FAILED:
         if (event.willRetry) {
-          // Retry will start over from byte 0; reset the per-file count so the next attempt
-          // doesn't carry forward the failed-attempt's bytes.
-          this.activeBytes.set(event.file.target, 0);
+          this.resetActiveBytesForRetry(event.file.target);
         } else {
           this.filesFailed++;
           this.activeTargets.delete(event.file.target);
@@ -192,6 +190,15 @@ export class ProgressRenderer {
         break;
     }
     this.maybeRender(forceRender);
+  }
+
+  /**
+   * Reset the per-file byte counter when a download fails but will be retried.
+   * Retries start over from byte 0 (no HTTP Range resumption), so leaving the
+   * old counter in place would double-count once the new attempt streams data.
+   */
+  private resetActiveBytesForRetry(target: string): void {
+    this.activeBytes.set(target, 0);
   }
 
   private maybeRender(force: boolean): void {
