@@ -13,9 +13,7 @@ import type { LogLevel, Logger } from "../types/logger";
  * ```
  */
 export const silentLogger: Logger = {
-  log() {
-    // Intentionally empty.
-  },
+  log() {},
 };
 
 /**

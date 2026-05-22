@@ -20,8 +20,7 @@ export type MavenCoordinate = {
  * @internal
  */
 export const parseMavenCoordinate = (input: string): MavenCoordinate => {
-  // Strip enclosing brackets used in Forge install profiles.
-  const trimmed = input.startsWith("[") && input.endsWith("]") ? input.slice(1, -1) : input;
+  const trimmed = stripForgeProfileBrackets(input);
   const atIndex = trimmed.indexOf("@");
   const extension = atIndex === -1 ? "jar" : trimmed.slice(atIndex + 1);
   const body = atIndex === -1 ? trimmed : trimmed.slice(0, atIndex);
@@ -69,3 +68,13 @@ export const mavenRelativePath = (coord: MavenCoordinate): string => {
 export const mavenRelativePathFor = (input: string): string => {
   return mavenRelativePath(parseMavenCoordinate(input));
 };
+
+/**
+ * Strip the leading/trailing square brackets that Forge install profiles
+ * wrap around library coordinates (e.g. `[net.minecraftforge:fmlloader:…]`).
+ * Non-bracketed inputs pass through unchanged.
+ *
+ * @internal
+ */
+const stripForgeProfileBrackets = (input: string): string =>
+  input.startsWith("[") && input.endsWith("]") ? input.slice(1, -1) : input;

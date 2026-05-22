@@ -83,9 +83,7 @@ export const atomicWrite = async (target: string, data: Uint8Array | string): Pr
   } catch (cause) {
     try {
       await fs.unlink(tmp);
-    } catch {
-      // Best-effort cleanup.
-    }
+    } catch {}
     throw new MinecraftKitError(
       MinecraftKitErrorCodes.FILESYSTEM_WRITE_ERROR,
       `Failed to write file: ${target}`,
@@ -163,9 +161,7 @@ export const chmodExecutable = async (filePath: string): Promise<void> => {
   }
   try {
     await fs.chmod(filePath, 0o755);
-  } catch {
-    // Best-effort.
-  }
+  } catch {}
 };
 
 /**

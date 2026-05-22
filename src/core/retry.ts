@@ -83,7 +83,6 @@ export const withRetry = async <T>(
       await sleep(delay, options.signal);
     }
   }
-  // Should be unreachable; the for-loop returns or throws.
   throw lastError ?? new Error("withRetry exhausted attempts");
 };
 
