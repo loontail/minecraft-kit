@@ -55,14 +55,13 @@ export const formatUserError = (error: unknown): string => {
       case "FILESYSTEM_READ_ERROR":
         return `Filesystem error: ${error.message}`;
       case "AUTH_MISSING_CLIENT_ID":
-      case "AUTH_DEVICE_CODE_DECLINED":
-      case "AUTH_DEVICE_CODE_EXPIRED":
+      case "AUTH_AUTHORIZATION_CODE_DECLINED":
+      case "AUTH_AUTHORIZATION_CODE_FAILED":
       case "AUTH_NO_GAME_OWNERSHIP":
       case "AUTH_XBOX_FAILED":
       case "AUTH_XSTS_FAILED":
       case "AUTH_MINECRAFT_FAILED":
       case "AUTH_REFRESH_FAILED":
-      case "AUTH_DEVICE_CODE_FAILED":
       case "AUTH_CANCELLED":
         return error.message;
       default:
