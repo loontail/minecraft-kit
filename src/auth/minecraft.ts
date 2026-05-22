@@ -12,7 +12,11 @@ import type { Logger } from "../types/logger";
 const MC_LOGIN_URL = "https://api.minecraftservices.com/authentication/login_with_xbox";
 const MC_PROFILE_URL = "https://api.minecraftservices.com/minecraft/profile";
 
-/** Result of `login_with_xbox` — Minecraft bearer token + lifetime. */
+/**
+ * Result of `login_with_xbox` — Minecraft bearer token + lifetime.
+ *
+ * @internal
+ */
 export type MinecraftLoginResult = {
   readonly accessToken: string;
   readonly expiresIn: number;
@@ -59,7 +63,11 @@ export type MinecraftProfile = {
   readonly capes: ReadonlyArray<MojangProfileCape>;
 };
 
-/** Step 4 — trade the XSTS token for a Minecraft bearer token. */
+/**
+ * Step 4 — trade the XSTS token for a Minecraft bearer token.
+ *
+ * @internal
+ */
 export const loginWithXbox = async (input: {
   readonly http: HttpClient;
   readonly xstsToken: string;
@@ -215,6 +223,8 @@ const toProfileCape = (raw: RawProfileCape): ReadonlyArray<MojangProfileCape> =>
  * Decode the XUID out of the JWT-shaped Minecraft access token. The token has three base64url
  * segments — we read the middle (payload) one and pluck `xuid`. Errors are non-fatal; we
  * return an empty string so the rest of the flow can still proceed.
+ *
+ * @internal
  */
 export const extractXuid = (accessToken: string): string => {
   const parts = accessToken.split(".");

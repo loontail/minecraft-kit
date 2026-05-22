@@ -12,7 +12,11 @@ const FORGE_FILES = "https://files.minecraftforge.net";
 /** Mojang Java-runtime metadata digest, embedded in the runtime index URL path. */
 const RUNTIME_INDEX_DIGEST = "2ec0cc96c44e5a76b9c8b7c39df7210883d12871";
 
-/** Endpoint builders. */
+/**
+ * Endpoint builders.
+ *
+ * @internal
+ */
 export const ApiEndpoints = {
   mojang: {
     /** Top-level Minecraft version manifest (v2). */
@@ -46,5 +50,9 @@ export const ApiEndpoints = {
   },
 } as const;
 
-/** Surface type useful for DI. */
+/**
+ * Surface type useful for DI.
+ *
+ * @internal
+ */
 export type ApiEndpointsShape = typeof ApiEndpoints;

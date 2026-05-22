@@ -11,13 +11,18 @@ const FLAG_MIN_JAVA: ReadonlyArray<{ readonly prefix: string; readonly minJava: 
   { prefix: "-XX:+UseZGC", minJava: 15 },
 ];
 
+/** @internal */
 export type FilterArgsInput = {
   readonly args: readonly string[];
   readonly javaMajor: number;
   readonly logger?: Logger;
 };
 
-/** Drop JVM flags the chosen Java version cannot parse (safety net against pinned newer flags). */
+/**
+ * Drop JVM flags the chosen Java version cannot parse (safety net against pinned newer flags).
+ *
+ * @internal
+ */
 export const filterArgsForJava = (input: FilterArgsInput): readonly string[] => {
   if (!Number.isFinite(input.javaMajor) || input.javaMajor <= 0) return input.args;
   const out: string[] = [];

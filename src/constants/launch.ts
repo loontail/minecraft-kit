@@ -1,4 +1,8 @@
-/** JVM args appended for every launch. */
+/**
+ * JVM args appended for every launch.
+ *
+ * @internal
+ */
 export const BASE_JVM_ARGS = [
   "-XX:+UnlockExperimentalVMOptions",
   "-XX:+UseG1GC",
@@ -8,7 +12,11 @@ export const BASE_JVM_ARGS = [
   "-XX:G1HeapRegionSize=32M",
 ] as const;
 
-/** JVM args added for legacy (≤1.12) versions that lack `arguments.jvm`. */
+/**
+ * JVM args added for legacy (≤1.12) versions that lack `arguments.jvm`.
+ *
+ * @internal
+ */
 export const LEGACY_JVM_ARGS = [
   "-Djava.library.path=${natives_directory}",
   "-Dminecraft.launcher.brand=${launcher_name}",
@@ -17,5 +25,9 @@ export const LEGACY_JVM_ARGS = [
   "${classpath}",
 ] as const;
 
-/** macOS-only JVM args (suppress dock label). */
+/**
+ * macOS-only JVM args (suppress dock label).
+ *
+ * @internal
+ */
 export const MACOS_JVM_ARGS = ["-Xdock:name=Minecraft"] as const;

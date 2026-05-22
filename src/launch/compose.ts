@@ -9,6 +9,7 @@ import { buildClasspath } from "./classpath";
 import { buildPlaceholderValues } from "./placeholder-values";
 import { pickClientJarVersionId, resolveLaunchVersion } from "./version-resolution";
 
+/** @internal */
 export type ComposeLaunchInput = {
   readonly target: Target;
   readonly options: LaunchOptions;
@@ -16,7 +17,11 @@ export type ComposeLaunchInput = {
   readonly logger?: Logger;
 };
 
-/** Build a fully resolved {@link LaunchComposition} ready to hand to {@link runLaunch}. */
+/**
+ * Build a fully resolved {@link LaunchComposition} ready to hand to {@link runLaunch}.
+ *
+ * @internal
+ */
 export const composeLaunch = async (input: ComposeLaunchInput): Promise<LaunchComposition> => {
   const { target, options } = input;
   if (!options.auth.username || options.auth.username.length === 0) {

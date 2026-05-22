@@ -5,6 +5,8 @@ import type { ScenarioContext } from "../types";
 /**
  * Pick a runtime component for an install plan. Returns `null` to mean "use whatever the
  * version manifest declares" (auto). Used by the install scenario.
+ *
+ * @internal
  */
 export const pickRuntime = async (ctx: ScenarioContext): Promise<WizardOutcome<string | null>> => {
   const initial = await ctx.ui.select<"auto" | "specific">({
@@ -58,7 +60,11 @@ export const pickRuntime = async (ctx: ScenarioContext): Promise<WizardOutcome<s
   }
 };
 
-/** Same as {@link pickRuntime} but always returns a component (no auto fallback). */
+/**
+ * Same as {@link pickRuntime} but always returns a component (no auto fallback).
+ *
+ * @internal
+ */
 export const pickRuntimeComponent = async (
   ctx: ScenarioContext,
 ): Promise<WizardOutcome<{ readonly component: string; readonly versionName: string }>> => {
@@ -96,7 +102,11 @@ export const pickRuntimeComponent = async (
   return { kind: "ok", value: picked };
 };
 
-/** Pick where runtime files live — per-target dir or a shared install root. */
+/**
+ * Pick where runtime files live — per-target dir or a shared install root.
+ *
+ * @internal
+ */
 export const pickRuntimeInstallRoot = async (
   ctx: ScenarioContext,
 ): Promise<WizardOutcome<string | null>> => {

@@ -10,7 +10,11 @@ import { pickArguments, splitLegacyArguments } from "./arguments";
 import { filterArgsForJava } from "./jvm-compat";
 import { substituteArgs } from "./placeholders";
 
-/** Output of {@link composeArgs}. */
+/**
+ * Output of {@link composeArgs}.
+ *
+ * @internal
+ */
 export type ComposedArgs = {
   readonly jvmArgs: readonly string[];
   readonly gameArgs: readonly string[];
@@ -24,6 +28,8 @@ export type ComposedArgs = {
  *
  * Caller-extra entries land last so the user can override anything emitted by the manifest
  * (last-wins for JVM `-Xms`/`-Xmx`, additive for game args).
+ *
+ * @internal
  */
 export const composeArgs = (input: {
   readonly target: Target;

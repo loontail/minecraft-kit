@@ -18,6 +18,8 @@ import {
 /**
  * Plan + run an install and pipe progress events into the {@link ProgressRenderer}.
  * Throws if either step fails; the renderer's `fail()` message is the user-facing error.
+ *
+ * @internal
  */
 export const runInstallWithProgress = async (
   ctx: ScenarioContext,
@@ -62,6 +64,8 @@ export const runInstallWithProgress = async (
  *                   should exit to the main menu rather than re-prompt the same steps —
  *                   retrying without changing inputs almost never recovers.
  *   - `"install-type"` target resolution failed; loader choice probably needs to change.
+ *
+ * @internal
  */
 export const runInstallFromSelection = async (
   ctx: ScenarioContext,
@@ -96,6 +100,7 @@ export const runInstallFromSelection = async (
   }
 };
 
+/** @internal */
 export const runStandaloneRuntimeInstallWithProgress = async (
   ctx: ScenarioContext,
   input: { readonly id: string; readonly directory: string; readonly runtime: ResolvedRuntime },
@@ -133,6 +138,7 @@ export const runStandaloneRuntimeInstallWithProgress = async (
   }
 };
 
+/** @internal */
 export const buildLoaderInput = (
   sel: InstallSelection,
 ): {
@@ -148,6 +154,7 @@ export const buildLoaderInput = (
   return { type: Loaders.FORGE, version: sel.forgeBuild as string };
 };
 
+/** @internal */
 export const describeLoader = (sel: InstallSelection): string => {
   const v = (sel.version as MinecraftVersionSummary).id;
   if (sel.installType === Loaders.VANILLA) return `Vanilla ${v}`;
@@ -155,6 +162,7 @@ export const describeLoader = (sel: InstallSelection): string => {
   return `Forge ${sel.forgeLabel ?? sel.forgeBuild} on ${v}`;
 };
 
+/** @internal */
 export const summaryRows = (sel: InstallSelection): readonly (readonly [string, string])[] => {
   const v = sel.version as MinecraftVersionSummary;
   const rows: [string, string][] = [
@@ -178,12 +186,14 @@ const labelForType = (type: InstallType | null): string => {
   return "Vanilla";
 };
 
+/** @internal */
 export const previousFromDirectory = (sel: InstallSelection): InstallWizardStep => {
   if (sel.installType === Loaders.FABRIC) return InstallWizardSteps.FABRIC_LOADER;
   if (sel.installType === Loaders.FORGE) return InstallWizardSteps.FORGE_BUILD;
   return InstallWizardSteps.INSTALL_TYPE;
 };
 
+/** @internal */
 export const defaultIdFromSelection = (sel: InstallSelection): string => {
   const v = (sel.version as MinecraftVersionSummary).id;
   if (sel.installType === Loaders.FABRIC) {
@@ -195,10 +205,12 @@ export const defaultIdFromSelection = (sel: InstallSelection): string => {
   return defaultIdFor("vanilla", v);
 };
 
+/** @internal */
 export const defaultIdFor = (loader: string, suffix: string): string => {
   return `${loader}-${suffix}`.replace(/[^a-zA-Z0-9._-]+/g, "-").toLowerCase();
 };
 
+/** @internal */
 export const formatDetailed = (entry: DiscoveredTarget): string => {
   const versions =
     entry.minecraftVersions.length === 0 ? "(none)" : entry.minecraftVersions.join(", ");
@@ -219,6 +231,7 @@ export const formatDetailed = (entry: DiscoveredTarget): string => {
   ].join("\n");
 };
 
+/** @internal */
 export const formatSummary = (summary: ProgressSummary): string => {
   const lines = [
     `Files downloaded: ${summary.filesDownloaded}`,

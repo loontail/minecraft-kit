@@ -6,7 +6,11 @@ import type { WizardOutcome } from "../../ui";
 import type { ScenarioContext } from "../types";
 import { pickMinecraftVersionFromEntry } from "./version";
 
-/** Pick the install directory: default `<root>/<id>` or a user-typed path. */
+/**
+ * Pick the install directory: default `<root>/<id>` or a user-typed path.
+ *
+ * @internal
+ */
 export const pickDirectory = async (
   ctx: ScenarioContext,
   suggestedId: string,
@@ -34,7 +38,11 @@ export const pickDirectory = async (
   return { kind: "ok", value: (text.value ?? "").trim() };
 };
 
-/** Show a summary table and confirm before kicking off an install. */
+/**
+ * Show a summary table and confirm before kicking off an install.
+ *
+ * @internal
+ */
 export const confirmInstall = async (
   ctx: ScenarioContext,
   rows: readonly (readonly [string, string])[],
@@ -50,6 +58,8 @@ export const confirmInstall = async (
 /**
  * Discover installations under `ctx.rootDir`, let the user pick one, then resolve it back
  * to a {@link Target}. Returns `null` if the user cancels or no installations exist.
+ *
+ * @internal
  */
 export const pickInstalledTarget = async (ctx: ScenarioContext): Promise<Target | null> => {
   let list: readonly DiscoveredTarget[];

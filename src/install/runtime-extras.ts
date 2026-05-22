@@ -10,6 +10,8 @@ import type { ResolvedRuntime, RuntimeFilesManifest } from "../types/runtime";
  *
  * Plain file entries are handled by the regular downloader; this function fills in the
  * non-file entry types after the downloads have completed.
+ *
+ * @internal
  */
 export const materializeRuntimeExtras = async (input: {
   readonly runtime: ResolvedRuntime;

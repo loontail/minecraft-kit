@@ -3,17 +3,29 @@ import { formatUserError } from "../../error-format";
 import type { SelectOption, Ui, WizardOutcome } from "../../ui";
 import type { InstallType, ScenarioContext } from "../types";
 
-/** Outcome of {@link pickFabricLoader}. */
+/**
+ * Outcome of {@link pickFabricLoader}.
+ *
+ * @internal
+ */
 export type FabricLoaderOutcome = WizardOutcome<string> | { readonly kind: "incompatible" };
 
-/** Outcome of {@link pickForgeBuild}. */
+/**
+ * Outcome of {@link pickForgeBuild}.
+ *
+ * @internal
+ */
 export type ForgeBuildOutcome =
   | { readonly kind: "ok"; readonly value: string; readonly label: string }
   | { readonly kind: "back" }
   | { readonly kind: "cancel" }
   | { readonly kind: "incompatible" };
 
-/** Choose between Vanilla / Fabric / Forge. */
+/**
+ * Choose between Vanilla / Fabric / Forge.
+ *
+ * @internal
+ */
 export const pickInstallType = async (ui: Ui): Promise<WizardOutcome<InstallType>> => {
   return ui.select<InstallType>({
     message: "Select installation type",
@@ -31,7 +43,11 @@ export const pickInstallType = async (ui: Ui): Promise<WizardOutcome<InstallType
   });
 };
 
-/** Pick a Fabric loader version for the given Minecraft version. */
+/**
+ * Pick a Fabric loader version for the given Minecraft version.
+ *
+ * @internal
+ */
 export const pickFabricLoader = async (
   ctx: ScenarioContext,
   minecraftVersion: string,
@@ -64,7 +80,11 @@ export const pickFabricLoader = async (
   }
 };
 
-/** Pick a Forge build for the given Minecraft version, surfacing recommended + latest. */
+/**
+ * Pick a Forge build for the given Minecraft version, surfacing recommended + latest.
+ *
+ * @internal
+ */
 export const pickForgeBuild = async (
   ctx: ScenarioContext,
   minecraftVersion: string,

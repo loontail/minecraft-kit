@@ -8,6 +8,8 @@ import type { AuthState, ScenarioContext, ScenarioOutcome } from "./types";
  * Scenario: shown from the main menu after the initial sign-in already happened at startup.
  * Lets the user inspect the active session, refresh the Microsoft token, sign out (drop
  * back to offline + default username), or switch accounts entirely.
+ *
+ * @internal
  */
 export const scenarioLogin = async (ctx: ScenarioContext): Promise<ScenarioOutcome> => {
   const current = ctx.auth.current;
@@ -46,6 +48,8 @@ export const scenarioLogin = async (ctx: ScenarioContext): Promise<ScenarioOutco
  * Microsoft, runs the browser sign-in flow if needed, and writes the result into `state`.
  *
  * Returns `false` if the user cancels — `runCli` treats that as "exit before menu".
+ *
+ * @internal
  */
 export const pickInitialAuth = async (
   ctx: Omit<ScenarioContext, "auth">,

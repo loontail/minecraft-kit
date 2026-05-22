@@ -11,6 +11,8 @@ import type { SelectOption, Ui } from "../ui";
 /**
  * Mutable holder for the active session, shared by every scenario. Populated once at CLI
  * startup (see {@link import("../main").runCli}) and updated by the "Sign in / out" menu.
+ *
+ * @internal
  */
 export type AuthState = {
   /** Auth value passed straight to `kit.launch.compose`. Null until startup picks one. */
@@ -19,7 +21,11 @@ export type AuthState = {
   microsoftSession: MojangSession | null;
 };
 
-/** Inputs every scenario receives. */
+/**
+ * Inputs every scenario receives.
+ *
+ * @internal
+ */
 export type ScenarioContext = {
   readonly kit: MinecraftKit;
   readonly ui: Ui;
@@ -27,13 +33,25 @@ export type ScenarioContext = {
   readonly auth: AuthState;
 };
 
-/** Outcome of a scenario — whether the user cancelled or completed. */
+/**
+ * Outcome of a scenario — whether the user cancelled or completed.
+ *
+ * @internal
+ */
 export type ScenarioOutcome = "completed" | "cancelled";
 
-/** Loader kind selectable during the install wizard. */
+/**
+ * Loader kind selectable during the install wizard.
+ *
+ * @internal
+ */
 export type InstallType = typeof Loaders.VANILLA | typeof Loaders.FABRIC | typeof Loaders.FORGE;
 
-/** Selection state collected by the install wizard. */
+/**
+ * Selection state collected by the install wizard.
+ *
+ * @internal
+ */
 export type InstallSelection = {
   channel: MinecraftChannel | "old" | "all" | null;
   version: MinecraftVersionSummary | null;
@@ -45,7 +63,11 @@ export type InstallSelection = {
   directory: string | null;
 };
 
-/** Channel picker options. Defined once so tests and the picker share the source. */
+/**
+ * Channel picker options. Defined once so tests and the picker share the source.
+ *
+ * @internal
+ */
 export const CHANNEL_OPTIONS: readonly SelectOption<MinecraftChannel | "old" | "all">[] = [
   { label: "Release", value: MinecraftChannels.RELEASE, hint: "stable releases (recommended)" },
   { label: "Snapshot", value: MinecraftChannels.SNAPSHOT, hint: "weekly development builds" },
@@ -53,7 +75,11 @@ export const CHANNEL_OPTIONS: readonly SelectOption<MinecraftChannel | "old" | "
   { label: "All", value: "all", hint: "every channel combined" },
 ];
 
-/** Named steps of the install-minecraft wizard state machine. */
+/**
+ * Named steps of the install-minecraft wizard state machine.
+ *
+ * @internal
+ */
 export const InstallWizardSteps = {
   CHANNEL: "channel",
   VERSION: "version",
@@ -65,9 +91,14 @@ export const InstallWizardSteps = {
   SUMMARY: "summary",
 } as const;
 
+/** @internal */
 export type InstallWizardStep = (typeof InstallWizardSteps)[keyof typeof InstallWizardSteps];
 
-/** Outcome of {@link import("./install-helpers").runInstallFromSelection}. */
+/**
+ * Outcome of {@link import("./install-helpers").runInstallFromSelection}.
+ *
+ * @internal
+ */
 export const InstallRunResults = {
   OK: "ok",
   CANCELLED: "cancelled",
@@ -75,4 +106,5 @@ export const InstallRunResults = {
   INSTALL_TYPE: InstallWizardSteps.INSTALL_TYPE,
 } as const;
 
+/** @internal */
 export type InstallRunResult = (typeof InstallRunResults)[keyof typeof InstallRunResults];

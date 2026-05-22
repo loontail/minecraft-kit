@@ -2,7 +2,11 @@ import { formatUserError } from "../error-format";
 import { formatDetailed } from "./install-helpers";
 import type { ScenarioContext, ScenarioOutcome } from "./types";
 
-/** Scenario: inspect a single installation in detail. */
+/**
+ * Scenario: inspect a single installation in detail.
+ *
+ * @internal
+ */
 export const scenarioInspect = async (ctx: ScenarioContext): Promise<ScenarioOutcome> => {
   try {
     const list = await ctx.kit.targets.list({ rootDir: ctx.rootDir });

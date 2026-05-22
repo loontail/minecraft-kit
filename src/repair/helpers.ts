@@ -15,7 +15,11 @@ import {
   type VerifyFileCategory,
 } from "../types/verify";
 
-/** Normalize the `from` option of a repair plan into an array. */
+/**
+ * Normalize the `from` option of a repair plan into an array.
+ *
+ * @internal
+ */
 export const asResultArray = (
   from: VerificationResult | readonly VerificationResult[],
 ): readonly VerificationResult[] => {
@@ -30,6 +34,8 @@ export const asResultArray = (
  *
  * Without this distinction, a "natives directory missing" report would re-trigger every
  * native-jar download even though every JAR on disk is already correct.
+ *
+ * @internal
  */
 export type IssueIndex = {
   /** True when any verification result reported an issue at `path`. */
@@ -44,7 +50,11 @@ export type IssueIndex = {
   categoriesAt(path: string): ReadonlySet<VerifyFileCategory>;
 };
 
-/** Build an {@link IssueIndex} from one or more verification results. */
+/**
+ * Build an {@link IssueIndex} from one or more verification results.
+ *
+ * @internal
+ */
 export const buildIssueIndex = (
   from: VerificationResult | readonly VerificationResult[],
 ): IssueIndex => {
@@ -70,7 +80,11 @@ export const buildIssueIndex = (
   };
 };
 
-/** Sum expected bytes of all DOWNLOAD_FILE actions in a list. */
+/**
+ * Sum expected bytes of all DOWNLOAD_FILE actions in a list.
+ *
+ * @internal
+ */
 export const sumDownloadBytes = (actions: readonly InstallAction[]): number => {
   return actions.reduce((sum, action) => {
     if (action.kind === InstallActionKinds.DOWNLOAD_FILE) {
@@ -80,7 +94,11 @@ export const sumDownloadBytes = (actions: readonly InstallAction[]): number => {
   }, 0);
 };
 
-/** Wrap a list of install actions in a {@link RepairPlan} for the given target. */
+/**
+ * Wrap a list of install actions in a {@link RepairPlan} for the given target.
+ *
+ * @internal
+ */
 export const buildRepairPlan = (target: Target, actions: readonly InstallAction[]): RepairPlan => {
   return {
     targetId: target.id,
@@ -92,7 +110,11 @@ export const buildRepairPlan = (target: Target, actions: readonly InstallAction[
   };
 };
 
-/** Predicate to keep only actions belonging to a specific repair aspect. */
+/**
+ * Predicate to keep only actions belonging to a specific repair aspect.
+ *
+ * @internal
+ */
 export type AspectFilter = (action: InstallAction) => boolean;
 
 /**
@@ -103,6 +125,8 @@ export type AspectFilter = (action: InstallAction) => boolean;
  *      DOWNLOAD / WRITE / EXTRACT_NATIVE selection rules.
  *   4. Let the caller append any aspect-specific actions (e.g. Forge's defensive sweep).
  *   5. Wrap the actions in a {@link RepairPlan}.
+ *
+ * @internal
  */
 export const planAspectRepair = async (
   input: AspectRepairInput,
@@ -137,6 +161,8 @@ export const planAspectRepair = async (
  *  - WRITE_VERSION_JSON: include if the destination path has any issue recorded.
  *  - EXTRACT_NATIVE: include if the source JAR has any issue recorded.
  *  - Anything else admitted by `aspectFilter` is included unconditionally.
+ *
+ * @internal
  */
 export const selectRepairActions = (input: {
   readonly target: Target;

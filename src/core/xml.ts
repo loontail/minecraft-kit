@@ -2,6 +2,8 @@
  * Extract every `<version>...</version>` element from a Maven `maven-metadata.xml`. The
  * structure is rigid enough that a regex-based extractor is robust here — no full XML parser
  * dependency required.
+ *
+ * @internal
  */
 export const parseMavenMetadataVersions = (xml: string): readonly string[] => {
   const versions: string[] = [];

@@ -2,6 +2,8 @@
  * All `${...}` tokens substituted into JVM and game arguments.
  *
  * This map drives both substitution at launch time and documentation generation.
+ *
+ * @internal
  */
 export const LAUNCH_PLACEHOLDERS = {
   "${auth_player_name}": "Player display name.",
@@ -29,5 +31,9 @@ export const LAUNCH_PLACEHOLDERS = {
   "${path}": "Path to the log4j config file (logging.client.argument only).",
 } as const;
 
-/** Token literal type. */
+/**
+ * Token literal type.
+ *
+ * @internal
+ */
 export type LaunchPlaceholder = keyof typeof LAUNCH_PLACEHOLDERS;

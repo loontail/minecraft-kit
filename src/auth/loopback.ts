@@ -38,7 +38,11 @@ const DEFAULT_SUCCESS_HTML = `<!doctype html>
 // `http://localhost`). Accepting only the root path keeps us strict.
 const CALLBACK_PATH = "/";
 
-/** Result of {@link startLoopbackServer}. */
+/**
+ * Result of {@link startLoopbackServer}.
+ *
+ * @internal
+ */
 export type LoopbackServer = {
   /** Port the server is bound to. Build the redirect URI from this. */
   readonly port: number;
@@ -52,7 +56,11 @@ export type LoopbackServer = {
   close(): Promise<void>;
 };
 
-/** Options for {@link startLoopbackServer}. */
+/**
+ * Options for {@link startLoopbackServer}.
+ *
+ * @internal
+ */
 export type StartLoopbackServerOptions = {
   /** State value that must appear in the callback's `state` query param. */
   readonly expectedState: string;
@@ -73,6 +81,8 @@ export type StartLoopbackServerOptions = {
  * The server only ever resolves the promise once — subsequent requests on the same
  * server are answered with 410 Gone. This protects against replay if the user opens
  * the callback URL twice (e.g. browser refresh).
+ *
+ * @internal
  */
 export const startLoopbackServer = async (
   options: StartLoopbackServerOptions,

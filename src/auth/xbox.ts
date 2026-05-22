@@ -8,6 +8,8 @@ const XSTS_URL = "https://xsts.auth.xboxlive.com/xsts/authorize";
 /**
  * Result of either XBL or XSTS authentication: the JWT plus the user hash that prefixes the
  * Minecraft `identityToken`.
+ *
+ * @internal
  */
 export type XboxToken = {
   readonly token: string;
@@ -28,6 +30,8 @@ type XstsErrorResponse = {
 
 /**
  * Step 2 — exchange the Microsoft access token for an Xbox Live user token.
+ *
+ * @internal
  */
 export const authenticateXbl = async (input: {
   readonly http: HttpClient;
@@ -80,6 +84,8 @@ export const authenticateXbl = async (input: {
  * (no Xbox profile, country restriction, child account…). Those codes are mapped to a single
  * `AUTH_XSTS_FAILED` error with a human-friendly message — callers can branch on `xerr` in
  * the context if they need finer-grained handling.
+ *
+ * @internal
  */
 export const authenticateXsts = async (input: {
   readonly http: HttpClient;

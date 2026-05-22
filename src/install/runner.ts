@@ -32,7 +32,11 @@ import { runProcessor } from "./processor";
 import { planRuntimeDownloads } from "./runtime";
 import { materializeRuntimeExtras } from "./runtime-extras";
 
-/** Inputs to the install runner. */
+/**
+ * Inputs to the install runner.
+ *
+ * @internal
+ */
 export type RunInstallInput = {
   readonly plan: InstallPlan;
   readonly http: HttpClient;
@@ -86,7 +90,11 @@ type PlannedActions = {
   readonly processors: readonly RunForgeProcessorAction[];
 };
 
-/** Execute an install plan. */
+/**
+ * Execute an install plan.
+ *
+ * @internal
+ */
 export const runInstall = async (input: RunInstallInput): Promise<InstallReport> => {
   const startedAt = Date.now();
   const counters: InstallCounters = { bytesDownloaded: 0, actionsCompleted: 0, actionsSkipped: 0 };

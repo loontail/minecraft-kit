@@ -2,7 +2,11 @@ import { evaluateRules } from "../core/rules";
 import type { ArgumentEntry, MinecraftArguments } from "../types/minecraft";
 import type { RuntimeSystem } from "../types/system";
 
-/** Flatten a modern `arguments.{game|jvm}` array, evaluating rules. */
+/**
+ * Flatten a modern `arguments.{game|jvm}` array, evaluating rules.
+ *
+ * @internal
+ */
 export const flattenArguments = (
   entries: readonly ArgumentEntry[],
   context: {
@@ -26,12 +30,20 @@ export const flattenArguments = (
   return result;
 };
 
-/** Split a legacy minecraftArguments string into an array. */
+/**
+ * Split a legacy minecraftArguments string into an array.
+ *
+ * @internal
+ */
 export const splitLegacyArguments = (raw: string): readonly string[] => {
   return raw.trim().length === 0 ? [] : raw.trim().split(/\s+/);
 };
 
-/** Convenience: pull both game and jvm arrays from a modern arguments object. */
+/**
+ * Convenience: pull both game and jvm arrays from a modern arguments object.
+ *
+ * @internal
+ */
 export const pickArguments = (
   args: MinecraftArguments | undefined,
   context: {

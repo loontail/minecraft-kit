@@ -14,7 +14,11 @@ import { EventTypes } from "../types/events";
 import type { ProgressListener } from "../types/events";
 import type { HttpClient } from "../types/http";
 
-/** Inputs to {@link downloadFile}. */
+/**
+ * Inputs to {@link downloadFile}.
+ *
+ * @internal
+ */
 export type DownloadFileInput = {
   readonly url: string;
   readonly target: string;
@@ -34,7 +38,11 @@ export type DownloadFileInput = {
   readonly hostAllowList?: readonly string[];
 };
 
-/** Outputs from a successful download. */
+/**
+ * Outputs from a successful download.
+ *
+ * @internal
+ */
 export type DownloadFileResult = {
   readonly bytesDownloaded: number;
   readonly sha1: string;
@@ -45,6 +53,8 @@ export type DownloadFileResult = {
  * Stream a URL to a file with on-the-fly hash verification, atomic rename, retries, and
  * progress events. Skips the download when the destination already exists with matching
  * size + sha1.
+ *
+ * @internal
  */
 export const downloadFile = async (
   http: HttpClient,

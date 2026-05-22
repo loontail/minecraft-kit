@@ -1,7 +1,11 @@
 import type { LibraryRule } from "../types/minecraft";
 import type { RuntimeSystem } from "../types/system";
 
-/** Inputs to rule evaluation. */
+/**
+ * Inputs to rule evaluation.
+ *
+ * @internal
+ */
 export type RuleEvaluationContext = {
   readonly system: RuntimeSystem;
   readonly features?: Readonly<Record<string, boolean>>;
@@ -13,6 +17,8 @@ export type RuleEvaluationContext = {
  * Algorithm: each rule with a matching `os`/`features` predicate updates a running
  * `allowed` flag (`allow` → true, `disallow` → false). Last matching rule wins.
  * When the rule list is empty, the result is `true`.
+ *
+ * @internal
  */
 export const evaluateRules = (
   rules: readonly LibraryRule[] | undefined,
@@ -68,12 +74,20 @@ const normalizeArch = (arch: string): string => {
   return arch === "ia32" ? "x86" : arch;
 };
 
-/** Resolve the `${arch}` placeholder used in legacy native classifier names. */
+/**
+ * Resolve the `${arch}` placeholder used in legacy native classifier names.
+ *
+ * @internal
+ */
 export const resolveArchPlaceholder = (template: string, archDigit: string): string => {
   return template.replaceAll("${arch}", archDigit);
 };
 
-/** The numeric arch suffix used by legacy LWJGL natives (`x64` → `64`, `x86` → `32`). */
+/**
+ * The numeric arch suffix used by legacy LWJGL natives (`x64` → `64`, `x86` → `32`).
+ *
+ * @internal
+ */
 export const archDigit = (arch: RuntimeSystem["arch"]): string => {
   if (arch === "x86") return "32";
   if (arch === "x64") return "64";

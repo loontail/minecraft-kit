@@ -9,6 +9,8 @@ import type { AssetIndexDocument, AssetIndexReference } from "../types/minecraft
 /**
  * Plan asset downloads: fetch the asset index and emit a download action per object plus the
  * index file itself.
+ *
+ * @internal
  */
 export const planAssetDownloads = async (input: {
   readonly directory: string;

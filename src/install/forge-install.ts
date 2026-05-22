@@ -29,7 +29,11 @@ import type { ResolvedMinecraft } from "../types/minecraft";
 import type { RuntimeSystem } from "../types/system";
 import { planLibraryDownloads } from "./libraries";
 
-/** Outputs of {@link planForgeInstall}. */
+/**
+ * Outputs of {@link planForgeInstall}.
+ *
+ * @internal
+ */
 export type ForgeInstallPlan = {
   readonly installerDownload: DownloadAction;
   readonly libraryDownloads: readonly DownloadAction[];
@@ -41,7 +45,11 @@ export type ForgeInstallPlan = {
   readonly version: ForgeVersionJson;
 };
 
-/** Inputs to {@link planForgeInstall}. */
+/**
+ * Inputs to {@link planForgeInstall}.
+ *
+ * @internal
+ */
 export type PlanForgeInstallInput = {
   readonly loader: ResolvedForgeLoader;
   readonly minecraft: ResolvedMinecraft;
@@ -56,6 +64,8 @@ export type PlanForgeInstallInput = {
 /**
  * Plan the Forge install steps. Downloads the installer, parses install_profile + version.json,
  * extracts embedded artifacts to `libraries/`, and prepares processor invocations.
+ *
+ * @internal
  */
 export const planForgeInstall = async (input: PlanForgeInstallInput): Promise<ForgeInstallPlan> => {
   const installerPath = targetPaths.forgeInstaller(input.directory, input.loader.fullVersion);
@@ -337,7 +347,11 @@ export const stripLiteralPrefix = (value: string): string => {
   return stripped.endsWith("'") ? stripped.slice(0, -1) : stripped;
 };
 
-/** Build the Forge installer download URL. Used by repair flows that need to refetch. */
+/**
+ * Build the Forge installer download URL. Used by repair flows that need to refetch.
+ *
+ * @internal
+ */
 export const forgeInstallerUrl = (fullVersion: string): string => {
   return ApiEndpoints.forge.installer(fullVersion);
 };

@@ -6,7 +6,11 @@ import type { HttpClient } from "../types/http";
 import { type DownloadAction, DownloadCategories, InstallActionKinds } from "../types/install";
 import type { ResolvedRuntime, RuntimeFilesManifest } from "../types/runtime";
 
-/** Plan the per-file downloads required to install a runtime. */
+/**
+ * Plan the per-file downloads required to install a runtime.
+ *
+ * @internal
+ */
 export const planRuntimeDownloads = async (input: {
   readonly runtime: ResolvedRuntime;
   readonly directory: string;

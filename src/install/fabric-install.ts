@@ -13,6 +13,8 @@ import { planLibraryDownloads } from "./libraries";
 /**
  * Plan the Fabric-specific install steps for a resolved Fabric loader: write the profile
  * JSON (becomes `versions/<id>/<id>.json`) and download every Fabric library.
+ *
+ * @internal
  */
 export const planFabricInstall = (input: {
   readonly loader: ResolvedFabricLoader;

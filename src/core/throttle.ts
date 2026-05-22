@@ -5,6 +5,8 @@ import type { ProgressEvent, ProgressListener } from "../types/events";
  * to at most one per `intervalMs`. Other event types pass through untouched.
  *
  * Throttling is per-target (event.file.target) so independent downloads don't starve each other.
+ *
+ * @internal
  */
 export const throttleProgress = (
   listener: ProgressListener,

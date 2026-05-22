@@ -2,6 +2,8 @@ import { MinecraftKitError, MinecraftKitErrorCodes } from "./errors";
 
 /**
  * Parsed Maven coordinate of the form `group:artifact:version[:classifier][@extension]`.
+ *
+ * @internal
  */
 export type MavenCoordinate = {
   readonly group: string;
@@ -15,6 +17,7 @@ export type MavenCoordinate = {
  * Parse a Maven coordinate string. Defaults `extension` to `jar`.
  *
  * @throws `INVALID_INPUT` when the input cannot be parsed.
+ * @internal
  */
 export const parseMavenCoordinate = (input: string): MavenCoordinate => {
   // Strip enclosing brackets used in Forge install profiles.
@@ -46,7 +49,11 @@ export const parseMavenCoordinate = (input: string): MavenCoordinate => {
   return { group, artifact, version, classifier, extension };
 };
 
-/** Build the relative path under a Maven repository for a coordinate. */
+/**
+ * Build the relative path under a Maven repository for a coordinate.
+ *
+ * @internal
+ */
 export const mavenRelativePath = (coord: MavenCoordinate): string => {
   const groupPath = coord.group.replaceAll(".", "/");
   const classifierSegment = coord.classifier === undefined ? "" : `-${coord.classifier}`;
@@ -54,7 +61,11 @@ export const mavenRelativePath = (coord: MavenCoordinate): string => {
   return `${groupPath}/${coord.artifact}/${coord.version}/${filename}`;
 };
 
-/** Convenience: parse + relative path. */
+/**
+ * Convenience: parse + relative path.
+ *
+ * @internal
+ */
 export const mavenRelativePathFor = (input: string): string => {
   return mavenRelativePath(parseMavenCoordinate(input));
 };

@@ -16,7 +16,11 @@ import { planForgeInstall } from "./forge-install";
 import { planLibraryDownloads } from "./libraries";
 import { planRuntimeDownloads } from "./runtime";
 
-/** Inputs to the install planner. */
+/**
+ * Inputs to the install planner.
+ *
+ * @internal
+ */
 export type PlanInstallInput = {
   readonly target: Target;
   readonly http: HttpClient;
@@ -25,7 +29,11 @@ export type PlanInstallInput = {
   readonly onEvent?: ProgressListener;
 };
 
-/** Build a flat install plan for the given target. */
+/**
+ * Build a flat install plan for the given target.
+ *
+ * @internal
+ */
 export const planInstall = async (input: PlanInstallInput): Promise<InstallPlan> => {
   const { target } = input;
   const actions: InstallAction[] = [];

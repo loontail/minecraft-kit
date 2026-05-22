@@ -5,7 +5,11 @@ import { evaluateRules } from "../core/rules";
 import type { MinecraftLibrary, MinecraftVersionManifest } from "../types/minecraft";
 import type { RuntimeSystem } from "../types/system";
 
-/** Build the classpath entries for a launch. */
+/**
+ * Build the classpath entries for a launch.
+ *
+ * @internal
+ */
 export const buildClasspath = (input: {
   readonly directory: string;
   readonly versionId: string;

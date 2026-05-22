@@ -11,12 +11,18 @@ import {
   VerifyFileStatuses,
 } from "../types/verify";
 
-/** Records a single file-check result and emits the corresponding event. */
+/**
+ * Records a single file-check result and emits the corresponding event.
+ *
+ * @internal
+ */
 export type VerificationRecorder = (result: VerificationFileResult) => void;
 
 /**
  * Run the boilerplate shared by every aspect verifier: tracks the per-file results emitted
  * via the recorder, fires `verify:file-checked` events, and assembles the {@link VerificationResult}.
+ *
+ * @internal
  */
 export const runVerification = async (
   input: {
@@ -43,7 +49,11 @@ export const runVerification = async (
   };
 };
 
-/** Verify a file by existence + optional size + optional sha1. */
+/**
+ * Verify a file by existence + optional size + optional sha1.
+ *
+ * @internal
+ */
 export const verifyHashedFile = async (input: {
   readonly path: string;
   readonly expectedSha1?: string;
@@ -99,7 +109,11 @@ export const verifyHashedFile = async (input: {
   };
 };
 
-/** Verify by existence only (no hash/size check). */
+/**
+ * Verify by existence only (no hash/size check).
+ *
+ * @internal
+ */
 export const verifyExistence = async (input: {
   readonly path: string;
   readonly category: VerificationFileResult["category"];
@@ -126,6 +140,8 @@ export const verifyExistence = async (input: {
  * discovered path even if the JSON file itself is missing — callers use the path to record
  * a MISSING issue and trigger a write/repair downstream. Returns null when the versions
  * directory has no Forge folder for this Minecraft version.
+ *
+ * @internal
  */
 export const findForgeVersionJsonPath = async (
   directory: string,

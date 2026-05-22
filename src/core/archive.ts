@@ -12,7 +12,11 @@ import {
 import { MinecraftKitError, MinecraftKitErrorCodes } from "./errors";
 import { assertWithinRoot, atomicWrite, chmodExecutable, ensureDir } from "./fs";
 
-/** A single zip entry exposed to callers. */
+/**
+ * A single zip entry exposed to callers.
+ *
+ * @internal
+ */
 export type ZipEntry = {
   readonly name: string;
   readonly compressedSize: number;
@@ -24,7 +28,11 @@ export type ZipEntry = {
   openReadStream(): Promise<Readable>;
 };
 
-/** Open a zip/jar file for streaming inspection. */
+/**
+ * Open a zip/jar file for streaming inspection.
+ *
+ * @internal
+ */
 export const openZip = (filePath: string): Promise<ZipReader> => {
   return new Promise((resolve, reject) => {
     yauzl.open(filePath, { lazyEntries: true, autoClose: false }, (err, zipFile) => {
@@ -46,7 +54,11 @@ export const openZip = (filePath: string): Promise<ZipReader> => {
   });
 };
 
-/** Reader for a single zip file. */
+/**
+ * Reader for a single zip file.
+ *
+ * @internal
+ */
 export class ZipReader {
   constructor(
     private readonly file: yauzl.ZipFile,
@@ -180,7 +192,11 @@ const openStream = (
   });
 };
 
-/** Inputs to {@link extractEntryToDir}. */
+/**
+ * Inputs to {@link extractEntryToDir}.
+ *
+ * @internal
+ */
 export type ExtractOptions = {
   /** Path-prefix exclusion list. Defaults to `["META-INF/"]`. */
   readonly excludePrefixes?: readonly string[];
@@ -188,7 +204,11 @@ export type ExtractOptions = {
   readonly overwrite?: boolean;
 };
 
-/** Extract every file entry from a zip into `targetDir`, applying safety checks. */
+/**
+ * Extract every file entry from a zip into `targetDir`, applying safety checks.
+ *
+ * @internal
+ */
 export const extractAllToDir = async (
   zipPath: string,
   targetDir: string,
@@ -241,7 +261,11 @@ export const extractAllToDir = async (
 
 const RESERVED_NAME = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\..*)?$/i;
 
-/** Reject entry names that are dangerous regardless of containment. */
+/**
+ * Reject entry names that are dangerous regardless of containment.
+ *
+ * @internal
+ */
 export const assertSafeEntryName = (name: string): void => {
   if (!name) {
     throw rejectEntry(name, "empty entry name");
@@ -274,7 +298,11 @@ const rejectEntry = (name: string, reason: string): MinecraftKitError => {
   );
 };
 
-/** Read a single named entry to a Buffer. Returns undefined if missing. */
+/**
+ * Read a single named entry to a Buffer. Returns undefined if missing.
+ *
+ * @internal
+ */
 export const readEntryBuffer = async (
   zipPath: string,
   entryName: string,
@@ -289,7 +317,11 @@ export const readEntryBuffer = async (
   }
 };
 
-/** Extract a single entry to a destination path. */
+/**
+ * Extract a single entry to a destination path.
+ *
+ * @internal
+ */
 export const extractSingleEntry = async (
   zipPath: string,
   entryName: string,
@@ -315,7 +347,11 @@ export const extractSingleEntry = async (
 const MANIFEST_LINE_CONTINUATION = /\r?\n[ \t]/g;
 const MANIFEST_MAIN_CLASS = /^Main-Class:\s*(.+)$/i;
 
-/** Read the `Main-Class` attribute from a JAR's `META-INF/MANIFEST.MF`. */
+/**
+ * Read the `Main-Class` attribute from a JAR's `META-INF/MANIFEST.MF`.
+ *
+ * @internal
+ */
 export const readJarMainClass = async (zipPath: string): Promise<string | undefined> => {
   const buf = await readEntryBuffer(zipPath, "META-INF/MANIFEST.MF");
   if (!buf) return undefined;

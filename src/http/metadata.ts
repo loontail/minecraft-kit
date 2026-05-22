@@ -2,7 +2,11 @@ import { CACHE_TTL_MS } from "../constants/defaults";
 import type { MetadataCache } from "../types/cache";
 import type { HttpClient } from "../types/http";
 
-/** Inputs to {@link fetchJson}. */
+/**
+ * Inputs to {@link fetchJson}.
+ *
+ * @internal
+ */
 export type FetchJsonInput = {
   readonly url: string;
   readonly cacheKey?: string;
@@ -15,6 +19,8 @@ export type FetchJsonInput = {
  * the given TTL.
  *
  * Cache key defaults to the URL.
+ *
+ * @internal
  */
 export const fetchJson = async <T>(
   http: HttpClient,
@@ -34,7 +40,11 @@ export const fetchJson = async <T>(
   return value;
 };
 
-/** GET a URL and return raw text, with caching. */
+/**
+ * GET a URL and return raw text, with caching.
+ *
+ * @internal
+ */
 export const fetchText = async (
   http: HttpClient,
   cache: MetadataCache,

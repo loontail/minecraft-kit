@@ -21,7 +21,11 @@ const AUTHORIZE_URL = `https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/a
  */
 const SCOPE = "XboxLive.signin offline_access";
 
-/** PKCE verifier + S256 challenge. Length matches the RFC 7636 maximum (128 chars). */
+/**
+ * PKCE verifier + S256 challenge. Length matches the RFC 7636 maximum (128 chars).
+ *
+ * @internal
+ */
 export type PkcePair = {
   readonly codeVerifier: string;
   readonly codeChallenge: string;
@@ -34,6 +38,8 @@ const toBase64Url = (bytes: Buffer): string => bytes.toString("base64url");
  * Generate a fresh PKCE pair. The verifier is 64 random bytes (well above the 43-byte
  * minimum) and the challenge is the S256 hash of the verifier — that's what we hand
  * Microsoft in the authorize URL.
+ *
+ * @internal
  */
 export const generatePkcePair = (): PkcePair => {
   const codeVerifier = toBase64Url(randomBytes(64));
@@ -44,10 +50,16 @@ export const generatePkcePair = (): PkcePair => {
 /**
  * Opaque per-request state nonce. The kit threads this through the authorize URL and
  * re-checks it on the redirect to defend against cross-origin CSRF.
+ *
+ * @internal
  */
 export const generateOAuthState = (): string => toBase64Url(randomBytes(32));
 
-/** Options for {@link buildAuthorizeUrl}. */
+/**
+ * Options for {@link buildAuthorizeUrl}.
+ *
+ * @internal
+ */
 export type BuildAuthorizeUrlOptions = {
   /** Azure AD application id. */
   readonly clientId: string;
@@ -69,6 +81,8 @@ export type BuildAuthorizeUrlOptions = {
  * Build the authorize URL the user's browser should be sent to. Pure — does no I/O,
  * just composes a querystring. Callers feed the returned string to their browser-opening
  * mechanism (e.g. `shell.openExternal`).
+ *
+ * @internal
  */
 export const buildAuthorizeUrl = (options: BuildAuthorizeUrlOptions): string => {
   const params = new URLSearchParams({

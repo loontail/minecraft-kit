@@ -8,7 +8,11 @@ import { formatUserError } from "../../error-format";
 import type { SelectOption, Ui, WizardOutcome } from "../../ui";
 import { CHANNEL_OPTIONS, type ScenarioContext } from "../types";
 
-/** Channel preset picker (release / snapshot / old / all). */
+/**
+ * Channel preset picker (release / snapshot / old / all).
+ *
+ * @internal
+ */
 export const pickChannel = async (
   ui: Ui,
 ): Promise<WizardOutcome<MinecraftChannel | "old" | "all">> => {
@@ -19,7 +23,11 @@ export const pickChannel = async (
   });
 };
 
-/** Pick a specific Minecraft version, filtered + de-duplicated by channel. */
+/**
+ * Pick a specific Minecraft version, filtered + de-duplicated by channel.
+ *
+ * @internal
+ */
 export const pickMinecraftVersion = async (
   ctx: ScenarioContext,
   channel: MinecraftChannel | "old" | "all",
@@ -57,6 +65,8 @@ export const pickMinecraftVersion = async (
 /**
  * Pick a Minecraft version from an already-discovered installation. Skips the picker if
  * the installation only has one version on disk.
+ *
+ * @internal
  */
 export const pickMinecraftVersionFromEntry = async (
   ctx: ScenarioContext,

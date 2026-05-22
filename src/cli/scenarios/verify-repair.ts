@@ -37,7 +37,11 @@ const summarizeVerifications = (
   return { totalIssues, perKind };
 };
 
-/** Scenario: verify a discovered installation across minecraft, loader, and runtime. */
+/**
+ * Scenario: verify a discovered installation across minecraft, loader, and runtime.
+ *
+ * @internal
+ */
 export const scenarioVerify = async (ctx: ScenarioContext): Promise<ScenarioOutcome> => {
   const target = await pickInstalledTarget(ctx);
   if (!target) return "cancelled";
@@ -67,7 +71,11 @@ export const scenarioVerify = async (ctx: ScenarioContext): Promise<ScenarioOutc
   }
 };
 
-/** Scenario: repair a discovered installation. */
+/**
+ * Scenario: repair a discovered installation.
+ *
+ * @internal
+ */
 export const scenarioRepair = async (ctx: ScenarioContext): Promise<ScenarioOutcome> => {
   const target = await pickInstalledTarget(ctx);
   if (!target) return "cancelled";

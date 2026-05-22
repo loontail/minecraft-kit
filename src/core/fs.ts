@@ -3,7 +3,11 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "./errors";
 
-/** Ensure a directory exists, creating intermediate directories as needed. */
+/**
+ * Ensure a directory exists, creating intermediate directories as needed.
+ *
+ * @internal
+ */
 export const ensureDir = async (directory: string): Promise<void> => {
   try {
     await fs.mkdir(directory, { recursive: true });
@@ -16,7 +20,11 @@ export const ensureDir = async (directory: string): Promise<void> => {
   }
 };
 
-/** Returns true if a path exists and is a regular file. */
+/**
+ * Returns true if a path exists and is a regular file.
+ *
+ * @internal
+ */
 export const fileExists = async (filePath: string): Promise<boolean> => {
   try {
     const stat = await fs.stat(filePath);
@@ -26,7 +34,11 @@ export const fileExists = async (filePath: string): Promise<boolean> => {
   }
 };
 
-/** Returns true if a path exists and is a directory. */
+/**
+ * Returns true if a path exists and is a directory.
+ *
+ * @internal
+ */
 export const dirExists = async (filePath: string): Promise<boolean> => {
   try {
     const stat = await fs.stat(filePath);
@@ -36,7 +48,11 @@ export const dirExists = async (filePath: string): Promise<boolean> => {
   }
 };
 
-/** Get file size in bytes; returns -1 when the file is absent. */
+/**
+ * Get file size in bytes; returns -1 when the file is absent.
+ *
+ * @internal
+ */
 export const fileSize = async (filePath: string): Promise<number> => {
   try {
     const stat = await fs.stat(filePath);
@@ -51,6 +67,8 @@ export const fileSize = async (filePath: string): Promise<number> => {
  *
  * Creates parent directories if missing. Throws {@link MinecraftKitError} with
  * code `FILESYSTEM_WRITE_ERROR` on failure.
+ *
+ * @internal
  */
 export const atomicWrite = async (target: string, data: Uint8Array | string): Promise<void> => {
   await ensureDir(path.dirname(target));
@@ -79,7 +97,11 @@ export const atomicWrite = async (target: string, data: Uint8Array | string): Pr
   }
 };
 
-/** Read a file as UTF-8 text, mapping fs errors to a domain error. */
+/**
+ * Read a file as UTF-8 text, mapping fs errors to a domain error.
+ *
+ * @internal
+ */
 export const readText = async (filePath: string): Promise<string> => {
   try {
     return await fs.readFile(filePath, "utf8");
@@ -95,7 +117,11 @@ export const readText = async (filePath: string): Promise<string> => {
   }
 };
 
-/** Read a file as bytes, mapping fs errors to a domain error. */
+/**
+ * Read a file as bytes, mapping fs errors to a domain error.
+ *
+ * @internal
+ */
 export const readBytes = async (filePath: string): Promise<Uint8Array> => {
   try {
     const buf = await fs.readFile(filePath);
@@ -112,7 +138,11 @@ export const readBytes = async (filePath: string): Promise<Uint8Array> => {
   }
 };
 
-/** List immediate child directory names of `directory`. Returns [] when directory is missing. */
+/**
+ * List immediate child directory names of `directory`. Returns [] when directory is missing.
+ *
+ * @internal
+ */
 export const listChildDirectories = async (directory: string): Promise<readonly string[]> => {
   try {
     const entries = await fs.readdir(directory, { withFileTypes: true });
@@ -122,7 +152,11 @@ export const listChildDirectories = async (directory: string): Promise<readonly 
   }
 };
 
-/** Set the executable bit on a file (best-effort; no-op on Windows). */
+/**
+ * Set the executable bit on a file (best-effort; no-op on Windows).
+ *
+ * @internal
+ */
 export const chmodExecutable = async (filePath: string): Promise<void> => {
   if (process.platform === "win32") {
     return;
@@ -139,6 +173,7 @@ export const chmodExecutable = async (filePath: string): Promise<void> => {
  * traversal during archive extraction.
  *
  * @throws `FILESYSTEM_PATH_TRAVERSAL` when `child` escapes `root`.
+ * @internal
  */
 export const assertWithinRoot = (root: string, child: string): void => {
   const normalizedRoot = path.resolve(root);

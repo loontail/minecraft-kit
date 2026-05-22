@@ -9,6 +9,8 @@ import { MinecraftKitError } from "./errors";
  * Note: this is a parse-only helper — it does not validate the resulting shape. Pair with a
  * runtime check (or use {@link parseJsonAs} which accepts a guard) when the payload comes
  * from an untrusted source.
+ *
+ * @internal
  */
 export const parseJsonStrict = <T>(
   text: string,
@@ -32,6 +34,8 @@ export const parseJsonStrict = <T>(
  * Like {@link parseJsonStrict} but also runs `guard` against the parsed value. The runtime
  * validation step is the difference between "the JSON parsed" and "the JSON matches what we
  * expect" — important on responses pulled over the network.
+ *
+ * @internal
  */
 export const parseJsonAs = <T>(
   text: string,
@@ -54,6 +58,8 @@ export const parseJsonAs = <T>(
 /**
  * Parse JSON or return `undefined` on failure. Use when "couldn't parse" and "doesn't apply
  * here" should produce the same outcome (e.g. peeking at unverified files on disk).
+ *
+ * @internal
  */
 export const parseJsonOrUndefined = <T>(text: string): T | undefined => {
   try {

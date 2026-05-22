@@ -3,6 +3,8 @@ import { isMinecraftKitError } from "../core/errors";
 /**
  * Translate any error into a short, user-friendly sentence the CLI can show. Avoids leaking
  * raw `NETWORK_HTTP_ERROR: HTTP 400 …` strings to the operator.
+ *
+ * @internal
  */
 export const formatUserError = (error: unknown): string => {
   if (isMinecraftKitError(error)) {

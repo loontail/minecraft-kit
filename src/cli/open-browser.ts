@@ -16,6 +16,8 @@ import process from "node:process";
  * - We resolve on the `'spawn'` event (Node ≥ 15.1) rather than `setImmediate`, otherwise we
  *   race the actual process-start and report success for commands that ENOENT'd.
  * - `windowsHide: true` keeps a console window from flashing.
+ *
+ * @internal
  */
 export const openBrowser = async (url: string): Promise<boolean> => {
   if (!isSafeBrowserUrl(url)) return false;

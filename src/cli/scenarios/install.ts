@@ -41,7 +41,11 @@ const emptySelection = (): InstallSelection => ({
   directory: null,
 });
 
-/** Unified install scenario: covers vanilla, Fabric, and Forge through a single wizard. */
+/**
+ * Unified install scenario: covers vanilla, Fabric, and Forge through a single wizard.
+ *
+ * @internal
+ */
 export const scenarioInstallMinecraft = async (ctx: ScenarioContext): Promise<ScenarioOutcome> => {
   const sel = emptySelection();
   let step: InstallWizardStep = InstallWizardSteps.CHANNEL;
@@ -158,6 +162,8 @@ type RuntimeSelection = {
  * Standalone: install a Mojang Java runtime directly, without going through a Minecraft
  * version. The user picks a runtime component, a destination directory, and an optional
  * shared install root — that's it.
+ *
+ * @internal
  */
 export const scenarioInstallRuntime = async (ctx: ScenarioContext): Promise<ScenarioOutcome> => {
   const sel: RuntimeSelection = {

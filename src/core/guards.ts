@@ -5,22 +5,38 @@
  * endpoint. Pair with {@link import("./json").parseJsonAs}.
  */
 
-/** True when `value` is a non-null object. */
+/**
+ * True when `value` is a non-null object.
+ *
+ * @internal
+ */
 export const isPlainObject = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 };
 
-/** True when `value` is a non-empty string. */
+/**
+ * True when `value` is a non-empty string.
+ *
+ * @internal
+ */
 export const isNonEmptyString = (value: unknown): value is string => {
   return typeof value === "string" && value.length > 0;
 };
 
-/** True when `value` is a finite non-negative integer (size / count / etc.). */
+/**
+ * True when `value` is a finite non-negative integer (size / count / etc.).
+ *
+ * @internal
+ */
 export const isNonNegativeInteger = (value: unknown): value is number => {
   return typeof value === "number" && Number.isInteger(value) && value >= 0;
 };
 
-/** True when `value` is an array and every element passes `itemGuard`. */
+/**
+ * True when `value` is an array and every element passes `itemGuard`.
+ *
+ * @internal
+ */
 export const isArrayOf = <T>(
   value: unknown,
   itemGuard: (item: unknown) => item is T,
@@ -28,7 +44,11 @@ export const isArrayOf = <T>(
   return Array.isArray(value) && value.every(itemGuard);
 };
 
-/** True when `value` is a 40-character lower-case hex SHA-1 digest. */
+/**
+ * True when `value` is a 40-character lower-case hex SHA-1 digest.
+ *
+ * @internal
+ */
 export const isSha1Hex = (value: unknown): value is string => {
   return typeof value === "string" && /^[0-9a-f]{40}$/.test(value);
 };
@@ -38,6 +58,8 @@ export const isSha1Hex = (value: unknown): value is string => {
  * `isSha1Hex(sha1)` here because some legacy / old-alpha manifests ship non-hex placeholder
  * strings — the boundary check is about "shape is right", not "values are well-formed".
  * Hash integrity is verified later at the download site.
+ *
+ * @internal
  */
 export const isArtifactDownload = (
   value: unknown,
@@ -52,6 +74,8 @@ export const isArtifactDownload = (
  * Light-touch guard for Mojang per-version manifests. Only checks the fields the kit
  * actually reads at the boundary; deep validation lives downstream where each field is
  * actually consumed.
+ *
+ * @internal
  */
 export const isMinecraftVersionManifestShape = (
   value: unknown,

@@ -9,7 +9,11 @@ import type {
 } from "../types/launch";
 import type { Spawner } from "../types/spawner";
 
-/** Inputs to {@link runLaunch}. */
+/**
+ * Inputs to {@link runLaunch}.
+ *
+ * @internal
+ */
 export type RunLaunchInput = {
   readonly composition: LaunchComposition;
   readonly options?: LaunchRunOptions;
@@ -19,6 +23,8 @@ export type RunLaunchInput = {
 /**
  * Spawn the configured Java process. Returns a {@link LaunchSession} immediately after the
  * process is created; the `exited` promise resolves when the game terminates.
+ *
+ * @internal
  */
 export const runLaunch = (input: RunLaunchInput): LaunchSession => {
   const composition = input.composition;

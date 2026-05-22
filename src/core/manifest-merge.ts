@@ -17,6 +17,8 @@ import { parseMavenCoordinate } from "./maven";
  *    (ASM, mixin, intermediary, …) that must replace vanilla's copies on the classpath.
  *  - `arguments.game` / `arguments.jvm` — additive concat.
  *  - `downloads` — shallow merge; child wins on conflict.
+ *
+ * @internal
  */
 export const mergeManifest = (
   parent: MinecraftVersionManifest,

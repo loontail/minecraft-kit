@@ -5,7 +5,11 @@ import {
 } from "../constants/defaults";
 import { MinecraftKitError, MinecraftKitErrorCodes, isMinecraftKitError } from "./errors";
 
-/** Inputs passed to {@link withRetry}. */
+/**
+ * Inputs passed to {@link withRetry}.
+ *
+ * @internal
+ */
 export type RetryOptions = {
   readonly maxAttempts?: number;
   readonly baseMs?: number;
@@ -16,7 +20,11 @@ export type RetryOptions = {
   readonly onAttemptFailed?: (error: unknown, attempt: number) => void;
 };
 
-/** Default sleep that respects the abort signal. */
+/**
+ * Default sleep that respects the abort signal.
+ *
+ * @internal
+ */
 export const abortableSleep = (ms: number, signal?: AbortSignal): Promise<void> => {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
@@ -44,6 +52,8 @@ const toAbortError = (signal?: AbortSignal): Error => {
 /**
  * Run `op` with full-jitter exponential backoff. Retries only when {@link isRetryable}
  * returns true.
+ *
+ * @internal
  */
 export const withRetry = async <T>(
   op: (attempt: number) => Promise<T>,
@@ -77,7 +87,11 @@ export const withRetry = async <T>(
   throw lastError ?? new Error("withRetry exhausted attempts");
 };
 
-/** Default retry predicate for HTTP-like errors. */
+/**
+ * Default retry predicate for HTTP-like errors.
+ *
+ * @internal
+ */
 export const isHttpRetryable = (error: unknown): boolean => {
   if (!isMinecraftKitError(error)) {
     return false;

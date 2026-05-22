@@ -38,7 +38,11 @@ const CLI_FLAGS = {
 const hasFlag = (args: readonly string[], aliases: readonly string[]): boolean =>
   aliases.some((flag) => args.includes(flag));
 
-/** Inputs to {@link runCli}. */
+/**
+ * Inputs to {@link runCli}.
+ *
+ * @internal
+ */
 export type RunCliInput = {
   readonly args: readonly string[];
   readonly ui: Ui;
@@ -46,7 +50,11 @@ export type RunCliInput = {
   readonly kit?: MinecraftKit;
 };
 
-/** Programmatic CLI entrypoint, used by both the bin and the tests. */
+/**
+ * Programmatic CLI entrypoint, used by both the bin and the tests.
+ *
+ * @internal
+ */
 export const runCli = async (input: RunCliInput): Promise<number> => {
   if (hasFlag(input.args, CLI_FLAGS.HELP)) {
     input.ui.note(
@@ -101,7 +109,11 @@ export const runCli = async (input: RunCliInput): Promise<number> => {
   }
 };
 
-/** Main-menu options exported so tests can assert their composition. */
+/**
+ * Main-menu options exported so tests can assert their composition.
+ *
+ * @internal
+ */
 export const MAIN_MENU: ReadonlyArray<{ label: string; value: string; hint?: string }> = [
   { label: "Install Minecraft", value: SCENARIO_KEYS.INSTALL_MC, hint: "Vanilla / Fabric / Forge" },
   { label: "Install Java/runtime", value: SCENARIO_KEYS.INSTALL_RUNTIME },
@@ -139,7 +151,11 @@ const dispatch = async (choice: string, ctx: ScenarioContext): Promise<ScenarioO
   }
 };
 
-/** Bin entrypoint. */
+/**
+ * Bin entrypoint.
+ *
+ * @internal
+ */
 export const bin = async (): Promise<void> => {
   const ui = await createClackUi();
   const code = await runCli({

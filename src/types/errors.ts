@@ -42,7 +42,11 @@ export const MinecraftKitErrorCodes = {
   AUTH_CANCELLED: "AUTH_CANCELLED",
 } as const;
 
-/** Union of all kit error codes. */
+/**
+ * Union of all kit error codes.
+ *
+ * @internal
+ */
 export type MinecraftKitErrorCode =
   (typeof MinecraftKitErrorCodes)[keyof typeof MinecraftKitErrorCodes];
 

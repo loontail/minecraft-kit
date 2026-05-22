@@ -7,7 +7,11 @@ import { AuthModes, type LaunchAuth } from "../types/auth";
 import type { LaunchOptions } from "../types/launch";
 import type { Target } from "../types/target";
 
-/** Resolve every `${...}` value the launch arguments substitute against. */
+/**
+ * Resolve every `${...}` value the launch arguments substitute against.
+ *
+ * @internal
+ */
 export const buildPlaceholderValues = (input: {
   readonly target: Target;
   readonly versionId: string;

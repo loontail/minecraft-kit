@@ -7,7 +7,11 @@ import type { ProgressListener } from "../types/events";
 import type { RunForgeProcessorAction } from "../types/install";
 import type { Spawner } from "../types/spawner";
 
-/** Inputs to {@link runProcessor}. */
+/**
+ * Inputs to {@link runProcessor}.
+ *
+ * @internal
+ */
 export type RunProcessorInput = {
   readonly action: RunForgeProcessorAction;
   readonly javaPath: string;
@@ -16,7 +20,11 @@ export type RunProcessorInput = {
   readonly total: number;
 };
 
-/** Execute a single Forge processor and verify its declared outputs. */
+/**
+ * Execute a single Forge processor and verify its declared outputs.
+ *
+ * @internal
+ */
 export const runProcessor = async (input: RunProcessorInput): Promise<void> => {
   const startedAt = Date.now();
   const mainClass = await resolveProcessorMainClass(input.action);

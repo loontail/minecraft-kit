@@ -13,7 +13,11 @@ import {
 import type { LibraryArtifact, MinecraftLibrary } from "../types/minecraft";
 import type { RuntimeSystem } from "../types/system";
 
-/** Outputs of {@link planLibraryDownloads}. */
+/**
+ * Outputs of {@link planLibraryDownloads}.
+ *
+ * @internal
+ */
 export type LibraryPlan = {
   readonly downloads: readonly DownloadAction[];
   readonly nativeExtractions: readonly ExtractNativeAction[];
@@ -24,6 +28,8 @@ export type LibraryPlan = {
  * Walk a library list, evaluate rules against the system, and produce concrete download +
  * native-extraction actions. Library entries that don't apply on the target platform are
  * silently filtered.
+ *
+ * @internal
  */
 export const planLibraryDownloads = (input: {
   readonly libraries: readonly MinecraftLibrary[];

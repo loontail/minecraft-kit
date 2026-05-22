@@ -13,6 +13,8 @@ const SCOPE = "XboxLive.signin offline_access";
 /**
  * Microsoft access + refresh tokens. Internal — callers receive the higher-level
  * {@link import("../types/auth").MojangSession} instead.
+ *
+ * @internal
  */
 export type MicrosoftToken = {
   readonly accessToken: string;
@@ -65,6 +67,8 @@ const postTokenRequest = async (
 /**
  * Exchange a long-lived refresh token for a fresh Microsoft access token + (rotated)
  * refresh token. Mirrors the `refresh_token` grant from the OAuth 2.0 spec.
+ *
+ * @internal
  */
 export const refreshMicrosoftToken = async (input: {
   readonly http: HttpClient;
@@ -100,6 +104,8 @@ export const refreshMicrosoftToken = async (input: {
  * redirect) for a Microsoft access + refresh token. PKCE-protected: the caller must
  * pass the same `codeVerifier` whose hash they sent as `code_challenge` in the
  * authorize URL.
+ *
+ * @internal
  */
 export const exchangeAuthorizationCode = async (input: {
   readonly http: HttpClient;
