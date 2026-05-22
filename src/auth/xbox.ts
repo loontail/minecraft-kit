@@ -131,20 +131,41 @@ export const authenticateXsts = async (input: {
   return { token: parsed.Token, userHash };
 };
 
+/**
+ * Named constants for the XSTS `XErr` values we explicitly explain to users.
+ * Microsoft documents the codes in the "Authenticate XBL with XSTS" guide.
+ *
+ * @internal
+ */
+const XBOX_ERROR_CODES = {
+  Banned: 2_148_916_227,
+  NoProfile: 2_148_916_233,
+  RegionBlocked: 2_148_916_235,
+  AdultVerificationRequired: 2_148_916_236,
+  AdultVerificationRequiredAlt: 2_148_916_237,
+  ChildAccount: 2_148_916_238,
+} as const;
+
+const ADULT_VERIFICATION_MESSAGE =
+  "This account needs an adult to verify it. Sign in on Xbox to complete the prompt.";
+
+const XBOX_ERROR_MESSAGES: Record<
+  (typeof XBOX_ERROR_CODES)[keyof typeof XBOX_ERROR_CODES],
+  string
+> = {
+  [XBOX_ERROR_CODES.Banned]: "This account has been banned from Xbox.",
+  [XBOX_ERROR_CODES.NoProfile]:
+    "This Microsoft account has no Xbox profile yet — sign in once at https://minecraft.net to create one.",
+  [XBOX_ERROR_CODES.RegionBlocked]: "Xbox Live is not available in this account's country/region.",
+  [XBOX_ERROR_CODES.AdultVerificationRequired]: ADULT_VERIFICATION_MESSAGE,
+  [XBOX_ERROR_CODES.AdultVerificationRequiredAlt]: ADULT_VERIFICATION_MESSAGE,
+  [XBOX_ERROR_CODES.ChildAccount]:
+    "This is a child account. Add it to a Microsoft family group with an adult to continue.",
+};
+
 const explainXErr = (xerr: number | undefined): string => {
-  switch (xerr) {
-    case 2148916227:
-      return "This account has been banned from Xbox.";
-    case 2148916233:
-      return "This Microsoft account has no Xbox profile yet — sign in once at https://minecraft.net to create one.";
-    case 2148916235:
-      return "Xbox Live is not available in this account's country/region.";
-    case 2148916236:
-    case 2148916237:
-      return "This account needs an adult to verify it. Sign in on Xbox to complete the prompt.";
-    case 2148916238:
-      return "This is a child account. Add it to a Microsoft family group with an adult to continue.";
-    default:
-      return xerr ? `XSTS authorization failed (XErr ${xerr}).` : "XSTS authorization failed.";
+  if (xerr !== undefined && xerr in XBOX_ERROR_MESSAGES) {
+    return XBOX_ERROR_MESSAGES[xerr as keyof typeof XBOX_ERROR_MESSAGES];
   }
+  return xerr ? `XSTS authorization failed (XErr ${xerr}).` : "XSTS authorization failed.";
 };
