@@ -9,12 +9,32 @@ const XSTS_URL = "https://xsts.auth.xboxlive.com/xsts/authorize";
 const MC_LOGIN_URL = "https://api.minecraftservices.com/authentication/login_with_xbox";
 const MC_PROFILE_URL = "https://api.minecraftservices.com/minecraft/profile";
 
-// Build a JWT-ish access token whose middle segment decodes to JSON. The Minecraft auth
-// flow plucks `xuid` out of this segment, so a realistic shape avoids "" xuid noise.
+/**
+ * Build a JWT-ish access token whose middle segment decodes to JSON. The Minecraft auth
+ * flow plucks `xuid` out of this segment, so a realistic shape avoids empty-xuid noise.
+ */
 const buildAccessToken = (payload: Record<string, unknown>): string => {
   const b64 = (s: string): string =>
     Buffer.from(s).toString("base64").replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
   return `${b64("hdr")}.${b64(JSON.stringify(payload))}.${b64("sig")}`;
+};
+
+const simulateBrowserCallbackHittingLoopback = async (authorizeUrl: string): Promise<Response> => {
+  const parsed = new URL(authorizeUrl);
+  const redirectUri = parsed.searchParams.get("redirect_uri");
+  const state = parsed.searchParams.get("state");
+  return fetch(`${redirectUri}?code=FAKE-CODE&state=${state}`);
+};
+
+const assertAuthorizeUrlWellFormed = (authorizeUrl: string, expectedClientId: string): void => {
+  const url = new URL(authorizeUrl);
+  expect(url.searchParams.get("response_type")).toBe("code");
+  expect(url.searchParams.get("client_id")).toBe(expectedClientId);
+  expect(url.searchParams.get("code_challenge_method")).toBe("S256");
+  expect(url.searchParams.get("code_challenge")).toBeTruthy();
+  expect(url.searchParams.get("state")).toBeTruthy();
+  expect(url.searchParams.get("prompt")).toBe("select_account");
+  expect(url.searchParams.get("redirect_uri")).toMatch(/^http:\/\/localhost:\d+$/);
 };
 
 describe("MojangAuthApi.refresh", () => {
@@ -92,11 +112,7 @@ describe("MojangAuthApi.authorizationCode.run", () => {
       clientId: "client-1",
       onOpenBrowser: async (url) => {
         capturedUrl = url;
-        // Simulate the browser landing on the loopback redirect with a fake code.
-        const parsed = new URL(url);
-        const redirectUri = parsed.searchParams.get("redirect_uri");
-        const state = parsed.searchParams.get("state");
-        const response = await fetch(`${redirectUri}?code=FAKE-CODE&state=${state}`);
+        const response = await simulateBrowserCallbackHittingLoopback(url);
         expect(response.status).toBe(200);
       },
     });
@@ -106,16 +122,8 @@ describe("MojangAuthApi.authorizationCode.run", () => {
     expect(session.microsoft.refreshToken).toBe("MS-RT");
     expect(session.microsoft.clientId).toBe("client-1");
 
-    // Authorize URL is well-formed with PKCE + state + select_account.
     expect(capturedUrl).not.toBeNull();
-    const authorizeUrl = new URL(capturedUrl as unknown as string);
-    expect(authorizeUrl.searchParams.get("response_type")).toBe("code");
-    expect(authorizeUrl.searchParams.get("client_id")).toBe("client-1");
-    expect(authorizeUrl.searchParams.get("code_challenge_method")).toBe("S256");
-    expect(authorizeUrl.searchParams.get("code_challenge")).toBeTruthy();
-    expect(authorizeUrl.searchParams.get("state")).toBeTruthy();
-    expect(authorizeUrl.searchParams.get("prompt")).toBe("select_account");
-    expect(authorizeUrl.searchParams.get("redirect_uri")).toMatch(/^http:\/\/localhost:\d+$/);
+    assertAuthorizeUrlWellFormed(capturedUrl as unknown as string, "client-1");
   });
 });
 

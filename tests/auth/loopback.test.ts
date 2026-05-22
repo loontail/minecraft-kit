@@ -5,6 +5,18 @@ import { isErrorCode } from "../../src/core/errors";
 const fetchPath = async (port: number, path: string): Promise<Response> =>
   fetch(`http://127.0.0.1:${port}${path}`);
 
+const settleMicrotasks = (ms = 10): Promise<void> => new Promise((r) => setTimeout(r, ms));
+
+const assertPortIsUnbound = async (port: number): Promise<void> => {
+  let connectionFailed = false;
+  try {
+    await fetch(`http://127.0.0.1:${port}/?code=X&state=S`);
+  } catch {
+    connectionFailed = true;
+  }
+  expect(connectionFailed).toBe(true);
+};
+
 describe("startLoopbackServer", () => {
   it("captures a /oauth/callback with matching state and returns the code", async () => {
     const server = await startLoopbackServer({ expectedState: "STATE" });
@@ -34,11 +46,9 @@ describe("startLoopbackServer", () => {
     try {
       const response = await fetchPath(server.port, "/?code=C&state=WRONG");
       expect(response.status).toBe(400);
-      // Give the microtask queue a tick to settle then re-check.
-      await new Promise((r) => setTimeout(r, 10));
+      await settleMicrotasks();
       expect(captured).toBe(false);
 
-      // A subsequent correctly-stated callback should still work.
       const ok = await fetchPath(server.port, "/?code=GOOD&state=EXPECTED");
       expect(ok.status).toBe(200);
       const { code } = await server.captured;
@@ -85,7 +95,6 @@ describe("startLoopbackServer", () => {
         isErrorCode(e, "AUTH_AUTHORIZATION_CODE_FAILED") ? "rejected-as-failed" : "rejected-other",
     );
     await server.close();
-    // Calling again is safe.
     await server.close();
     const outcome = await capture;
     expect(outcome).toBe("rejected-as-failed");
@@ -99,22 +108,13 @@ describe("startLoopbackServer", () => {
     });
     const port = server.port;
     controller.abort();
-    // Capture should reject with AUTH_CANCELLED — caller asked to stop.
     try {
       await server.captured;
       expect.fail("expected capture to reject");
     } catch (error) {
       expect(isErrorCode(error, "AUTH_CANCELLED")).toBe(true);
     }
-    // Give close() a tick to actually detach the listener before we probe the port.
-    await new Promise((r) => setTimeout(r, 20));
-    // After close, fetching the now-unbound port should fail at the connection layer.
-    let connectionFailed = false;
-    try {
-      await fetch(`http://127.0.0.1:${port}/?code=X&state=S`);
-    } catch {
-      connectionFailed = true;
-    }
-    expect(connectionFailed).toBe(true);
+    await settleMicrotasks(20);
+    await assertPortIsUnbound(port);
   });
 });

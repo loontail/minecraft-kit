@@ -5,6 +5,18 @@ import { FakeHttpClient } from "../helpers/fake-http";
 
 const TOKEN_URL = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
 
+const assertAuthorizationCodeGrantBody = (
+  http: FakeHttpClient,
+  expected: { readonly code: string; readonly codeVerifier: string; readonly clientId: string },
+): void => {
+  const lastRequest = http.requests[http.requests.length - 1];
+  const body = lastRequest?.options?.body as string;
+  expect(body).toContain("grant_type=authorization_code");
+  expect(body).toContain(`code=${expected.code}`);
+  expect(body).toContain(`code_verifier=${expected.codeVerifier}`);
+  expect(body).toContain(`client_id=${expected.clientId}`);
+};
+
 describe("refreshMicrosoftToken", () => {
   it("returns a fresh access token and rotates the refresh token", async () => {
     const http = new FakeHttpClient().on(TOKEN_URL, {
@@ -70,13 +82,11 @@ describe("exchangeAuthorizationCode", () => {
     });
     expect(token).toEqual({ accessToken: "MS-AT", refreshToken: "MS-RT", expiresIn: 3600 });
 
-    // Verify the request body shape — must be url-encoded `authorization_code` grant.
-    const lastRequest = http.requests[http.requests.length - 1];
-    const body = lastRequest?.options?.body as string;
-    expect(body).toContain("grant_type=authorization_code");
-    expect(body).toContain("code=CODE-1");
-    expect(body).toContain("code_verifier=VERIFIER-1");
-    expect(body).toContain("client_id=client-1");
+    assertAuthorizationCodeGrantBody(http, {
+      code: "CODE-1",
+      codeVerifier: "VERIFIER-1",
+      clientId: "client-1",
+    });
   });
 
   it("throws AUTH_AUTHORIZATION_CODE_FAILED on invalid_grant", async () => {
@@ -102,14 +112,14 @@ describe("exchangeAuthorizationCode", () => {
   });
 
   it("throws AUTH_AUTHORIZATION_CODE_FAILED when Microsoft omits a refresh token", async () => {
+    const refreshTokenDeliberatelyMissing = {
+      token_type: "Bearer",
+      scope: "X",
+      expires_in: 3600,
+      access_token: "AT",
+    };
     const http = new FakeHttpClient().on(TOKEN_URL, {
-      body: JSON.stringify({
-        token_type: "Bearer",
-        scope: "X",
-        expires_in: 3600,
-        access_token: "AT",
-        // refresh_token deliberately missing
-      }),
+      body: JSON.stringify(refreshTokenDeliberatelyMissing),
     });
     try {
       await exchangeAuthorizationCode({
