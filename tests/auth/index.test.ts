@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { MojangAuthApi, toOnlineAuth } from "../../src/auth/index";
+import { MojangAuthApi, asAzureClientId, toOnlineAuth } from "../../src/auth/index";
 import { AuthModes, type MojangSession } from "../../src/types/auth";
 import { FakeHttpClient } from "../helpers/fake-http";
+
+const CLIENT_ID_REFRESH = asAzureClientId("00000000-0000-0000-0000-000000000000");
+const CLIENT_ID_AUTH_CODE = asAzureClientId("11111111-1111-1111-1111-111111111111");
+const CLIENT_ID_TO_ONLINE = asAzureClientId("22222222-2222-2222-2222-222222222222");
 
 const TOKEN_URL = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
 const XBL_URL = "https://user.auth.xboxlive.com/user/authenticate";
@@ -73,7 +77,7 @@ describe("MojangAuthApi.refresh", () => {
       });
 
     const api = new MojangAuthApi(http);
-    const session = await api.refresh("RT-1", { clientId: "c" });
+    const session = await api.refresh("RT-1", { clientId: CLIENT_ID_REFRESH });
     expect(session.minecraft.username).toBe("Alex");
     expect(session.microsoft.refreshToken).toBe("MS-RT2");
   });
@@ -109,7 +113,7 @@ describe("MojangAuthApi.authorizationCode.run", () => {
     let capturedUrl: string | null = null;
 
     const session = await api.authorizationCode.run({
-      clientId: "client-1",
+      clientId: CLIENT_ID_AUTH_CODE,
       onOpenBrowser: async (url) => {
         capturedUrl = url;
         const response = await simulateBrowserCallbackHittingLoopback(url);
@@ -120,10 +124,10 @@ describe("MojangAuthApi.authorizationCode.run", () => {
     expect(session.minecraft.username).toBe("Steve");
     expect(session.minecraft.uuid).toBe("12345678-1234-1234-1234-123456789012");
     expect(session.microsoft.refreshToken).toBe("MS-RT");
-    expect(session.microsoft.clientId).toBe("client-1");
+    expect(session.microsoft.clientId).toBe(CLIENT_ID_AUTH_CODE);
 
     expect(capturedUrl).not.toBeNull();
-    assertAuthorizeUrlWellFormed(capturedUrl as unknown as string, "client-1");
+    assertAuthorizeUrlWellFormed(capturedUrl as unknown as string, CLIENT_ID_AUTH_CODE);
   });
 });
 
@@ -139,13 +143,13 @@ describe("toOnlineAuth", () => {
         skins: [],
         capes: [],
       },
-      microsoft: { refreshToken: "rt", clientId: "c" },
+      microsoft: { refreshToken: "rt", clientId: CLIENT_ID_TO_ONLINE },
     };
     const auth = toOnlineAuth(session);
     expect(auth.mode).toBe(AuthModes.ONLINE);
     expect(auth.userType).toBe("msa");
     expect(auth.username).toBe("Steve");
-    expect(auth.clientId).toBe("c");
+    expect(auth.clientId).toBe(CLIENT_ID_TO_ONLINE);
     expect(auth.xuid).toBe("xuid");
   });
 });

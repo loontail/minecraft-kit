@@ -1,13 +1,21 @@
 import { describe, expect, it } from "vitest";
+import { asAzureClientId } from "../../src/auth/index";
 import { exchangeAuthorizationCode, refreshMicrosoftToken } from "../../src/auth/microsoftToken";
 import { isErrorCode } from "../../src/core/errors";
+import type { AzureClientId } from "../../src/types/auth";
 import { FakeHttpClient } from "../helpers/fake-http";
 
 const TOKEN_URL = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
+const CLIENT_ID_A = asAzureClientId("00000000-0000-0000-0000-000000000001");
+const CLIENT_ID_B = asAzureClientId("11111111-1111-1111-1111-111111111111");
 
 const assertAuthorizationCodeGrantBody = (
   http: FakeHttpClient,
-  expected: { readonly code: string; readonly codeVerifier: string; readonly clientId: string },
+  expected: {
+    readonly code: string;
+    readonly codeVerifier: string;
+    readonly clientId: AzureClientId;
+  },
 ): void => {
   const lastRequest = http.requests[http.requests.length - 1];
   const body = lastRequest?.options?.body as string;
@@ -28,7 +36,7 @@ describe("refreshMicrosoftToken", () => {
         refresh_token: "RT2",
       }),
     });
-    const token = await refreshMicrosoftToken({ http, refreshToken: "RT1", clientId: "c" });
+    const token = await refreshMicrosoftToken({ http, refreshToken: "RT1", clientId: CLIENT_ID_A });
     expect(token).toEqual({ accessToken: "AT2", refreshToken: "RT2", expiresIn: 3600 });
   });
 
@@ -41,7 +49,11 @@ describe("refreshMicrosoftToken", () => {
         access_token: "AT2",
       }),
     });
-    const token = await refreshMicrosoftToken({ http, refreshToken: "RT-OLD", clientId: "c" });
+    const token = await refreshMicrosoftToken({
+      http,
+      refreshToken: "RT-OLD",
+      clientId: CLIENT_ID_A,
+    });
     expect(token.refreshToken).toBe("RT-OLD");
   });
 
@@ -54,7 +66,7 @@ describe("refreshMicrosoftToken", () => {
       }),
     });
     try {
-      await refreshMicrosoftToken({ http, refreshToken: "RT", clientId: "c" });
+      await refreshMicrosoftToken({ http, refreshToken: "RT", clientId: CLIENT_ID_A });
       expect.fail("expected throw");
     } catch (error) {
       expect(isErrorCode(error, "AUTH_REFRESH_FAILED")).toBe(true);
@@ -78,14 +90,14 @@ describe("exchangeAuthorizationCode", () => {
       code: "CODE-1",
       codeVerifier: "VERIFIER-1",
       redirectUri: "http://127.0.0.1:54321/oauth/callback",
-      clientId: "client-1",
+      clientId: CLIENT_ID_B,
     });
     expect(token).toEqual({ accessToken: "MS-AT", refreshToken: "MS-RT", expiresIn: 3600 });
 
     assertAuthorizationCodeGrantBody(http, {
       code: "CODE-1",
       codeVerifier: "VERIFIER-1",
-      clientId: "client-1",
+      clientId: CLIENT_ID_B,
     });
   });
 
@@ -103,7 +115,7 @@ describe("exchangeAuthorizationCode", () => {
         code: "stale",
         codeVerifier: "v",
         redirectUri: "http://127.0.0.1:1/oauth/callback",
-        clientId: "c",
+        clientId: CLIENT_ID_A,
       });
       expect.fail("expected throw");
     } catch (error) {
@@ -127,7 +139,7 @@ describe("exchangeAuthorizationCode", () => {
         code: "C",
         codeVerifier: "V",
         redirectUri: "http://127.0.0.1:1/oauth/callback",
-        clientId: "c",
+        clientId: CLIENT_ID_A,
       });
       expect.fail("expected throw");
     } catch (error) {

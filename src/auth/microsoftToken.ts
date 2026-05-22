@@ -1,6 +1,7 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { postFormUrlEncoded } from "../http/postForm";
 import { isHttpOk } from "../http/status";
+import type { AzureClientId } from "../types/auth";
 import type { HttpClient } from "../types/http";
 
 const TENANT = "consumers";
@@ -67,7 +68,7 @@ const postTokenRequest = async (
 export const refreshMicrosoftToken = async (input: {
   readonly http: HttpClient;
   readonly refreshToken: string;
-  readonly clientId: string;
+  readonly clientId: AzureClientId;
   readonly signal?: AbortSignal;
 }): Promise<MicrosoftToken> => {
   const body = new URLSearchParams({
@@ -106,7 +107,7 @@ export const exchangeAuthorizationCode = async (input: {
   readonly code: string;
   readonly codeVerifier: string;
   readonly redirectUri: string;
-  readonly clientId: string;
+  readonly clientId: AzureClientId;
   readonly signal?: AbortSignal;
 }): Promise<MicrosoftToken> => {
   const body = new URLSearchParams({

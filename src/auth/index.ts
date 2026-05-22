@@ -1,7 +1,7 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { withOptionalSignal } from "../core/optional";
 import { AuthModes } from "../types/auth";
-import type { MojangSession, OnlineAuth } from "../types/auth";
+import type { AzureClientId, MojangSession, OnlineAuth } from "../types/auth";
 import type { HttpClient } from "../types/http";
 import type { Logger } from "../types/logger";
 import { buildAuthLogger } from "./debug";
@@ -29,6 +29,32 @@ import { authenticateXbl, authenticateXsts } from "./xbox";
  */
 export const CLIENT_ID_ENV_VAR = "MINECRAFT_KIT_MSA_CLIENT_ID";
 
+const AZURE_CLIENT_ID_PATTERN = /^[0-9a-fA-F-]{8,}$/;
+
+/**
+ * Validate `raw` as an Azure AD application id and brand it as {@link AzureClientId}.
+ * Throws `MinecraftKitError(INVALID_INPUT)` if the input is empty or does not match the
+ * GUID-ish shape Azure uses (hex characters and dashes, at least 8 characters).
+ *
+ * @example
+ * ```ts
+ * import { asAzureClientId } from "@loontail/minecraft-kit";
+ *
+ * const clientId = asAzureClientId(process.env.MSA_CLIENT_ID ?? "");
+ * await kit.auth.authorizationCode.run({ clientId, onOpenBrowser });
+ * ```
+ */
+export const asAzureClientId = (raw: string): AzureClientId => {
+  const trimmed = raw.trim();
+  if (trimmed.length === 0 || !AZURE_CLIENT_ID_PATTERN.test(trimmed)) {
+    throw new MinecraftKitError(
+      MinecraftKitErrorCodes.INVALID_INPUT,
+      `"${raw}" does not look like an Azure AD client id. Expected a GUID-shaped string (hex + dashes, at least 8 chars).`,
+    );
+  }
+  return trimmed as AzureClientId;
+};
+
 /**
  * Options accepted by {@link MojangAuthApi.refresh}.
  *
@@ -42,7 +68,7 @@ export const CLIENT_ID_ENV_VAR = "MINECRAFT_KIT_MSA_CLIENT_ID";
  */
 export type RefreshOptions = {
   /** Azure AD application id; defaults to `process.env.MINECRAFT_KIT_MSA_CLIENT_ID`. */
-  readonly clientId?: string;
+  readonly clientId?: AzureClientId;
   readonly signal?: AbortSignal;
 };
 
@@ -66,7 +92,7 @@ export type AuthorizationCodeRunOptions = {
    * `process.env.MINECRAFT_KIT_MSA_CLIENT_ID` is used. Throws `AUTH_MISSING_CLIENT_ID` if
    * neither is set — the library cannot ship a default client id.
    */
-  readonly clientId?: string;
+  readonly clientId?: AzureClientId;
   /**
    * Called exactly once with the authorize URL. The caller is expected to open this URL
    * in the user's system browser (e.g. `shell.openExternal` in Electron, `xdg-open`
@@ -179,7 +205,7 @@ export class MojangAuthApi {
 const runPostMsTokenPipeline = async (
   http: HttpClient,
   msToken: MicrosoftToken,
-  clientId: string,
+  clientId: AzureClientId,
   signal: AbortSignal | undefined,
   logger: Logger,
 ): Promise<MojangSession> => {
@@ -264,10 +290,10 @@ export const toOnlineAuth = (session: MojangSession): OnlineAuth => {
  */
 const buildLoopbackRedirectUri = (port: number): string => `http://localhost:${port}`;
 
-const resolveClientId = (explicit: string | undefined): string => {
-  if (typeof explicit === "string" && explicit.trim().length > 0) return explicit.trim();
+const resolveClientId = (explicit: AzureClientId | undefined): AzureClientId => {
+  if (explicit !== undefined) return explicit;
   const fromEnv = process.env[CLIENT_ID_ENV_VAR];
-  if (typeof fromEnv === "string" && fromEnv.trim().length > 0) return fromEnv.trim();
+  if (typeof fromEnv === "string" && fromEnv.trim().length > 0) return asAzureClientId(fromEnv);
   throw new MinecraftKitError(
     MinecraftKitErrorCodes.AUTH_MISSING_CLIENT_ID,
     `No Azure AD client id supplied. Pass \`clientId\` explicitly or set ${CLIENT_ID_ENV_VAR}. Register an Azure AD application in the 'Personal Microsoft accounts' audience with XboxLive.signin + offline_access scopes to obtain one.`,

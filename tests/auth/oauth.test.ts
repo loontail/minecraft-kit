@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
+import { asAzureClientId } from "../../src/auth/index";
 import { buildAuthorizeUrl, generateOAuthState, generatePkcePair } from "../../src/auth/oauth";
+
+const CLIENT_ID_PRIMARY = asAzureClientId("11111111-1111-1111-1111-111111111111");
+const CLIENT_ID_DEFAULTS = asAzureClientId("22222222-2222-2222-2222-222222222222");
 
 const base64UrlOf = (input: string): string =>
   createHash("sha256").update(input).digest("base64url");
@@ -41,7 +45,7 @@ describe("buildAuthorizeUrl", () => {
   it("composes the consumers /authorize URL with every required PKCE query param", () => {
     const url = new URL(
       buildAuthorizeUrl({
-        clientId: "client-1",
+        clientId: CLIENT_ID_PRIMARY,
         redirectUri: "http://127.0.0.1:54321/oauth/callback",
         state: "STATE-1",
         codeChallenge: "CHAL-1",
@@ -50,7 +54,7 @@ describe("buildAuthorizeUrl", () => {
     expect(url.origin + url.pathname).toBe(
       "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize",
     );
-    expect(url.searchParams.get("client_id")).toBe("client-1");
+    expect(url.searchParams.get("client_id")).toBe(CLIENT_ID_PRIMARY);
     expect(url.searchParams.get("response_type")).toBe("code");
     expect(url.searchParams.get("redirect_uri")).toBe("http://127.0.0.1:54321/oauth/callback");
     expect(url.searchParams.get("scope")).toBe("XboxLive.signin offline_access");
@@ -63,7 +67,7 @@ describe("buildAuthorizeUrl", () => {
   it("appends prompt=select_account by default — matches the 'always show account picker' UX", () => {
     const url = new URL(
       buildAuthorizeUrl({
-        clientId: "c",
+        clientId: CLIENT_ID_DEFAULTS,
         redirectUri: "http://127.0.0.1:1/oauth/callback",
         state: "s",
         codeChallenge: "ch",
@@ -75,7 +79,7 @@ describe("buildAuthorizeUrl", () => {
   it("omits prompt when explicitly opted out", () => {
     const url = new URL(
       buildAuthorizeUrl({
-        clientId: "c",
+        clientId: CLIENT_ID_DEFAULTS,
         redirectUri: "http://127.0.0.1:1/oauth/callback",
         state: "s",
         codeChallenge: "ch",

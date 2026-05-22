@@ -9,6 +9,33 @@ follows [Semantic Versioning](https://semver.org/).
 
 ### BREAKING CHANGES
 
+- **Branded `AzureClientId` type.** The Azure AD application id is now a
+  branded `AzureClientId` instead of a raw `string` across the public auth
+  surface (`RefreshOptions`, `AuthorizationCodeRunOptions`, `OnlineAuth`,
+  `MojangSession.microsoft.clientId`). Construct values via
+  `asAzureClientId(raw)` — it validates the GUID-ish shape (hex + dashes,
+  ≥ 8 chars) and throws `MinecraftKitError(INVALID_INPUT)` on malformed
+  input. The CLI sign-in path validates env-var / paste inputs through
+  the same constructor.
+
+  Migration:
+
+  ```ts
+  // Before
+  await kit.auth.authorizationCode.run({ clientId: process.env.MSA_CLIENT_ID!, … });
+
+  // After
+  import { asAzureClientId } from "@loontail/minecraft-kit";
+  await kit.auth.authorizationCode.run({
+    clientId: asAzureClientId(process.env.MSA_CLIENT_ID ?? ""),
+    …
+  });
+  ```
+
+  Callers that read `clientId` off `kit.auth` results
+  (`session.microsoft.clientId`, `onlineAuth.clientId`) need no change —
+  the brand widens to `string` for any downstream consumer.
+
 - **`OnlineAuth` fields tightened.** `userType`, `clientId`, and `xuid` were
   declared optional, but every kit-produced `OnlineAuth` (via `toOnlineAuth`)
   always set them and the launch composer fell back to `??` defaults that

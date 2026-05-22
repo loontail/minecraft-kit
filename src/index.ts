@@ -1,4 +1,5 @@
 export {
+  asAzureClientId,
   type AuthorizationCodeRunOptions,
   CLIENT_ID_ENV_VAR,
   MojangAuthApi,
@@ -63,6 +64,7 @@ export type {
 export {
   type AuthMode,
   AuthModes,
+  type AzureClientId,
   type LaunchAuth,
   type MojangAssetState,
   type MojangProfileCape,

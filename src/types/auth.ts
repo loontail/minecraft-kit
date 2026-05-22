@@ -30,6 +30,21 @@ export const AuthModes = {
 export type AuthMode = (typeof AuthModes)[keyof typeof AuthModes];
 
 /**
+ * Branded Azure AD application id. Construct via `asAzureClientId` (exported from
+ * the package root) — the brand prevents accidentally passing a refresh token or
+ * a UUID where the kit expects a client id.
+ *
+ * @example
+ * ```ts
+ * import { asAzureClientId, type AzureClientId } from "@loontail/minecraft-kit";
+ *
+ * const clientId: AzureClientId = asAzureClientId(process.env.MSA_CLIENT_ID ?? "");
+ * await kit.auth.authorizationCode.run({ clientId, onOpenBrowser });
+ * ```
+ */
+export type AzureClientId = string & { readonly __brand: "AzureClientId" };
+
+/**
  * Offline authentication.
  *
  * @example
@@ -76,7 +91,7 @@ export type OnlineAuth = {
   readonly uuid: string;
   readonly accessToken: string;
   readonly userType: string;
-  readonly clientId: string;
+  readonly clientId: AzureClientId;
   readonly xuid: string;
 };
 
@@ -197,6 +212,6 @@ export type MojangSession = {
     /** Microsoft refresh token; used to obtain a fresh session without re-prompting. */
     readonly refreshToken: string;
     /** Azure AD application id used to mint the session. */
-    readonly clientId: string;
+    readonly clientId: AzureClientId;
   };
 };

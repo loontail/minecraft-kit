@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
+import type { AzureClientId } from "../types/auth";
 
 /**
  * Authorization Code + PKCE helpers (RFC 7636) for the Microsoft Identity Platform.
@@ -62,7 +63,7 @@ export const generateOAuthState = (): string => toBase64Url(randomBytes(32));
  */
 export type BuildAuthorizeUrlOptions = {
   /** Azure AD application id. */
-  readonly clientId: string;
+  readonly clientId: AzureClientId;
   /** Loopback redirect URI registered with the app (e.g. `http://127.0.0.1:54321/oauth/callback`). */
   readonly redirectUri: string;
   /** Opaque state from {@link generateOAuthState}. */

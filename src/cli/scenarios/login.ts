@@ -1,6 +1,13 @@
-import { CLIENT_ID_ENV_VAR, toOnlineAuth } from "../../auth/index";
+import { CLIENT_ID_ENV_VAR, asAzureClientId, toOnlineAuth } from "../../auth/index";
 import { assertNever } from "../../core/assert-never";
-import { AuthModes, type LaunchAuth, type MojangSession, type OnlineAuth } from "../../types/auth";
+import { isMinecraftKitError } from "../../core/errors";
+import {
+  AuthModes,
+  type AzureClientId,
+  type LaunchAuth,
+  type MojangSession,
+  type OnlineAuth,
+} from "../../types/auth";
 import { formatUserError } from "../error-format";
 import { openBrowser } from "../open-browser";
 import type { AuthState, ScenarioContext, ScenarioOutcome } from "./types";
@@ -192,9 +199,18 @@ const printSession = (ctx: Pick<ScenarioContext, "ui">, session: MojangSession):
   );
 };
 
-const resolveClientId = async (ctx: Omit<ScenarioContext, "auth">): Promise<string | null> => {
+const resolveClientId = async (
+  ctx: Omit<ScenarioContext, "auth">,
+): Promise<AzureClientId | null> => {
   const fromEnv = process.env[CLIENT_ID_ENV_VAR];
-  if (typeof fromEnv === "string" && fromEnv.trim().length > 0) return fromEnv.trim();
+  if (typeof fromEnv === "string" && fromEnv.trim().length > 0) {
+    try {
+      return asAzureClientId(fromEnv);
+    } catch (error) {
+      if (!isMinecraftKitError(error)) throw error;
+      ctx.ui.log("warn", `Ignoring ${CLIENT_ID_ENV_VAR}: ${error.message}`);
+    }
+  }
   ctx.ui.note(
     "Azure AD client id required",
     [
@@ -215,5 +231,5 @@ const resolveClientId = async (ctx: Omit<ScenarioContext, "auth">): Promise<stri
   });
   if (entered.kind !== "ok") return null;
   const trimmed = entered.value.trim();
-  return trimmed.length > 0 ? trimmed : null;
+  return trimmed.length > 0 ? asAzureClientId(trimmed) : null;
 };
