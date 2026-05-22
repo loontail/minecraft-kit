@@ -54,9 +54,6 @@ export const runLaunch = (input: RunLaunchInput): LaunchSession => {
     if (aborted) return;
     aborted = true;
     options.onEvent?.({ type: EventTypes.LAUNCH_ABORTED, reason });
-    // Both kill calls are unconditional. Node's child_process treats a kill against a dead
-    // process as a no-op, so guarding against the first return value adds no safety and
-    // creates asymmetry with the SIGKILL path.
     child.kill("SIGTERM");
     setTimeout(() => child.kill("SIGKILL"), grace).unref();
   };

@@ -1,9 +1,14 @@
 import type { Logger } from "../types/logger";
 
-// Sources: --sun-misc-unsafe-memory-access (JEP 471/498), --enable-native-access
-// (JEP 412 incubator/454 final), -XX:+UseCompactObjectHeaders (JEP 450),
-// -XX:+UseZGC (production since Java 15). Match by prefix to cover `--flag=v`
-// and `--flag v` forms.
+/**
+ * Minimum Java version that recognises each JVM flag prefix.
+ *
+ * Sources: `--sun-misc-unsafe-memory-access` (JEP 471/498),
+ * `--enable-native-access` (JEP 412 incubator / 454 final),
+ * `-XX:+UseCompactObjectHeaders` (JEP 450), `-XX:+UseZGC` (production since Java 15).
+ *
+ * Matching is by prefix to cover both `--flag=value` and `--flag value` forms.
+ */
 const FLAG_MIN_JAVA: ReadonlyArray<{ readonly prefix: string; readonly minJava: number }> = [
   { prefix: "--sun-misc-unsafe-memory-access", minJava: 23 },
   { prefix: "--enable-native-access", minJava: 17 },

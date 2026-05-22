@@ -40,9 +40,6 @@ export const composeLaunch = async (input: ComposeLaunchInput): Promise<LaunchCo
     target.runtime.installRoot,
   );
 
-  // Walk the inheritsFrom chain to find the version id whose `.jar` actually exists on
-  // disk: Fabric and modern Forge leave their own `versions/<id>/<id>.jar` absent and
-  // expect the vanilla client jar to land on the classpath instead.
   const clientJarVersionId = await pickClientJarVersionId(target.directory, resolved.chain);
   const classpath = buildClasspath({
     directory: target.directory,

@@ -6,11 +6,12 @@ import type { ProcessStream, SpawnOptions, SpawnedProcess, Spawner } from "../ty
 /**
  * Default spawner backed by `node:child_process.spawn`.
  *
+ * Passing an explicit instance is equivalent to leaving the kit's `spawner` option unset.
+ *
  * @example
  * ```ts
  * import { ChildProcessSpawner, MinecraftKit } from "@loontail/minecraft-kit";
  *
- * // Explicit instantiation — equivalent to leaving `spawner` unset.
  * const kit = new MinecraftKit({ spawner: new ChildProcessSpawner() });
  * ```
  */
@@ -60,22 +61,14 @@ const streamFromBuffer = (stream: NodeJS.ReadableStream | null): ProcessStream =
       emitBounded(emit, line);
       index = buffer.indexOf("\n");
     }
-    // Pathological input: a single line longer than the cap with no newline yet. Flush in
-    // chunks so the buffer cannot grow without bound.
-    while (buffer.length > SPAWNER_MAX_LINE_BYTES) {
-      emit(buffer.slice(0, SPAWNER_MAX_LINE_BYTES));
-      buffer = buffer.slice(SPAWNER_MAX_LINE_BYTES);
-    }
+    buffer = flushNoNewlineOverflow(buffer, emit);
   });
   stream.on("end", () => {
     if (buffer.length > 0) {
       emitBounded(emit, buffer);
       buffer = "";
     }
-    // The producer is done — clear the subscriber set so callers that retain a reference to
-    // the ProcessStream don't keep their listener closures alive for the lifetime of the
-    // owning process.
-    listeners.clear();
+    releaseSubscribersOnProducerEnd(listeners);
   });
   return {
     on(_event, listener) {
@@ -92,4 +85,28 @@ const emitBounded = (emit: (line: string) => void, line: string): void => {
   for (let i = 0; i < line.length; i += SPAWNER_MAX_LINE_BYTES) {
     emit(line.slice(i, i + SPAWNER_MAX_LINE_BYTES));
   }
+};
+
+/**
+ * Flush a buffer that is accumulating a single line longer than the per-line cap with no
+ * newline in sight, in `SPAWNER_MAX_LINE_BYTES`-sized chunks. Returns the remaining buffer.
+ *
+ * Without this, a child that prints a multi-megabyte unterminated line would let `buffer`
+ * grow without bound.
+ */
+const flushNoNewlineOverflow = (buffer: string, emit: (line: string) => void): string => {
+  let remaining = buffer;
+  while (remaining.length > SPAWNER_MAX_LINE_BYTES) {
+    emit(remaining.slice(0, SPAWNER_MAX_LINE_BYTES));
+    remaining = remaining.slice(SPAWNER_MAX_LINE_BYTES);
+  }
+  return remaining;
+};
+
+/**
+ * Drop the subscriber set so callers that retain a reference to the {@link ProcessStream}
+ * don't keep their listener closures alive for the lifetime of the owning process.
+ */
+const releaseSubscribersOnProducerEnd = (listeners: Set<(line: string) => void>): void => {
+  listeners.clear();
 };

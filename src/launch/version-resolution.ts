@@ -16,7 +16,7 @@ import type { Target } from "../types/target";
  *
  * const resolved: ResolvedLaunchVersion = await resolveLaunchVersion(target);
  * console.log(resolved.versionId, resolved.chain);
- * console.log(resolved.merged.mainClass); // e.g. "net.fabricmc.loader.impl.launch.knot.KnotClient"
+ * console.log(resolved.merged.mainClass);
  * ```
  */
 export type ResolvedLaunchVersion = {
@@ -52,7 +52,6 @@ export const resolveLaunchVersion = async (target: Target): Promise<ResolvedLaun
   }
   const versionId = await pickInstalledVersionId(target);
   const merged = await loadAndMerge(target.directory, versionId, target.minecraft.manifest);
-  // Fabric and modern Forge inherit directly from vanilla — a two-level chain.
   return { versionId, merged, chain: [versionId, target.minecraft.version] };
 };
 
@@ -84,8 +83,6 @@ export const pickClientJarVersionId = async (
       "Cannot resolve a client jar version id from an empty inheritsFrom chain",
     );
   }
-  // Nothing on disk yet — fall back to the root vanilla id so the launch composition still
-  // produces a valid path; install/repair will materialise the jar before run-time.
   return fallback;
 };
 
@@ -129,9 +126,5 @@ const loadAndMerge = async (
     message: `Version JSON is not valid JSON: ${versionJsonPath}`,
     context: { filePath: versionJsonPath },
   });
-  if (child.inheritsFrom !== undefined && child.inheritsFrom !== parentManifest.id) {
-    // Recursive merge through any chain — but in practice Forge/Fabric inherit directly from vanilla.
-    return mergeManifest(parentManifest, child);
-  }
   return mergeManifest(parentManifest, child);
 };

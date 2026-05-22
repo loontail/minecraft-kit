@@ -62,7 +62,6 @@ export const composeArgs = (input: {
   const baseJvm = [...memoryArgs, ...BASE_JVM_ARGS, ...macosArgs];
   const substitutedJvm = substituteArgs(rawJvm, input.placeholderValues);
   const substitutedGame = substituteArgs(rawGame, input.placeholderValues);
-  // Base + macOS args are static and known-safe; only manifest args get filtered.
   const javaMajor = input.target.runtime.majorVersion;
   const filteredManifestJvm =
     javaMajor !== undefined
