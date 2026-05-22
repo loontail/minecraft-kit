@@ -1,7 +1,8 @@
 # Quickstart
 
 The kit covers two launch modes: **offline** (no Microsoft account needed, can't connect to
-online servers) and **online** (full Microsoft / Mojang sign-in via OAuth device code).
+online servers) and **online** (full Microsoft / Mojang sign-in via OAuth 2.0
+Authorization-Code + PKCE).
 
 ## Offline launch
 
@@ -41,9 +42,9 @@ await session.exited;
 
 ## Online launch with Microsoft / Mojang sign-in
 
-The kit ships a complete OAuth 2.0 device-code flow that returns a `MojangSession` ready
-for `kit.launch.compose`. Tokens never touch disk inside the kit — persisting the refresh
-token is your launcher's job.
+The kit ships a complete OAuth 2.0 Authorization-Code + PKCE flow over a loopback redirect
+that returns a `MojangSession` ready for `kit.launch.compose`. Tokens never touch disk
+inside the kit — persisting the refresh token is your launcher's job.
 
 ```ts
 import { MinecraftKit, Loaders, toOnlineAuth } from "@loontail/minecraft-kit";
@@ -55,12 +56,13 @@ const kit = new MinecraftKit();
 const saved = await readSavedSession();
 const session = saved
   ? await kit.auth.refresh(saved.refreshToken, { clientId: saved.clientId })
-  : await kit.auth.login({
+  : await kit.auth.authorizationCode.run({
       clientId: process.env.MINECRAFT_KIT_MSA_CLIENT_ID,
-      onPrompt: ({ verificationUri, userCode, expiresIn }) => {
-        console.log(`Open ${verificationUri}`);
-        console.log(`Enter code: ${userCode}`);
-        console.log(`(expires in ~${Math.floor(expiresIn / 60)} min)`);
+      onOpenBrowser: async (url) => {
+        // Open `url` in the user's system browser (shell.openExternal in Electron,
+        // `open` in a Node CLI). The kit waits for Microsoft to redirect back to its
+        // loopback listener — no codes for the user to type.
+        console.log(`Open ${url} in your browser to sign in.`);
       },
     });
 
@@ -106,22 +108,25 @@ async function saveSession(data: { refreshToken: string; clientId: string }) {
 
 ### Prerequisites for online launch
 
-`kit.auth.login` requires an Azure AD application id:
+`kit.auth.authorizationCode.run` requires an Azure AD application id:
 
 1. Register an app at [https://portal.azure.com](https://portal.azure.com) →
    **App registrations**.
 2. Set **Supported account types** to "Personal Microsoft accounts only" (or the variant
    that includes them).
 3. Authentication → **Allow public client flows: Yes**.
-4. Request Minecraft API access at [https://aka.ms/mce-reviewappid](https://aka.ms/mce-reviewappid).
+4. Authentication → **Platform configurations → Mobile and desktop applications → Add a
+   platform:** add `http://localhost` as a redirect URI (no port, no path — the kit binds
+   a random port at runtime).
+5. Request Minecraft API access at [https://aka.ms/mce-reviewappid](https://aka.ms/mce-reviewappid).
    Without this, `login_with_xbox` rejects the token.
 
 Pass the Application (client) ID via `MINECRAFT_KIT_MSA_CLIENT_ID` or the `clientId`
 option. The kit refuses to ship a default — `AUTH_MISSING_CLIENT_ID` is thrown when
 neither is set.
 
-See the [authentication guide](../guides/auth) for the full surface, the decoupled
-prompt/poll flow, and the auth error taxonomy.
+See the [authentication guide](../guides/auth) for the full surface and the auth error
+taxonomy.
 
 ## Statelessness
 
