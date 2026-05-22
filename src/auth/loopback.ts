@@ -6,9 +6,9 @@ import type { Logger } from "../types/logger";
 /**
  * Loopback HTTP server that captures a single OAuth callback. The Authorization Code
  * flow asks Microsoft to redirect the user's browser back to a URL we control; on
- * desktop, the cleanest URL is `http://127.0.0.1:<random-port>/oauth/callback`. We
- * start the server before opening the browser and close it the moment the callback
- * fires (success, error, or abort).
+ * desktop, the cleanest URL is `http://127.0.0.1:<random-port>/`. We start the server
+ * before opening the browser and close it the moment the callback fires (success,
+ * error, or abort).
  *
  * Microsoft's "Mobile and desktop applications" platform special-cases `http://localhost`
  * — any port works at runtime without per-port registration.
@@ -32,11 +32,40 @@ const DEFAULT_SUCCESS_HTML = `<!doctype html>
 </body>
 </html>`;
 
-// The redirect URI we hand Microsoft is `http://localhost:<port>` — no path.
-// Microsoft's loopback rule allows the port to vary but requires the rest of
-// the URI to match the registered redirect URI (typically just
-// `http://localhost`). Accepting only the root path keeps us strict.
-const CALLBACK_PATH = "/";
+/**
+ * Microsoft's loopback redirect rule: any port is accepted at runtime, but the
+ * `host` and `path` are pinned. The registered redirect URI is `http://localhost`;
+ * anything else 404s.
+ *
+ * @internal
+ */
+const MICROSOFT_LOOPBACK = { host: "127.0.0.1", path: "/" } as const;
+
+/**
+ * Base URL handed to the `URL` constructor when parsing `req.url`
+ * (which only contains the path + query).
+ *
+ * @internal
+ */
+const LOOPBACK_BASE = `http://${MICROSOFT_LOOPBACK.host}` as const;
+
+/**
+ * Node defaults `keepAliveTimeout` to 5_000ms and modern browsers hold idle
+ * keep-alive sockets for ~60s. Without this drop, `server.close()` blocks for
+ * dozens of seconds after the single round-trip the loopback needs.
+ *
+ * @internal
+ */
+const LOOPBACK_KEEP_ALIVE_MS = 1_000;
+
+/**
+ * Microsoft uses `access_denied` in the `error` query param when the user
+ * clicks "cancel" / closes the consent page. Surface that with a distinct
+ * kit code so callers can keep the UI quiet.
+ *
+ * @internal
+ */
+const MICROSOFT_USER_DECLINED_ERROR = "access_denied" as const;
 
 /**
  * Result of {@link startLoopbackServer}.
@@ -76,7 +105,7 @@ export type StartLoopbackServerOptions = {
 
 /**
  * Bind a loopback HTTP server on `127.0.0.1:<port>` and wait for a single
- * `/oauth/callback?code=…&state=…` request.
+ * `/?code=…&state=…` request.
  *
  * The server only ever resolves the promise once — subsequent requests on the same
  * server are answered with 410 Gone. This protects against replay if the user opens
@@ -119,19 +148,13 @@ export const startLoopbackServer = async (
       options.logger,
     );
   });
-  // Aggressive keep-alive timeout — the kit only needs one round-trip with the
-  // browser. Default Node keep-alive (5s) plus the browser's connection-reuse
-  // (Chrome/Edge holds idle for ~60s) means `server.close()` blocks for ~60s
-  // waiting for the browser to release the socket. Drop to 1s.
-  server.keepAliveTimeout = 1_000;
+  server.keepAliveTimeout = LOOPBACK_KEEP_ALIVE_MS;
 
   const close = async (): Promise<void> => {
     if (closed) return;
     closed = true;
     if (!captureSettled) {
       captureSettled = true;
-      // Distinguish "caller asked us to stop" from "we crashed mid-flight" so
-      // UIs can render a quiet cancellation instead of a loud error.
       const aborted = options.signal?.aborted === true;
       rejectCapture(
         aborted
@@ -146,15 +169,11 @@ export const startLoopbackServer = async (
             ),
       );
     }
-    // Force-close any still-open keep-alive sockets so `close()` doesn't wait
-    // for them to drain naturally (which can take dozens of seconds while the
-    // browser holds an idle connection).
     server.closeAllConnections?.();
     server.closeIdleConnections?.();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   };
 
-  // Surface bind errors (EADDRINUSE if the caller pinned a port) as kit errors.
   await new Promise<void>((resolve, reject) => {
     const onError = (err: Error): void => {
       server.off("listening", onListening);
@@ -172,7 +191,7 @@ export const startLoopbackServer = async (
     };
     server.once("error", onError);
     server.once("listening", onListening);
-    server.listen(options.port ?? 0, "127.0.0.1");
+    server.listen(options.port ?? 0, MICROSOFT_LOOPBACK.host);
   });
 
   const address = server.address() as AddressInfo | null;
@@ -184,8 +203,6 @@ export const startLoopbackServer = async (
     );
   }
 
-  // Plumb abort. We swallow the captured rejection because the caller already sees it
-  // through the `captured` promise; the close itself is bookkeeping.
   if (options.signal) {
     const onAbort = (): void => {
       void close();
@@ -194,13 +211,7 @@ export const startLoopbackServer = async (
     else options.signal.addEventListener("abort", onAbort, { once: true });
   }
 
-  // Detach captureSettled / closed cleanup once the promise settles so future
-  // requests can still be answered (with 410) without bookkeeping noise.
-  void captured
-    .catch(() => {})
-    .finally(() => {
-      // Caller decides when to close — flow uses captured then close() in sequence.
-    });
+  void captured.catch(() => {});
 
   return { port: address.port, captured, close };
 };
@@ -221,18 +232,14 @@ const handleRequest = (
     respondText(res, 405, "Method Not Allowed");
     return;
   }
-  // `req.url` is the path+query only; supply a base so URL() parses it.
-  const url = new URL(req.url, "http://127.0.0.1");
-  if (url.pathname !== CALLBACK_PATH) {
+  const url = new URL(req.url, LOOPBACK_BASE);
+  if (url.pathname !== MICROSOFT_LOOPBACK.path) {
     logger?.log("debug", `loopback: 404 for path ${url.pathname}`);
     respondText(res, 404, "Not Found");
     return;
   }
   const state = url.searchParams.get("state");
-  if (state !== expectedState) {
-    // State mismatch — reject the request entirely. We do NOT settle the capture
-    // promise, since this might be a stale request from a previous flow (e.g. user
-    // reopened an old tab); the legitimate callback can still arrive.
+  if (isReplayableStateMismatch(state, expectedState)) {
     logger?.log(
       "debug",
       `loopback: state mismatch (expected=${expectedState.slice(0, 8)}…, got=${(state ?? "<null>").slice(0, 8)}…)`,
@@ -259,6 +266,17 @@ const handleRequest = (
   respondHtml(res, 200, successHtml);
 };
 
+/**
+ * Returns true when the request carries a state value that does not match the
+ * expected one. We respond 400 and do not settle the capture promise — the
+ * legitimate callback (e.g. from a fresh consent page after the user reopened
+ * an old tab) can still arrive.
+ *
+ * @internal
+ */
+const isReplayableStateMismatch = (state: string | null, expectedState: string): boolean =>
+  state !== expectedState;
+
 const respondText = (res: ServerResponse, status: number, body: string): void => {
   res.statusCode = status;
   res.setHeader("content-type", "text/plain; charset=utf-8");
@@ -272,9 +290,7 @@ const respondHtml = (res: ServerResponse, status: number, body: string): void =>
 };
 
 const buildProviderError = (code: string, description: string | null): MinecraftKitError => {
-  // Microsoft uses `access_denied` when the user clicks "cancel" / closes the consent
-  // page. Surface that with a distinct kit code so callers can keep the UI quiet.
-  if (code === "access_denied") {
+  if (code === MICROSOFT_USER_DECLINED_ERROR) {
     return new MinecraftKitError(
       MinecraftKitErrorCodes.AUTH_AUTHORIZATION_CODE_DECLINED,
       "The user declined the Microsoft sign-in request.",
