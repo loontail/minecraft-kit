@@ -147,7 +147,6 @@ describe("verifyRuntime with installRoot", () => {
     expect(target.runtime.installRoot).toBe(customInstallRoot);
     const result = await verifyRuntime({ target, http, cache });
     expect(result.kind).toBe(VerificationKinds.RUNTIME);
-    // The expected path must use installRoot, not <target.directory>/runtime.
     const expectedPath = path.join(customInstallRoot, "java-runtime-gamma", "bin", "javaw.exe");
     const issue = result.issues.find((i) => i.path === expectedPath);
     expect(issue).toBeDefined();

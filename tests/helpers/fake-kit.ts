@@ -171,9 +171,7 @@ export const buildFakeKit = (input: FakeKitInput = {}): MinecraftKit => {
   const session: LaunchSession = {
     pid: 1234,
     exited: Promise.resolve(launchExit),
-    abort() {
-      // no-op for tests
-    },
+    abort() {},
   };
   const stubKit = {
     versions: {

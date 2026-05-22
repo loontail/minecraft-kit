@@ -22,9 +22,6 @@ const system: RuntimeSystem = { os: "windows", arch: "x64", osVersion: "10.0" };
 
 describe("planMinecraftRepair — NATIVE-category issues", () => {
   it("triggers EXTRACT_NATIVE without re-downloading the JAR when only a NATIVE issue is present", async () => {
-    // 1.8 has a native lwjgl jar. We seed an asset-index-less manifest with one library that
-    // has natives so the install plan contains both a DOWNLOAD_FILE and an EXTRACT_NATIVE for
-    // the same source path.
     const versionRoot = {
       latest: { release: "1.20.1", snapshot: "1.20.1" },
       versions: [
@@ -107,8 +104,6 @@ describe("planMinecraftRepair — NATIVE-category issues", () => {
       "lwjgl-platform-2.9.4-nightly-20150209-natives-windows.jar",
     );
 
-    // Pretend the JAR is fine on disk but the natives directory is empty: verify only
-    // emitted a NATIVE issue at the JAR path.
     const nativeOnlyVerification = {
       targetId: target.id,
       kind: VerificationKinds.MINECRAFT,

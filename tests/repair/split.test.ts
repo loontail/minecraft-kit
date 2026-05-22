@@ -221,7 +221,6 @@ describe("planRuntimeRepair with installRoot", () => {
             category: VerifyFileCategories.RUNTIME_FILE,
             status: VerifyFileStatuses.MISSING,
           },
-          // Non-runtime issue must NOT bleed into the runtime plan.
           {
             path: path.join("/r", "versions", "1.20.1", "1.20.1.jar"),
             category: VerifyFileCategories.CLIENT_JAR,

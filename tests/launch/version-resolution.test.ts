@@ -26,7 +26,6 @@ describe("pickClientJarVersionId", () => {
   });
 
   it("falls back to the parent vanilla id when the loader id has no jar (Fabric)", async () => {
-    // Simulate a Fabric install: vanilla jar present, no jar at versions/fabric-loader-…/.
     await placeJar("1.20.1");
     const chain = ["fabric-loader-0.14.21-1.20.1", "1.20.1"];
     expect(await pickClientJarVersionId(tmpDir, chain)).toBe("1.20.1");

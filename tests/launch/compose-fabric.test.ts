@@ -61,18 +61,7 @@ describe("composeLaunch (Fabric regression)", () => {
 
   beforeEach(async () => {
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "mckit-compose-"));
-    // Layout: vanilla jar exists, Fabric profile JSON exists, Fabric jar does NOT exist.
-    const vanillaDir = path.join(tmpDir, "versions", "1.20.1");
-    await fs.mkdir(vanillaDir, { recursive: true });
-    await fs.writeFile(path.join(vanillaDir, "1.20.1.jar"), "vanilla-bytes");
-
-    const fabricDir = path.join(tmpDir, "versions", "fabric-loader-0.14.21-1.20.1");
-    await fs.mkdir(fabricDir, { recursive: true });
-    await fs.writeFile(
-      path.join(fabricDir, "fabric-loader-0.14.21-1.20.1.json"),
-      JSON.stringify(fabricLoader.profile),
-    );
-    // No fabric .jar — that is the bug we are guarding against.
+    await stageFabricLayoutWithoutFabricJar(tmpDir);
   });
 
   afterEach(async () => {
@@ -101,10 +90,25 @@ describe("composeLaunch (Fabric regression)", () => {
     );
     expect(cp).toContain(vanillaJar);
     expect(cp).not.toContain(fabricJar);
-    // mainClass must come from the Fabric profile, not vanilla.
     expect(composition.mainClass).toBe("net.fabricmc.loader.impl.launch.knot.KnotClient");
-    // version_name placeholder still uses the Fabric profile id (so loader can identify itself).
     const game = composition.gameArgs.join(" ");
     expect(game).toContain("Player");
   });
 });
+
+/**
+ * Stage the on-disk layout for the regression: vanilla `.jar` exists, Fabric profile
+ * JSON exists, Fabric `.jar` is deliberately missing (the bug we are guarding against).
+ */
+const stageFabricLayoutWithoutFabricJar = async (tmpDir: string): Promise<void> => {
+  const vanillaDir = path.join(tmpDir, "versions", "1.20.1");
+  await fs.mkdir(vanillaDir, { recursive: true });
+  await fs.writeFile(path.join(vanillaDir, "1.20.1.jar"), "vanilla-bytes");
+
+  const fabricDir = path.join(tmpDir, "versions", "fabric-loader-0.14.21-1.20.1");
+  await fs.mkdir(fabricDir, { recursive: true });
+  await fs.writeFile(
+    path.join(fabricDir, "fabric-loader-0.14.21-1.20.1.json"),
+    JSON.stringify(fabricLoader.profile),
+  );
+};
