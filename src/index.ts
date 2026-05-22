@@ -111,11 +111,7 @@ export {
 // ─────────────────────────────────────────────────────────────────────────────────────
 // Launch — resolve the on-disk version JSON before composing JVM args
 // ─────────────────────────────────────────────────────────────────────────────────────
-export {
-  pickClientJarVersionId,
-  resolveLaunchVersion,
-  type ResolvedLaunchVersion,
-} from "./launch/version-resolution";
+export { resolveLaunchVersion, type ResolvedLaunchVersion } from "./launch/version-resolution";
 export { ChildProcessSpawner } from "./launch/spawner";
 
 // ─────────────────────────────────────────────────────────────────────────────────────

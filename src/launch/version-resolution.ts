@@ -42,6 +42,8 @@ export const resolveLaunchVersion = async (target: Target): Promise<ResolvedLaun
  * it via `KnotClient`. Modern Forge similarly leaves `versions/<forge-id>/<forge-id>.jar`
  * absent and routes the patched client jar through `libraries/`. Walking the chain picks
  * the right id for both shapes without special-casing.
+ *
+ * @internal
  */
 export const pickClientJarVersionId = async (
   directory: string,
