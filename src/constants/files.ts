@@ -30,6 +30,15 @@ export const NATIVES_DIR_NAME = "natives";
 export const FORGE_INSTALLERS_DIR = "forge-installers";
 
 /**
+ * Filename pattern for Forge installer JARs cached under {@link FORGE_INSTALLERS_DIR}.
+ * `${mavenVersion}` is the Maven version identifier (e.g. `1.20.1-47.2.0`).
+ *
+ * @internal
+ */
+export const forgeInstallerFilename = (mavenVersion: string): string =>
+  `forge-${mavenVersion}-installer.jar`;
+
+/**
  * Java executable filename per OS (relative to the runtime root).
  *
  * @internal

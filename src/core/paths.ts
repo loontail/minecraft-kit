@@ -13,6 +13,7 @@ import {
   NATIVES_DIR_NAME,
   RUNTIMES_DIR,
   VERSIONS_DIR,
+  forgeInstallerFilename,
 } from "../constants/files";
 import type { OperatingSystem } from "../types/system";
 
@@ -77,5 +78,5 @@ export const targetPaths = {
     return path.join(runtime, JAVA_EXECUTABLE.linux);
   },
   forgeInstaller: (root: string, mavenVersion: string): string =>
-    path.join(root, FORGE_INSTALLERS_DIR, `forge-${mavenVersion}-installer.jar`),
+    path.join(root, FORGE_INSTALLERS_DIR, forgeInstallerFilename(mavenVersion)),
 } as const;
