@@ -271,7 +271,7 @@ export class MinecraftKit {
  * await kit.install.run(plan, options);
  * ```
  */
-export interface InstallRunOptions extends OperationOptions {
+export type InstallRunOptions = OperationOptions & {
   /**
    * Cooperative pause/resume primitive — see {@link PauseController}. The runner checks the
    * pause state at every stage boundary and between download chunks.
@@ -296,7 +296,7 @@ export interface InstallRunOptions extends OperationOptions {
    * ```
    */
   readonly actionCategories?: ReadonlySet<DownloadAction["category"]>;
-}
+};
 
 /**
  * Options accepted by every `verify.<kind>.run`.

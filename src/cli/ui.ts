@@ -68,45 +68,45 @@ export type UiPromptInput = {
  *
  * @internal
  */
-export interface TextInput extends UiPromptInput {
+export type TextInput = UiPromptInput & {
   readonly placeholder?: string;
   readonly initial?: string;
   /** Optional validator. Return undefined for valid input or an error message string. */
   readonly validate?: (value: string) => string | undefined;
-}
+};
 
 /**
  * Inputs for {@link Ui.select}.
  *
  * @internal
  */
-export interface SelectInput<T> extends UiPromptInput {
+export type SelectInput<T> = UiPromptInput & {
   readonly options: readonly SelectOption<T>[];
   /** Optional initial selection. */
   readonly initialValue?: T;
-}
+};
 
 /**
  * Inputs for {@link Ui.searchableSelect}.
  *
  * @internal
  */
-export interface SearchableSelectInput<T> extends SelectInput<T> {
+export type SearchableSelectInput<T> = SelectInput<T> & {
   /**
    * Lists with at most this many entries are rendered as a normal select. Larger lists are
    * clipped to the first {@link MAX_VISIBLE_OPTIONS} entries. Defaults to `30`.
    */
   readonly searchThreshold?: number;
-}
+};
 
 /**
  * Inputs for {@link Ui.confirm}.
  *
  * @internal
  */
-export interface ConfirmInput extends UiPromptInput {
+export type ConfirmInput = UiPromptInput & {
   readonly initial?: boolean;
-}
+};
 
 /**
  * Spinner handle.
@@ -501,6 +501,6 @@ export type StubUiCall = {
  *
  * @internal
  */
-export interface StubUi extends Ui {
+export type StubUi = Ui & {
   readonly calls: readonly StubUiCall[];
-}
+};

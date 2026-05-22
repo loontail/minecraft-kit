@@ -198,9 +198,9 @@ export type MinecraftLibraryDownloads = {
  * if (lwjgl) console.log(`${lwjgl.path} ${lwjgl.size} bytes`);
  * ```
  */
-export interface LibraryArtifact extends ArtifactDownload {
+export type LibraryArtifact = ArtifactDownload & {
   readonly path: string;
-}
+};
 
 /**
  * Rule entry used by libraries and modern arguments.

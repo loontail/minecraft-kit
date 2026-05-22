@@ -48,11 +48,11 @@ describe("logger", () => {
   });
 
   describe("scopedLogger", () => {
-    interface Captured {
+    type Captured = {
       level: LogLevel;
       message: string;
       fields: Readonly<Record<string, unknown>> | undefined;
-    }
+    };
     function makeCapturingLogger(): { logger: Logger; entries: Captured[] } {
       const entries: Captured[] = [];
       const logger: Logger = {
