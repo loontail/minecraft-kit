@@ -1,5 +1,6 @@
 import path from "node:path";
 import {
+  ASSETS_DIR,
   ASSETS_INDEXES_DIR,
   ASSETS_LEGACY_DIR,
   ASSETS_LOG_CONFIGS_DIR,
@@ -43,6 +44,9 @@ export const targetPaths = {
   versionJson: (root: string, versionId: string): string =>
     path.join(root, VERSIONS_DIR, versionId, `${versionId}.json`),
   librariesDir: (root: string): string => path.join(root, LIBRARIES_DIR),
+  assetsDir: (root: string): string => path.join(root, ASSETS_DIR),
+  assetsLegacyDir: (root: string): string => path.join(root, ASSETS_LEGACY_DIR),
+  runtimesDir: (root: string): string => path.join(root, RUNTIMES_DIR),
   libraryFile: (root: string, libraryPath: string): string =>
     path.join(root, LIBRARIES_DIR, libraryPath),
   assetIndex: (root: string, indexId: string): string =>

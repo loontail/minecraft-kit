@@ -1,6 +1,4 @@
-import path from "node:path";
 import { DEFAULT_LAUNCHER_NAME, DEFAULT_LAUNCHER_VERSION } from "../constants/defaults";
-import { ASSETS_DIR, ASSETS_LEGACY_DIR, LIBRARIES_DIR } from "../constants/files";
 import { targetPaths } from "../core/paths";
 import { offlineUuidFor, stripUuidDashes } from "../core/uuid";
 import { AuthModes, type LaunchAuth } from "../types/auth";
@@ -34,7 +32,7 @@ export const buildPlaceholderValues = (input: {
     auth_player_name: username,
     version_name: input.versionId,
     game_directory: directory,
-    assets_root: path.join(directory, ASSETS_DIR),
+    assets_root: targetPaths.assetsDir(directory),
     assets_index_name: input.target.minecraft.manifest.assets,
     auth_uuid: stripUuidDashes(uuid),
     auth_access_token: accessToken,
@@ -44,11 +42,11 @@ export const buildPlaceholderValues = (input: {
     user_type: userType,
     user_properties: "{}",
     version_type: input.target.minecraft.channel,
-    game_assets: path.join(directory, ASSETS_LEGACY_DIR),
+    game_assets: targetPaths.assetsLegacyDir(directory),
     natives_directory: targetPaths.nativesDir(directory, input.target.minecraft.version),
     classpath: input.classpath.join(cpSeparator),
     classpath_separator: cpSeparator,
-    library_directory: path.join(directory, LIBRARIES_DIR),
+    library_directory: targetPaths.librariesDir(directory),
     launcher_name: launcherName,
     launcher_version: launcherVersion,
     resolution_width: input.options.resolution?.width.toString() ?? "",

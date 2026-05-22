@@ -1,8 +1,8 @@
 import path from "node:path";
-import { ASSETS_DIR, LIBRARIES_DIR, RUNTIMES_DIR, VERSIONS_DIR } from "../constants/files";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { dirExists, fileExists, listChildDirectories } from "../core/fs";
 import { withOptionalSignal } from "../core/optional";
+import { targetPaths } from "../core/paths";
 import { Loaders, type VersionPreferenceKind } from "../types/loader";
 import { RuntimePreference, type RuntimePreferenceKind } from "../types/runtime";
 import type { RuntimeSystem } from "../types/system";
@@ -263,9 +263,9 @@ const discoverInstallation = async (
   id: string,
   directory: string,
 ): Promise<DiscoveredTarget | null> => {
-  const versionsDir = path.join(directory, VERSIONS_DIR);
-  const librariesDir = path.join(directory, LIBRARIES_DIR);
-  const assetsDir = path.join(directory, ASSETS_DIR);
+  const versionsDir = targetPaths.versionsDir(directory);
+  const librariesDir = targetPaths.librariesDir(directory);
+  const assetsDir = targetPaths.assetsDir(directory);
   const looksLikeInstall =
     (await dirExists(versionsDir)) &&
     ((await dirExists(librariesDir)) || (await dirExists(assetsDir)));
@@ -289,7 +289,7 @@ const discoverInstallation = async (
 };
 
 const discoverRuntime = async (directory: string): Promise<DiscoveredRuntimeHint | undefined> => {
-  const runtimeDir = path.join(directory, RUNTIMES_DIR);
+  const runtimeDir = targetPaths.runtimesDir(directory);
   if (!(await dirExists(runtimeDir))) return undefined;
   let components: readonly string[];
   try {
