@@ -7,12 +7,24 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### BREAKING CHANGES
+
+- **Authentication.** Removed the Microsoft device-code sign-in flow:
+  `kit.auth.login()`, `kit.auth.deviceCode.start()`, `kit.auth.deviceCode.poll()`,
+  and the `DeviceCodePrompt`, `DeviceCodeState`, `LoginOptions`,
+  `StartDeviceCodeOptions`, `PollDeviceCodeOptions` types. Error codes
+  `AUTH_DEVICE_CODE_EXPIRED`, `AUTH_DEVICE_CODE_DECLINED`, and
+  `AUTH_DEVICE_CODE_FAILED` are gone too. Migrate to
+  `kit.auth.authorizationCode.run({ onOpenBrowser })` — see
+  [docs/guides/auth](https://loontail.github.io/minecraft-kit/guides/auth).
+
 ### Added
 
-- **Authentication.** `MojangAuthApi` plus the underlying Microsoft device-code,
-  Xbox/XSTS, and Minecraft modules. CLI scenario `mckit login` wires the flow with
-  prompts that include precise error hints for the most common Azure / Mojang
-  misconfigurations. (`feat(auth): add Microsoft OAuth login flow and CLI scenario`)
+- **Authentication.** `MojangAuthApi` plus the underlying Microsoft Authorization
+  Code + PKCE loopback, Xbox/XSTS, and Minecraft modules. CLI scenario `mckit login`
+  wires the flow with prompts that include precise error hints for the most common
+  Azure / Mojang misconfigurations.
+  (`feat(auth): add Microsoft OAuth login flow and CLI scenario`)
 - **`core/abort.ts`** — `assertNotAborted()` + `checkpoint()` helpers so every long-running
   stage uses the same signal-check / pause-await / signal-check-again dance.
 - **`core/assert-never.ts`** — exhaustiveness sentinel for discriminated unions.
