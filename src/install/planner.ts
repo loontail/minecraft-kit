@@ -3,10 +3,12 @@ import type { MetadataCache } from "../types/cache";
 import type { ProgressListener } from "../types/events";
 import type { HttpClient } from "../types/http";
 import {
+  type DownloadAction,
   DownloadCategories,
   type InstallAction,
   InstallActionKinds,
   type InstallPlan,
+  type WriteVersionJsonAction,
 } from "../types/install";
 import { Loaders } from "../types/loader";
 import type { Target } from "../types/target";
@@ -36,95 +38,15 @@ export type PlanInstallInput = {
  */
 export const planInstall = async (input: PlanInstallInput): Promise<InstallPlan> => {
   const { target } = input;
-  const actions: InstallAction[] = [];
-
-  // 1. Vanilla client jar.
-  actions.push({
-    kind: InstallActionKinds.DOWNLOAD_FILE,
-    url: target.minecraft.manifest.downloads.client.url,
-    target: targetPaths.versionJar(target.directory, target.minecraft.version),
-    expectedSha1: target.minecraft.manifest.downloads.client.sha1,
-    expectedSize: target.minecraft.manifest.downloads.client.size,
-    category: DownloadCategories.CLIENT_JAR,
-  });
-
-  // 2. Vanilla version JSON (write).
-  actions.push({
-    kind: InstallActionKinds.WRITE_VERSION_JSON,
-    path: targetPaths.versionJson(target.directory, target.minecraft.version),
-    content: `${JSON.stringify(target.minecraft.manifest, null, 2)}\n`,
-  });
-
-  // 3. Vanilla libraries + native extractions.
-  const vanillaLibraries = planLibraryDownloads({
-    libraries: target.minecraft.manifest.libraries,
-    directory: target.directory,
-    system: target.runtime.system,
-    versionId: target.minecraft.version,
-    category: DownloadCategories.LIBRARY,
-  });
-  actions.push(...vanillaLibraries.downloads);
-  actions.push(...vanillaLibraries.nativeExtractions);
-
-  // 4. Asset index + objects.
-  const assetPlan = await planAssetDownloads({
-    directory: target.directory,
-    assetIndex: target.minecraft.manifest.assetIndex,
-    http: input.http,
-    cache: input.cache,
-    ...(input.signal !== undefined ? { signal: input.signal } : {}),
-  });
-  actions.push(...assetPlan.actions);
-
-  // 5. Logging config.
-  if (target.minecraft.manifest.logging?.client) {
-    const logging = target.minecraft.manifest.logging.client;
-    actions.push({
-      kind: InstallActionKinds.DOWNLOAD_FILE,
-      url: logging.file.url,
-      target: targetPaths.loggingConfig(target.directory, logging.file.id),
-      expectedSha1: logging.file.sha1,
-      expectedSize: logging.file.size,
-      category: DownloadCategories.LOGGING_CONFIG,
-    });
-  }
-
-  // 6. Runtime files.
-  const runtimePlan = await planRuntimeDownloads({
-    runtime: target.runtime,
-    directory: target.directory,
-    http: input.http,
-    cache: input.cache,
-    ...(input.signal !== undefined ? { signal: input.signal } : {}),
-  });
-  actions.push(...runtimePlan.actions);
-
-  // 7. Loader-specific extras.
-  if (target.loader.type === Loaders.FABRIC) {
-    const fabricPlan = planFabricInstall({
-      loader: target.loader,
-      minecraft: target.minecraft,
-      directory: target.directory,
-      system: target.runtime.system,
-    });
-    actions.push(fabricPlan.versionJson);
-    actions.push(...fabricPlan.libraryDownloads);
-  } else if (target.loader.type === Loaders.FORGE) {
-    const forgePlan = await planForgeInstall({
-      loader: target.loader,
-      minecraft: target.minecraft,
-      directory: target.directory,
-      system: target.runtime.system,
-      http: input.http,
-      cache: input.cache,
-      ...(input.signal !== undefined ? { signal: input.signal } : {}),
-      ...(input.onEvent !== undefined ? { onEvent: input.onEvent } : {}),
-    });
-    actions.push(forgePlan.installerDownload);
-    actions.push(...forgePlan.libraryDownloads);
-    actions.push(forgePlan.versionJson);
-    actions.push(...forgePlan.processorActions);
-  }
+  const actions: InstallAction[] = [
+    planClientJarAction(target),
+    planVersionJsonWriteAction(target),
+    ...planVanillaLibraries(target),
+    ...(await planAssetIndexAndObjects(input)),
+    ...planLoggingConfigAction(target),
+    ...(await planRuntimeFiles(input)),
+    ...(await planLoaderExtras(input)),
+  ];
 
   const totalBytes = actions.reduce((sum, action) => {
     if (action.kind === InstallActionKinds.DOWNLOAD_FILE) {
@@ -141,4 +63,101 @@ export const planInstall = async (input: PlanInstallInput): Promise<InstallPlan>
     totalActions: actions.length,
     totalBytes,
   };
+};
+
+const planClientJarAction = (target: Target): DownloadAction => ({
+  kind: InstallActionKinds.DOWNLOAD_FILE,
+  url: target.minecraft.manifest.downloads.client.url,
+  target: targetPaths.versionJar(target.directory, target.minecraft.version),
+  expectedSha1: target.minecraft.manifest.downloads.client.sha1,
+  expectedSize: target.minecraft.manifest.downloads.client.size,
+  category: DownloadCategories.CLIENT_JAR,
+});
+
+const planVersionJsonWriteAction = (target: Target): WriteVersionJsonAction => ({
+  kind: InstallActionKinds.WRITE_VERSION_JSON,
+  path: targetPaths.versionJson(target.directory, target.minecraft.version),
+  content: `${JSON.stringify(target.minecraft.manifest, null, 2)}\n`,
+});
+
+const planVanillaLibraries = (target: Target): readonly InstallAction[] => {
+  const plan = planLibraryDownloads({
+    libraries: target.minecraft.manifest.libraries,
+    directory: target.directory,
+    system: target.runtime.system,
+    versionId: target.minecraft.version,
+    category: DownloadCategories.LIBRARY,
+  });
+  return [...plan.downloads, ...plan.nativeExtractions];
+};
+
+const planAssetIndexAndObjects = async (
+  input: PlanInstallInput,
+): Promise<readonly InstallAction[]> => {
+  const plan = await planAssetDownloads({
+    directory: input.target.directory,
+    assetIndex: input.target.minecraft.manifest.assetIndex,
+    http: input.http,
+    cache: input.cache,
+    ...(input.signal !== undefined ? { signal: input.signal } : {}),
+  });
+  return plan.actions;
+};
+
+const planLoggingConfigAction = (target: Target): readonly InstallAction[] => {
+  const logging = target.minecraft.manifest.logging?.client;
+  if (!logging) return [];
+  return [
+    {
+      kind: InstallActionKinds.DOWNLOAD_FILE,
+      url: logging.file.url,
+      target: targetPaths.loggingConfig(target.directory, logging.file.id),
+      expectedSha1: logging.file.sha1,
+      expectedSize: logging.file.size,
+      category: DownloadCategories.LOGGING_CONFIG,
+    },
+  ];
+};
+
+const planRuntimeFiles = async (input: PlanInstallInput): Promise<readonly InstallAction[]> => {
+  const plan = await planRuntimeDownloads({
+    runtime: input.target.runtime,
+    directory: input.target.directory,
+    http: input.http,
+    cache: input.cache,
+    ...(input.signal !== undefined ? { signal: input.signal } : {}),
+  });
+  return plan.actions;
+};
+
+const planLoaderExtras = async (input: PlanInstallInput): Promise<readonly InstallAction[]> => {
+  const { target } = input;
+  if (target.loader.type === Loaders.FABRIC) {
+    const plan = planFabricInstall({
+      loader: target.loader,
+      minecraft: target.minecraft,
+      directory: target.directory,
+      system: target.runtime.system,
+    });
+    return [plan.versionJson, ...plan.libraryDownloads];
+  }
+  if (target.loader.type === Loaders.FORGE) {
+    const plan = await planForgeInstall({
+      loader: target.loader,
+      minecraft: target.minecraft,
+      directory: target.directory,
+      system: target.runtime.system,
+      http: input.http,
+      cache: input.cache,
+      ...(input.signal !== undefined ? { signal: input.signal } : {}),
+      ...(input.onEvent !== undefined ? { onEvent: input.onEvent } : {}),
+    });
+    return [
+      plan.installerDownload,
+      ...plan.libraryDownloads,
+      plan.versionJson,
+      ...plan.processorActions,
+    ];
+  }
+  return [];
 };
