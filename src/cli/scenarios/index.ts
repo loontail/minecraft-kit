@@ -1,4 +1,4 @@
-export type { AuthState, ScenarioContext, ScenarioOutcome } from "./types";
+export type { AuthRef, AuthState, ScenarioContext, ScenarioOutcome } from "./types";
 export { scenarioInstallMinecraft, scenarioInstallRuntime } from "./install";
 export { scenarioVerify, scenarioRepair } from "./verify-repair";
 export { scenarioLaunch } from "./launch";

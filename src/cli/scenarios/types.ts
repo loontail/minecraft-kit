@@ -1,5 +1,5 @@
 import type { MinecraftKit } from "../../kit";
-import type { LaunchAuth, MojangSession } from "../../types/auth";
+import type { MojangSession, OfflineAuth, OnlineAuth } from "../../types/auth";
 import type { Loaders } from "../../types/loader";
 import {
   type MinecraftChannel,
@@ -9,17 +9,25 @@ import {
 import type { SelectOption, Ui } from "../ui";
 
 /**
- * Mutable holder for the active session, shared by every scenario. Populated once at CLI
- * startup (see {@link import("../main").runCli}) and updated by the "Sign in / out" menu.
+ * Active session for the CLI, modelled as a discriminated union so the
+ * "online ⇒ session present" invariant lives in the type instead of in
+ * paired-field guards.
  *
  * @internal
  */
-export type AuthState = {
-  /** Auth value passed straight to `kit.launch.compose`. Null until startup picks one. */
-  current: LaunchAuth | null;
-  /** Full Microsoft/Mojang session when {@link current} is online. */
-  microsoftSession: MojangSession | null;
-};
+export type AuthState =
+  | { readonly kind: "unauthenticated" }
+  | { readonly kind: "offline"; readonly auth: OfflineAuth }
+  | { readonly kind: "online"; readonly auth: OnlineAuth; readonly session: MojangSession };
+
+/**
+ * Mutable holder for the active {@link AuthState}, shared by every scenario.
+ * Scenarios that change auth (the login menu) reassign `state`; everyone else
+ * reads a snapshot.
+ *
+ * @internal
+ */
+export type AuthRef = { state: AuthState };
 
 /**
  * Inputs every scenario receives.
@@ -30,7 +38,7 @@ export type ScenarioContext = {
   readonly kit: MinecraftKit;
   readonly ui: Ui;
   readonly rootDir: string;
-  readonly auth: AuthState;
+  readonly auth: AuthRef;
 };
 
 /**

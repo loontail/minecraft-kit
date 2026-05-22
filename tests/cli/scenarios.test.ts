@@ -8,7 +8,7 @@ import {
   scenarioRepair,
   scenarioVerify,
 } from "../../src/cli/scenarios";
-import type { AuthState } from "../../src/cli/scenarios";
+import type { AuthRef } from "../../src/cli/scenarios";
 import { createStubUi } from "../../src/cli/ui";
 import { MinecraftKitError } from "../../src/core/errors";
 import { asMinecraftVersionId } from "../../src/core/version-id";
@@ -27,9 +27,8 @@ const ROOT_DIR = "/tmp/mckit-test";
  * (install / verify / repair / inspect) ignore it; `scenarioLaunch` consumes the offline
  * username directly.
  */
-const auth = (): AuthState => ({
-  current: { mode: AuthModes.OFFLINE, username: "Player" },
-  microsoftSession: null,
+const auth = (): AuthRef => ({
+  state: { kind: "offline", auth: { mode: AuthModes.OFFLINE, username: "Player" } },
 });
 
 const release2: MinecraftVersionSummary = {

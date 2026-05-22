@@ -1,28 +1,28 @@
-import { AuthModes } from "../../types/auth";
 import { formatUserError } from "../error-format";
 import { pickInstalledTarget } from "./pickers";
 import type { ScenarioContext, ScenarioOutcome } from "./types";
 
 /**
  * Scenario: launch Minecraft from a discovered installation. The active auth is taken from
- * `ctx.auth.current` (populated once at CLI startup) — no prompting here.
+ * `ctx.auth.state` (populated once at CLI startup) — no prompting here.
  *
  * @internal
  */
 export const scenarioLaunch = async (ctx: ScenarioContext): Promise<ScenarioOutcome> => {
   const target = await pickInstalledTarget(ctx);
   if (!target) return "cancelled";
-  const auth = ctx.auth.current;
-  if (!auth) {
+  const state = ctx.auth.state;
+  if (state.kind === "unauthenticated") {
     ctx.ui.log(
       "error",
       "No active account — sign in from the menu or restart the CLI to choose an account.",
     );
     return "cancelled";
   }
+  const auth = state.auth;
   ctx.ui.log(
     "info",
-    auth.mode === AuthModes.ONLINE
+    state.kind === "online"
       ? `Launching as ${auth.username} (Microsoft).`
       : `Launching as ${auth.username} (offline).`,
   );

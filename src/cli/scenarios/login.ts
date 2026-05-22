@@ -4,8 +4,8 @@ import { isMinecraftKitError } from "../../core/errors";
 import {
   AuthModes,
   type AzureClientId,
-  type LaunchAuth,
   type MojangSession,
+  type OfflineAuth,
   type OnlineAuth,
 } from "../../types/auth";
 import { formatUserError } from "../error-format";
@@ -14,7 +14,7 @@ import type { AuthState, ScenarioContext, ScenarioOutcome } from "./types";
 
 type AuthOutcome =
   | { readonly kind: "signed-in"; readonly session: MojangSession; readonly auth: OnlineAuth }
-  | { readonly kind: "offline"; readonly auth: LaunchAuth }
+  | { readonly kind: "offline"; readonly auth: OfflineAuth }
   | { readonly kind: "cancelled" };
 
 /**
@@ -25,9 +25,8 @@ type AuthOutcome =
  * @internal
  */
 export const scenarioLogin = async (ctx: ScenarioContext): Promise<ScenarioOutcome> => {
-  const current = ctx.auth.current;
-  if (current?.mode === AuthModes.ONLINE && ctx.auth.microsoftSession) {
-    const session = ctx.auth.microsoftSession;
+  if (ctx.auth.state.kind === "online") {
+    const session = ctx.auth.state.session;
     const action = await ctx.ui.select<"info" | "refresh" | "switch" | "logout" | "back">({
       message: `Signed in as ${session.minecraft.username}. What now?`,
       options: [
@@ -44,8 +43,9 @@ export const scenarioLogin = async (ctx: ScenarioContext): Promise<ScenarioOutco
       return "completed";
     }
     if (action.value === "logout") {
-      ctx.auth.microsoftSession = null;
-      ctx.auth.current = await promptOfflineAuth(ctx);
+      const offline = await promptOfflineAuth(ctx);
+      if (!offline) return "cancelled";
+      ctx.auth.state = { kind: "offline", auth: offline };
       ctx.ui.log("success", "Signed out — switched to offline mode.");
       return "completed";
     }
@@ -56,29 +56,22 @@ export const scenarioLogin = async (ctx: ScenarioContext): Promise<ScenarioOutco
 };
 
 /**
- * Used by `runCli` at startup AND by the "Switch account" option. Prompts for offline /
- * Microsoft, runs the browser sign-in flow if needed, and writes the result into `state`.
- *
- * Returns `false` if the user cancels — `runCli` treats that as "exit before menu".
+ * Used by `runCli` at startup AND by the "Switch account" option. Prompts for
+ * offline / Microsoft, runs the browser sign-in flow if needed, and returns
+ * the resulting {@link AuthState}. `kind: "unauthenticated"` means the user
+ * cancelled — `runCli` treats that as "exit before menu".
  *
  * @internal
  */
-export const pickInitialAuth = async (
-  ctx: Omit<ScenarioContext, "auth">,
-  state: AuthState,
-): Promise<boolean> => {
+export const pickInitialAuth = async (ctx: Omit<ScenarioContext, "auth">): Promise<AuthState> => {
   const outcome = await decideInitialAuth(ctx);
   switch (outcome.kind) {
     case "signed-in":
-      state.microsoftSession = outcome.session;
-      state.current = outcome.auth;
-      return true;
+      return { kind: "online", auth: outcome.auth, session: outcome.session };
     case "offline":
-      state.current = outcome.auth;
-      state.microsoftSession = null;
-      return true;
+      return { kind: "offline", auth: outcome.auth };
     case "cancelled":
-      return false;
+      return { kind: "unauthenticated" };
     default:
       return assertNever(outcome);
   }
@@ -111,21 +104,22 @@ const chooseOfflineOutcome = async (ctx: Omit<ScenarioContext, "auth">): Promise
 };
 
 const runSwitch = async (ctx: ScenarioContext): Promise<ScenarioOutcome> => {
-  const ok = await pickInitialAuth(ctx, ctx.auth);
-  return ok ? "completed" : "cancelled";
+  const next = await pickInitialAuth(ctx);
+  if (next.kind === "unauthenticated") return "cancelled";
+  ctx.auth.state = next;
+  return "completed";
 };
 
 const runRefresh = async (ctx: ScenarioContext): Promise<ScenarioOutcome> => {
-  if (!ctx.auth.microsoftSession) return "cancelled";
-  const session = ctx.auth.microsoftSession;
+  if (ctx.auth.state.kind !== "online") return "cancelled";
+  const session = ctx.auth.state.session;
   const spinner = ctx.ui.spinner();
   spinner.start("Refreshing access token…");
   try {
     const fresh = await ctx.kit.auth.refresh(session.microsoft.refreshToken, {
       clientId: session.microsoft.clientId,
     });
-    ctx.auth.microsoftSession = fresh;
-    ctx.auth.current = toOnlineAuth(fresh);
+    ctx.auth.state = { kind: "online", auth: toOnlineAuth(fresh), session: fresh };
     spinner.stop("Access token refreshed.");
     printSession(ctx, fresh);
     return "completed";
@@ -175,7 +169,7 @@ const runMicrosoftBrowserLogin = async (
 
 const promptOfflineAuth = async (
   ctx: Omit<ScenarioContext, "auth">,
-): Promise<LaunchAuth | null> => {
+): Promise<OfflineAuth | null> => {
   const usernameOutcome = await ctx.ui.text({
     message: "Player username",
     placeholder: "Player",

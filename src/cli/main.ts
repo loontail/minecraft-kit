@@ -2,7 +2,7 @@ import process from "node:process";
 import { MinecraftKit } from "../kit";
 import { formatUserError } from "./error-format";
 import {
-  type AuthState,
+  type AuthRef,
   type ScenarioContext,
   type ScenarioOutcome,
   pickInitialAuth,
@@ -77,13 +77,14 @@ export const runCli = async (input: RunCliInput): Promise<number> => {
   }
   const debug = hasFlag(input.args, CLI_FLAGS.DEBUG);
   const kit = input.kit ?? new MinecraftKit();
-  const auth: AuthState = { current: null, microsoftSession: null };
+  const auth: AuthRef = { state: { kind: "unauthenticated" } };
   input.ui.intro("mckit — Minecraft launcher kit");
-  const signedIn = await pickInitialAuth({ kit, ui: input.ui, rootDir: input.rootDir }, auth);
-  if (!signedIn) {
+  const initial = await pickInitialAuth({ kit, ui: input.ui, rootDir: input.rootDir });
+  if (initial.kind === "unauthenticated") {
     input.ui.outro("Goodbye.");
     return 0;
   }
+  auth.state = initial;
   const ctx: ScenarioContext = { kit, ui: input.ui, rootDir: input.rootDir, auth };
   while (true) {
     const choice = await input.ui.select<string>({
