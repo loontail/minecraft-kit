@@ -42,6 +42,7 @@
     "mckit": "./dist/cli/index.mjs"
   },
   "files": ["dist", "README.md", "LICENSE"],
+  "sideEffects": false,
   "engines": {
     "node": ">=20.11"
   },
