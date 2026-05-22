@@ -1,15 +1,10 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
+import { isMojangProfileCape, isMojangProfileSkin } from "../core/guards";
 import { parseJsonOrUndefined } from "../core/json";
 import { withOptionalSignal } from "../core/optional";
 import { addUuidDashes, asPlayerUuid } from "../core/uuid";
 import { isHttpOk } from "../http/status";
-import type {
-  MojangAssetState,
-  MojangProfileCape,
-  MojangProfileSkin,
-  MojangSkinVariant,
-  PlayerUuid,
-} from "../types/auth";
+import type { MojangProfileCape, MojangProfileSkin, PlayerUuid } from "../types/auth";
 import type { HttpClient } from "../types/http";
 import type { Logger } from "../types/logger";
 
@@ -42,26 +37,12 @@ type LoginResponse = {
   readonly username?: string;
 };
 
-type RawProfileSkin = {
-  readonly id?: string;
-  readonly state?: string;
-  readonly url?: string;
-  readonly variant?: string;
-};
-
-type RawProfileCape = {
-  readonly id?: string;
-  readonly state?: string;
-  readonly url?: string;
-  readonly alias?: string;
-};
-
 type ProfileResponse = {
   readonly id: string;
   readonly name: string;
   readonly errorMessage?: string;
-  readonly skins?: ReadonlyArray<RawProfileSkin>;
-  readonly capes?: ReadonlyArray<RawProfileCape>;
+  readonly skins?: ReadonlyArray<unknown>;
+  readonly capes?: ReadonlyArray<unknown>;
 };
 
 /**
@@ -195,54 +176,9 @@ export const fetchMinecraftProfile = async (input: {
   return {
     uuid: asPlayerUuid(addUuidDashes(parsed.id)),
     username: parsed.name,
-    skins: (parsed.skins ?? []).flatMap(toProfileSkin),
-    capes: (parsed.capes ?? []).flatMap(toProfileCape),
+    skins: (parsed.skins ?? []).filter(isMojangProfileSkin),
+    capes: (parsed.capes ?? []).filter(isMojangProfileCape),
   };
-};
-
-const ASSET_STATES: ReadonlySet<MojangAssetState> = new Set(["ACTIVE", "INACTIVE"]);
-const SKIN_VARIANTS: ReadonlySet<MojangSkinVariant> = new Set(["CLASSIC", "SLIM"]);
-
-/**
- * Narrow a raw Mojang skin row into the strongly-typed shape. Rows are dropped
- * (returned as an empty array, for `flatMap`) when required fields are missing
- * or when the `state`/`variant` carries a value outside our enum — better an
- * empty list than a row that violates our union types and corrupts downstream
- * UI assumptions.
- *
- * @internal
- */
-const toProfileSkin = (raw: RawProfileSkin): ReadonlyArray<MojangProfileSkin> => {
-  if (!raw.id || !raw.url || !raw.state || !raw.variant) return [];
-  if (!ASSET_STATES.has(raw.state as MojangAssetState)) return [];
-  if (!SKIN_VARIANTS.has(raw.variant as MojangSkinVariant)) return [];
-  return [
-    {
-      id: raw.id,
-      url: raw.url,
-      state: raw.state as MojangAssetState,
-      variant: raw.variant as MojangSkinVariant,
-    },
-  ];
-};
-
-/**
- * Narrow a raw Mojang cape row into the strongly-typed shape. Same rejection
- * policy as {@link toProfileSkin}.
- *
- * @internal
- */
-const toProfileCape = (raw: RawProfileCape): ReadonlyArray<MojangProfileCape> => {
-  if (!raw.id || !raw.url || !raw.state) return [];
-  if (!ASSET_STATES.has(raw.state as MojangAssetState)) return [];
-  return [
-    {
-      id: raw.id,
-      url: raw.url,
-      state: raw.state as MojangAssetState,
-      ...(raw.alias !== undefined ? { alias: raw.alias } : {}),
-    },
-  ];
 };
 
 /**
