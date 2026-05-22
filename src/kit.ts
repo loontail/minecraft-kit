@@ -132,9 +132,8 @@ export class MinecraftKit {
     run(composition: LaunchComposition, options?: LaunchRunOptions): LaunchSession;
   };
   /**
-   * Microsoft / Mojang authentication. Implements the device-code flow against Microsoft
-   * Entra, exchanges the resulting tokens for an XSTS + Minecraft session, and returns
-   * everything needed to compose an `OnlineAuth` for `launch.compose`.
+   * Microsoft / Mojang authentication. Runs the OAuth 2.0 Authorization-Code + PKCE flow
+   * over a loopback redirect to mint an Xbox + Minecraft session for `launch.compose`.
    */
   readonly auth: MojangAuthApi;
 
