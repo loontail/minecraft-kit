@@ -1,6 +1,25 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
-import { AuthModes, type DeviceCodePrompt, type DeviceCodeState } from "../types/auth";
+import { AuthModes } from "../types/auth";
 import type { MojangSession, OnlineAuth } from "../types/auth";
+
+type DeviceCodePrompt = {
+  readonly userCode: string;
+  readonly verificationUri: string;
+  readonly message: string;
+  readonly expiresIn: number;
+  readonly interval: number;
+};
+
+type DeviceCodeState = {
+  readonly deviceCode: string;
+  readonly userCode: string;
+  readonly verificationUri: string;
+  readonly message: string;
+  readonly expiresIn: number;
+  readonly interval: number;
+  readonly clientId: string;
+  readonly expiresAt: number;
+};
 import type { HttpClient } from "../types/http";
 import { authDebug } from "./debug";
 import { startLoopbackServer } from "./loopback";
