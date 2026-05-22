@@ -11,7 +11,7 @@
 │  verify:   { minecraft, fabric, forge, runtime }                         │
 │  repair:   { minecraft, fabric, forge, runtime, all }                    │
 │  launch:   { compose, run }                                              │
-│  auth:     { login, refresh, deviceCode: { start, poll } }               │
+│  auth:     { refresh, authorizationCode: { run } }                       │
 └──────────────────────────────────────────────────────────────────────────┘
         │                              │
         ▼                              ▼

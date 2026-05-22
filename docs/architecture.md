@@ -99,14 +99,16 @@ processors are included (skip-on-correct keeps it cheap).
    route through a single guarded `doAbort()` so events never double-emit.
 
 ### Authentication
-1. `kit.auth.login({ clientId, onPrompt })` starts the Microsoft OAuth 2.0 device-code grant
-   against the `consumers` tenant. The caller's `onPrompt(prompt)` callback receives the URL
-   and user code to render.
-2. Microsoft's `/token` endpoint is polled at the manifest-declared interval (RFC 8628;
-   `slow_down` bumps the interval by 5s).
-3. The resulting access token is exchanged for an Xbox Live RPS token, then an XSTS token
-   bound to `rp://api.minecraftservices.com/`, then a Minecraft bearer token via
-   `login_with_xbox`, then the player profile via `minecraft/profile`.
+1. `kit.auth.authorizationCode.run({ clientId, onOpenBrowser })` runs the OAuth 2.0
+   Authorization-Code + PKCE flow against the `consumers` tenant. The kit binds a loopback
+   HTTP listener on `127.0.0.1:<random>`, hands the caller the authorize URL via
+   `onOpenBrowser`, and waits for Microsoft to redirect the browser back with the one-time
+   code.
+2. The code is exchanged at `/token` (with the matching PKCE `code_verifier`) for a
+   Microsoft access + refresh token.
+3. The access token is exchanged for an Xbox Live RPS token, then an XSTS token bound to
+   `rp://api.minecraftservices.com/`, then a Minecraft bearer token via `login_with_xbox`,
+   then the player profile via `minecraft/profile`.
 4. The composed `MojangSession` carries everything `kit.launch.compose` needs plus a
    refresh token. Persisting the refresh token is the caller's responsibility —
    `kit.auth.refresh(token)` re-runs steps 2–4 and may rotate the token.

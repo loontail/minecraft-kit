@@ -17,7 +17,7 @@ const kit = new MinecraftKit();
 | `kit.verify.{minecraft,fabric,forge,runtime}` | `run` |
 | `kit.repair.{minecraft,fabric,forge,runtime}` | `plan`, `run`, `all` |
 | `kit.launch` | `compose`, `run` |
-| `kit.auth` | `login`, `refresh`, `deviceCode.{start,poll}` |
+| `kit.auth` | `refresh`, `authorizationCode.run` |
 | `kit.cache` | `get`, `set`, `delete`, `clear` |
 
 ## Constructor options

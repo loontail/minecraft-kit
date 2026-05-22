@@ -158,14 +158,21 @@ Cross-cutting utilities. Bottom of the dependency graph.
 ## `src/auth/`
 
 Microsoft OAuth → Xbox Live → Minecraft sign-in pipeline. **Stateless** — the kit returns
-tokens to the caller; persistence is the launcher's job.
+tokens to the caller; persistence is the launcher's job. The flow is OAuth 2.0
+Authorization-Code + PKCE with a loopback redirect — the kit binds a localhost server,
+the caller opens the system browser, and the browser redirects back with the one-time
+code.
 
-- `index.ts` — `MojangAuthApi` (facade on `kit.auth`) with `login()`, `refresh()`, and the
-  lower-level `deviceCode.start()` / `deviceCode.poll()` pair. `toOnlineAuth(session)`
-  projects a session into the `OnlineAuth` shape consumed by `kit.launch.compose`.
-- `microsoft.ts` — `startDeviceCode`, `pollDeviceCode`, `refreshMicrosoftToken`. Carries
-  Azure-portal-aware error messages for the most common AADSTS sub-codes
-  (`AADSTS700016`, `AADSTS7000218`, `AADSTS50059`).
+- `index.ts` — `MojangAuthApi` (facade on `kit.auth`) with `authorizationCode.run()` and
+  `refresh()`. `toOnlineAuth(session)` projects a session into the `OnlineAuth` shape
+  consumed by `kit.launch.compose`.
+- `oauth.ts` — `buildAuthorizeUrl`, `generateOAuthState`, `generatePkcePair`. PKCE helpers
+  + the URL builder for `login.microsoftonline.com/consumers/oauth2/v2.0/authorize`.
+- `loopback.ts` — `startLoopbackServer`. Single-shot HTTP listener on `127.0.0.1:<random>`
+  that captures the `code`/`state`/`error` query string from Microsoft's redirect, then
+  closes itself.
+- `microsoftToken.ts` — `exchangeAuthorizationCode`, `refreshMicrosoftToken`. The two
+  `/token` grants the kit ships.
 - `xbox.ts` — `authenticateXbl`, `authenticateXsts`. XSTS `XErr` codes (banned, no profile,
   country restriction, child account) translate into human-readable strings.
 - `minecraft.ts` — `loginWithXbox`, `fetchMinecraftProfile`, `extractXuid` (decodes the
