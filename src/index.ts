@@ -53,7 +53,7 @@ export type {
   MinecraftLatestInput,
   MinecraftListInput,
 } from "./versions/minecraft";
-export { parseMajorVersion, RuntimeVersionsApi } from "./versions/runtime";
+export { RuntimeVersionsApi } from "./versions/runtime";
 export type {
   RuntimeListEntry,
   RuntimeListInput,

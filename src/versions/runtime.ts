@@ -147,7 +147,11 @@ const toResolved = (
   };
 };
 
-/** Parse the leading integer from a runtime versionName (`"21.0.8"` → 21). */
+/**
+ * Parse the leading integer from a runtime versionName (`"21.0.8"` → 21).
+ *
+ * @internal
+ */
 export const parseMajorVersion = (versionName: string): number | undefined => {
   const match = /^(\d+)/.exec(versionName);
   if (!match || !match[1]) return undefined;
