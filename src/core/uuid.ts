@@ -19,10 +19,13 @@ export const offlineUuidFor = (username: string): string => {
   const md5 = crypto.createHash("md5");
   md5.update(`OfflinePlayer:${username}`, "utf8");
   const bytes = md5.digest();
-  bytes[6] = ((bytes[6] ?? 0) & 0x0f) | 0x30; // v3
-  bytes[8] = ((bytes[8] ?? 0) & 0x3f) | 0x80; // variant
+  bytes[6] = patchVersionV3(bytes[6] ?? 0);
+  bytes[8] = patchVariantRfc4122(bytes[8] ?? 0);
   return formatUuid(bytes);
 };
+
+const patchVersionV3 = (byte: number): number => (byte & 0x0f) | 0x30;
+const patchVariantRfc4122 = (byte: number): number => (byte & 0x3f) | 0x80;
 
 const formatUuid = (bytes: Buffer): string => {
   const hex = bytes.toString("hex");

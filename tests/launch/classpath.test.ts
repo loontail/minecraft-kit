@@ -5,6 +5,23 @@ import type { RuntimeSystem } from "../../src/types/system";
 
 const system: RuntimeSystem = { os: "windows", arch: "x64", osVersion: "10.0" };
 
+const libraryWithDownloadArtifact = {
+  name: "com.example:lib:1.0",
+  downloads: {
+    artifact: { path: "com/example/lib/1.0/lib-1.0.jar", sha1: "", size: 0, url: "" },
+  },
+};
+const duplicateLibraryDroppedByDedupe = { name: "com.example:lib:1.0" };
+const libraryWithNativesSkippedFromClasspath = {
+  name: "com.platform:lwjgl:1.0",
+  natives: { windows: "natives" },
+};
+const librarySynthesizedFromCoord = { name: "com.example:nodownloads:2.0" };
+const libraryDisallowedByOsRule = {
+  name: "com.disallowed:lib:1.0",
+  rules: [{ action: "allow", os: { name: "linux" } }],
+};
+
 const mergedManifest: MinecraftVersionManifest = {
   id: "1.20.1",
   type: "release",
@@ -13,16 +30,11 @@ const mergedManifest: MinecraftVersionManifest = {
   assets: "5",
   downloads: { client: { sha1: "", size: 0, url: "" } },
   libraries: [
-    {
-      name: "com.example:lib:1.0",
-      downloads: {
-        artifact: { path: "com/example/lib/1.0/lib-1.0.jar", sha1: "", size: 0, url: "" },
-      },
-    },
-    { name: "com.example:lib:1.0" }, // duplicate dropped
-    { name: "com.platform:lwjgl:1.0", natives: { windows: "natives" } }, // skipped (native)
-    { name: "com.example:nodownloads:2.0" }, // synthesized from coord
-    { name: "com.disallowed:lib:1.0", rules: [{ action: "allow", os: { name: "linux" } }] }, // disallowed
+    libraryWithDownloadArtifact,
+    duplicateLibraryDroppedByDedupe,
+    libraryWithNativesSkippedFromClasspath,
+    librarySynthesizedFromCoord,
+    libraryDisallowedByOsRule,
   ],
 };
 

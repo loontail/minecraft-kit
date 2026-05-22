@@ -122,8 +122,13 @@ describe("fetchMinecraftProfile", () => {
             url: "http://textures/skin-a.png",
             variant: "CLASSIC",
           },
-          { id: "skin-b", state: "WEIRD", url: "http://x", variant: "CLASSIC" }, // unknown state → dropped
-          { id: "skin-c", state: "INACTIVE", variant: "SLIM" }, // missing url → dropped
+          {
+            id: "skin-b-unknown-state-dropped",
+            state: "WEIRD",
+            url: "http://x",
+            variant: "CLASSIC",
+          },
+          { id: "skin-c-missing-url-dropped", state: "INACTIVE", variant: "SLIM" },
         ],
         capes: [
           {

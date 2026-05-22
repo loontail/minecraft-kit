@@ -51,6 +51,15 @@ Full rules: [`docs/code-guidelines.md`](./docs/code-guidelines.md). Highlights:
 - **No `any`** — narrow at the boundary.
 - **No magic strings** — finite sets live in `const` maps under `src/types/` or `src/constants/`.
 - **No silent `catch`** — inspect, log, or re-throw; lossy catches need a one-line comment.
+- **No `//` line comments** — only `/** … */` TSDoc blocks (including `@example`
+  fences) survive. Rename helpers/constants so the why is implicit. The gate:
+
+  ```bash
+  grep -rnE '//' src tests | grep -vE ':\s+\*' | grep -v '://' | grep -v '/\\/'
+  ```
+
+  Must be empty. The filters strip TSDoc lines (` * …`), URL strings (`://`), and
+  regex escapes (`/\/…`).
 - **Plan / run split** for install / update / repair. Tests assert on plans.
 - **Dependency injection** — never `vi.mock("node:child_process")`. Inject `Spawner` instead.
 - **No network in tests.**
