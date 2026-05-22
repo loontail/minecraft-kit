@@ -65,6 +65,7 @@ export type OfflineAuth = {
  *   uuid: session.minecraft.uuid,
  *   accessToken: session.minecraft.accessToken,
  *   userType: "msa",
+ *   clientId: session.microsoft.clientId,
  *   xuid: session.minecraft.xuid,
  * };
  * ```
@@ -74,9 +75,9 @@ export type OnlineAuth = {
   readonly username: string;
   readonly uuid: string;
   readonly accessToken: string;
-  readonly userType?: string;
-  readonly clientId?: string;
-  readonly xuid?: string;
+  readonly userType: string;
+  readonly clientId: string;
+  readonly xuid: string;
 };
 
 /**

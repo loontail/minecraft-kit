@@ -7,6 +7,28 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### BREAKING CHANGES
+
+- **`OnlineAuth` fields tightened.** `userType`, `clientId`, and `xuid` were
+  declared optional, but every kit-produced `OnlineAuth` (via `toOnlineAuth`)
+  always set them and the launch composer fell back to `??` defaults that
+  could never trigger. The three fields are now required on `OnlineAuth`.
+  Manually-constructed `OnlineAuth` values must include all three:
+
+  ```ts
+  const auth: OnlineAuth = {
+    mode: AuthModes.ONLINE,
+    username,
+    uuid,
+    accessToken,
+    userType: "msa",
+    clientId,
+    xuid,
+  };
+  ```
+
+  Code that uses `toOnlineAuth(session)` to build the value needs no change.
+
 ## [0.7.0] - 2026-05-22
 
 ### BREAKING CHANGES

@@ -27,8 +27,7 @@ export const buildPlaceholderValues = (input: {
       ? (input.auth.uuid ?? offlineUuidFor(username))
       : input.auth.uuid;
   const accessToken = input.auth.mode === AuthModes.OFFLINE ? "0" : input.auth.accessToken;
-  const userType =
-    input.auth.mode === AuthModes.OFFLINE ? "legacy" : (input.auth.userType ?? "msa");
+  const userType = input.auth.mode === AuthModes.OFFLINE ? "legacy" : input.auth.userType;
   const launcherName = input.options.launcherName ?? DEFAULT_LAUNCHER_NAME;
   const launcherVersion = input.options.launcherVersion ?? DEFAULT_LAUNCHER_VERSION;
   return {
@@ -40,8 +39,8 @@ export const buildPlaceholderValues = (input: {
     auth_uuid: stripUuidDashes(uuid),
     auth_access_token: accessToken,
     auth_session: `token:${accessToken}:${stripUuidDashes(uuid)}`,
-    clientid: input.auth.mode === AuthModes.ONLINE ? (input.auth.clientId ?? "") : "",
-    auth_xuid: input.auth.mode === AuthModes.ONLINE ? (input.auth.xuid ?? "") : "",
+    clientid: input.auth.mode === AuthModes.ONLINE ? input.auth.clientId : "",
+    auth_xuid: input.auth.mode === AuthModes.ONLINE ? input.auth.xuid : "",
     user_type: userType,
     user_properties: "{}",
     version_type: input.target.minecraft.channel,
