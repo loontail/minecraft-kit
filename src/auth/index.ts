@@ -136,9 +136,6 @@ export class MojangAuthApi {
    */
   readonly authorizationCode = {
     run: async (options: AuthorizationCodeRunOptions): Promise<MojangSession> => {
-      const t0 = Date.now();
-      const lap = (label: string): void =>
-        this.logger.log("debug", `authorizationCode.run: ${label} (+${Date.now() - t0}ms)`);
       const clientId = resolveClientId(options.clientId);
       const state = generateOAuthState();
       const { codeVerifier, codeChallenge } = generatePkcePair();
@@ -150,16 +147,12 @@ export class MojangAuthApi {
         ...(options.successHtml !== undefined ? { successHtml: options.successHtml } : {}),
         ...withOptionalSignal(options.signal),
       });
-      lap(`loopback bound on port ${server.port}`);
 
       try {
         const redirectUri = buildLoopbackRedirectUri(server.port);
         const url = buildAuthorizeUrl({ clientId, redirectUri, state, codeChallenge });
-        lap("authorize URL built — invoking onOpenBrowser");
         await options.onOpenBrowser(url);
-        lap("onOpenBrowser returned — awaiting browser callback");
         const { code } = await server.captured;
-        lap("callback captured — exchanging code for MS token");
         const msToken = await exchangeAuthorizationCode({
           http: this.http,
           code,
@@ -168,19 +161,15 @@ export class MojangAuthApi {
           clientId,
           ...withOptionalSignal(options.signal),
         });
-        lap("MS token obtained — running Xbox/XSTS/Minecraft pipeline");
-        const session = await runPostMsTokenPipeline(
+        return await runPostMsTokenPipeline(
           this.http,
           msToken,
           clientId,
           options.signal,
           this.logger,
         );
-        lap("Mojang session built");
-        return session;
       } finally {
         await server.close();
-        lap("loopback closed");
       }
     },
   };
