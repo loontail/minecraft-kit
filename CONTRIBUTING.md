@@ -87,3 +87,19 @@ the failure is at install or repair, attach the `onEvent` log.
 ## Asking before writing
 
 For new public API / loaders / CLI scenarios, open an issue first to align on scope.
+
+## Publishing
+
+The package ships with `publishConfig.provenance: true`, so every release must be cut
+from a CI workflow with an OIDC-trusted publisher configured in npm — local
+`npm publish` will fail. The release flow is:
+
+1. Cut a release commit and tag (`chore(release)!: vX.Y.Z`).
+2. Push the tag — the GitHub Actions release workflow runs on the `release: published`
+   event, builds the kit, and runs `npm publish --access public --provenance`.
+3. The workflow uses the npm "Trusted Publishers" feature, so no `NPM_TOKEN` secret
+   is needed; npm verifies the GitHub OIDC token at publish time.
+
+Manual `npm publish` from a workstation is unsupported. If you must reproduce the
+publish flow locally, build the tarball with `npm pack`, inspect the output, and rely
+on the workflow for the actual publish.
