@@ -1,11 +1,9 @@
 import type { LogLevel, Logger } from "../types/logger";
 
-const CONSOLE_SINKS: Record<LogLevel, (...args: unknown[]) => void> = {
-  error: console.error.bind(console),
-  warn: console.warn.bind(console),
-  info: console.info.bind(console),
-  debug: console.debug.bind(console),
-};
+type ConsoleSink = (...args: unknown[]) => void;
+
+const consoleSinkFor = (level: LogLevel): ConsoleSink =>
+  (console[level] as ConsoleSink).bind(console);
 
 /**
  * Logger that drops every message. Default when no logger is supplied.
@@ -35,7 +33,7 @@ export const silentLogger: Logger = {
  */
 export const consoleLogger: Logger = {
   log(level, message, fields) {
-    const target = CONSOLE_SINKS[level];
+    const target = consoleSinkFor(level);
     if (fields !== undefined) {
       target(`[${level}] ${message}`, fields);
     } else {
