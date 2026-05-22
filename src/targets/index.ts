@@ -2,6 +2,7 @@ import path from "node:path";
 import { ASSETS_DIR, LIBRARIES_DIR, RUNTIMES_DIR, VERSIONS_DIR } from "../constants/files";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { dirExists, fileExists, listChildDirectories } from "../core/fs";
+import { withOptionalSignal } from "../core/optional";
 import { Loaders, type VersionPreferenceKind } from "../types/loader";
 import { RuntimePreference, type RuntimePreferenceKind } from "../types/runtime";
 import type { RuntimeSystem } from "../types/system";
@@ -198,7 +199,7 @@ export class TargetsApi {
   async resolve(input: TargetResolveInput): Promise<Target> {
     const minecraft = await this.ctx.minecraft.resolve({
       version: input.minecraft.version,
-      ...(input.signal !== undefined ? { signal: input.signal } : {}),
+      ...withOptionalSignal(input.signal),
     });
     const system = input.system ?? this.ctx.system;
     const componentOverride = input.runtime?.component;
@@ -207,7 +208,7 @@ export class TargetsApi {
       system,
       ...(runtimeComponent !== undefined ? { component: runtimeComponent } : {}),
       preference: input.runtime?.preference ?? RuntimePreference.RECOMMENDED,
-      ...(input.signal !== undefined ? { signal: input.signal } : {}),
+      ...withOptionalSignal(input.signal),
     });
     const runtime: import("../types/runtime").ResolvedRuntime =
       input.runtime?.installRoot !== undefined
@@ -225,14 +226,14 @@ export class TargetsApi {
         minecraftVersion: minecraft.version,
         ...(input.loader.preference !== undefined ? { preference: input.loader.preference } : {}),
         ...(input.loader.version !== undefined ? { loaderVersion: input.loader.version } : {}),
-        ...(input.signal !== undefined ? { signal: input.signal } : {}),
+        ...withOptionalSignal(input.signal),
       });
     } else {
       loader = await this.ctx.forge.resolve({
         minecraftVersion: minecraft.version,
         ...(input.loader.preference !== undefined ? { preference: input.loader.preference } : {}),
         ...(input.loader.version !== undefined ? { forgeVersion: input.loader.version } : {}),
-        ...(input.signal !== undefined ? { signal: input.signal } : {}),
+        ...withOptionalSignal(input.signal),
       });
     }
     return this.create({

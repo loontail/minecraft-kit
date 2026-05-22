@@ -1,4 +1,5 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
+import { withOptionalOnEvent } from "../core/optional";
 import { targetPaths } from "../core/paths";
 import { planLibraryDownloads } from "../install/libraries";
 import type { MetadataCache } from "../types/cache";
@@ -54,7 +55,7 @@ export const verifyFabric = async (input: VerifyFabricInput): Promise<Verificati
     {
       targetId: input.target.id,
       kind: VerificationKinds.FABRIC,
-      ...(input.onEvent !== undefined ? { onEvent: input.onEvent } : {}),
+      ...withOptionalOnEvent(input.onEvent),
     },
     async (record) => {
       record(

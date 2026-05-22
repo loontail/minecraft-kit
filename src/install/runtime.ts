@@ -1,4 +1,5 @@
 import path from "node:path";
+import { withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
 import { fetchJson } from "../http/metadata";
 import type { MetadataCache } from "../types/cache";
@@ -24,7 +25,7 @@ export const planRuntimeDownloads = async (input: {
   const manifest = await fetchJson<RuntimeFilesManifest>(input.http, input.cache, {
     url: input.runtime.manifestUrl,
     cacheKey: `runtime-manifest:${input.runtime.component}:${input.runtime.platformKey}:${input.runtime.manifestSha1}`,
-    ...(input.signal !== undefined ? { signal: input.signal } : {}),
+    ...withOptionalSignal(input.signal),
   });
   const actions: DownloadAction[] = [];
   const runtimeRoot = targetPaths.runtimeRoot(

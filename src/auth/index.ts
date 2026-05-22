@@ -1,4 +1,5 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
+import { withOptionalSignal } from "../core/optional";
 import { AuthModes } from "../types/auth";
 import type { MojangSession, OnlineAuth } from "../types/auth";
 import type { HttpClient } from "../types/http";
@@ -120,7 +121,7 @@ export class MojangAuthApi {
       http: this.http,
       refreshToken,
       clientId,
-      ...(options.signal !== undefined ? { signal: options.signal } : {}),
+      ...withOptionalSignal(options.signal),
     });
     return runPostMsTokenPipeline(this.http, msToken, clientId, options.signal, this.logger);
   }
@@ -147,7 +148,7 @@ export class MojangAuthApi {
         logger: this.logger,
         ...(options.port !== undefined ? { port: options.port } : {}),
         ...(options.successHtml !== undefined ? { successHtml: options.successHtml } : {}),
-        ...(options.signal !== undefined ? { signal: options.signal } : {}),
+        ...withOptionalSignal(options.signal),
       });
       lap(`loopback bound on port ${server.port}`);
 
@@ -165,7 +166,7 @@ export class MojangAuthApi {
           codeVerifier,
           redirectUri,
           clientId,
-          ...(options.signal !== undefined ? { signal: options.signal } : {}),
+          ...withOptionalSignal(options.signal),
         });
         lap("MS token obtained — running Xbox/XSTS/Minecraft pipeline");
         const session = await runPostMsTokenPipeline(
@@ -193,7 +194,7 @@ const runPostMsTokenPipeline = async (
   signal: AbortSignal | undefined,
   logger: Logger,
 ): Promise<MojangSession> => {
-  const signalOpt = signal !== undefined ? { signal } : {};
+  const signalOpt = withOptionalSignal(signal);
   const xbl = await authenticateXbl({
     http,
     accessToken: msToken.accessToken,

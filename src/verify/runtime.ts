@@ -1,4 +1,5 @@
 import path from "node:path";
+import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
 import { fetchJson } from "../http/metadata";
 import type { MetadataCache } from "../types/cache";
@@ -48,7 +49,7 @@ export const verifyRuntime = async (input: VerifyRuntimeInput): Promise<Verifica
     {
       targetId: input.target.id,
       kind: VerificationKinds.RUNTIME,
-      ...(input.onEvent !== undefined ? { onEvent: input.onEvent } : {}),
+      ...withOptionalOnEvent(input.onEvent),
     },
     async (record) => {
       let manifest: RuntimeFilesManifest;
@@ -56,7 +57,7 @@ export const verifyRuntime = async (input: VerifyRuntimeInput): Promise<Verifica
         manifest = await fetchJson<RuntimeFilesManifest>(input.http, input.cache, {
           url: input.target.runtime.manifestUrl,
           cacheKey: `runtime-manifest:${input.target.runtime.component}:${input.target.runtime.platformKey}:${input.target.runtime.manifestSha1}`,
-          ...(input.signal !== undefined ? { signal: input.signal } : {}),
+          ...withOptionalSignal(input.signal),
         });
       } catch {
         recordRuntimeManifestUnreachable(record, input.target.runtime.manifestUrl);

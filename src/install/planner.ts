@@ -1,3 +1,4 @@
+import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
 import type { MetadataCache } from "../types/cache";
 import type { ProgressListener } from "../types/events";
@@ -99,7 +100,7 @@ const planAssetIndexAndObjects = async (
     assetIndex: input.target.minecraft.manifest.assetIndex,
     http: input.http,
     cache: input.cache,
-    ...(input.signal !== undefined ? { signal: input.signal } : {}),
+    ...withOptionalSignal(input.signal),
   });
   return plan.actions;
 };
@@ -125,7 +126,7 @@ const planRuntimeFiles = async (input: PlanInstallInput): Promise<readonly Insta
     directory: input.target.directory,
     http: input.http,
     cache: input.cache,
-    ...(input.signal !== undefined ? { signal: input.signal } : {}),
+    ...withOptionalSignal(input.signal),
   });
   return plan.actions;
 };
@@ -149,8 +150,8 @@ const planLoaderExtras = async (input: PlanInstallInput): Promise<readonly Insta
       system: target.runtime.system,
       http: input.http,
       cache: input.cache,
-      ...(input.signal !== undefined ? { signal: input.signal } : {}),
-      ...(input.onEvent !== undefined ? { onEvent: input.onEvent } : {}),
+      ...withOptionalSignal(input.signal),
+      ...withOptionalOnEvent(input.onEvent),
     });
     return [
       plan.installerDownload,

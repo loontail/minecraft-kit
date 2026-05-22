@@ -1,5 +1,6 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { parseJsonOrUndefined } from "../core/json";
+import { withOptionalSignal } from "../core/optional";
 import type {
   MojangAssetState,
   MojangProfileCape,
@@ -100,7 +101,7 @@ export const loginWithXbox = async (input: {
     },
     body,
     acceptNonOk: true,
-    ...(input.signal !== undefined ? { signal: input.signal } : {}),
+    ...withOptionalSignal(input.signal),
   });
   if (response.status < 200 || response.status >= 300) {
     const rawBody = await response.text().catch(() => "");
@@ -165,7 +166,7 @@ export const fetchMinecraftProfile = async (input: {
       "user-agent": MINECRAFT_KIT_USER_AGENT,
     },
     acceptNonOk: true,
-    ...(input.signal !== undefined ? { signal: input.signal } : {}),
+    ...withOptionalSignal(input.signal),
   });
   if (response.status === 404) {
     throw new MinecraftKitError(

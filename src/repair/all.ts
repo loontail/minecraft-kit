@@ -1,3 +1,4 @@
+import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
 import type { MetadataCache } from "../types/cache";
 import type { ProgressListener } from "../types/events";
 import type { HttpClient } from "../types/http";
@@ -67,7 +68,7 @@ export const repairAll = async (input: RepairAllInput): Promise<RepairAllReport>
     target: input.target,
     http: input.http,
     cache: input.cache,
-    ...(input.signal !== undefined ? { signal: input.signal } : {}),
+    ...withOptionalSignal(input.signal),
   };
 
   const verifications: VerificationResult[] = [];
@@ -95,8 +96,8 @@ export const repairAll = async (input: RepairAllInput): Promise<RepairAllReport>
       http: input.http,
       cache: input.cache,
       spawner: input.spawner,
-      ...(input.signal !== undefined ? { signal: input.signal } : {}),
-      ...(input.onEvent !== undefined ? { onEvent: input.onEvent } : {}),
+      ...withOptionalSignal(input.signal),
+      ...withOptionalOnEvent(input.onEvent),
     });
     repairs.set(verification.kind, report);
     bytesDownloaded += report.bytesDownloaded;

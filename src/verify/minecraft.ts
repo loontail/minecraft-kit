@@ -1,4 +1,5 @@
 import { fileExists } from "../core/fs";
+import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
 import { fetchJson } from "../http/metadata";
 import { planLibraryDownloads } from "../install/libraries";
@@ -55,7 +56,7 @@ export const verifyMinecraft = async (input: VerifyMinecraftInput): Promise<Veri
     {
       targetId: input.target.id,
       kind: VerificationKinds.MINECRAFT,
-      ...(input.onEvent !== undefined ? { onEvent: input.onEvent } : {}),
+      ...withOptionalOnEvent(input.onEvent),
     },
     async (record) => {
       await recordClientJarAndVersionJson(record, input.target);
@@ -147,7 +148,7 @@ const recordAssetIndexAndObjects = async (
   const indexDocument = await fetchJson<AssetIndexDocument>(input.http, input.cache, {
     url: indexUrl,
     cacheKey: `asset-index:${minecraft.manifest.assetIndex.id}:${minecraft.manifest.assetIndex.sha1}`,
-    ...(input.signal !== undefined ? { signal: input.signal } : {}),
+    ...withOptionalSignal(input.signal),
   });
   const seenAssetHashes = new Set<string>();
   for (const entry of Object.values(indexDocument.objects)) {

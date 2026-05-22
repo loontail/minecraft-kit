@@ -1,5 +1,6 @@
 import { ApiEndpoints } from "../constants/api";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
+import { withOptionalSignal } from "../core/optional";
 import { fetchJson } from "../http/metadata";
 import type {
   FabricCompatibilityEntry,
@@ -71,7 +72,7 @@ export class FabricVersionsApi {
       return fetchJson<readonly FabricLoaderSummary[]>(this.ctx.http, this.ctx.cache, {
         url: ApiEndpoints.fabric.loaderVersions(),
         cacheKey: "fabric-loader-all",
-        ...(input.signal !== undefined ? { signal: input.signal } : {}),
+        ...withOptionalSignal(input.signal),
       });
     }
     const compat = await fetchJson<readonly FabricCompatibilityEntry[]>(
@@ -80,7 +81,7 @@ export class FabricVersionsApi {
       {
         url: ApiEndpoints.fabric.loaderForGame(input.minecraftVersion),
         cacheKey: `fabric-loader-mc:${input.minecraftVersion}`,
-        ...(input.signal !== undefined ? { signal: input.signal } : {}),
+        ...withOptionalSignal(input.signal),
       },
     );
     return compat.map((c) => c.loader);
@@ -90,7 +91,7 @@ export class FabricVersionsApi {
   async resolve(input: FabricResolveInput): Promise<ResolvedFabricLoader> {
     const loaders = await this.list({
       minecraftVersion: input.minecraftVersion,
-      ...(input.signal !== undefined ? { signal: input.signal } : {}),
+      ...withOptionalSignal(input.signal),
     });
     if (loaders.length === 0) {
       throw new MinecraftKitError(
@@ -112,7 +113,7 @@ export class FabricVersionsApi {
     const profile = await fetchJson<FabricProfile>(this.ctx.http, this.ctx.cache, {
       url: ApiEndpoints.fabric.profile(input.minecraftVersion, chosen.version),
       cacheKey: `fabric-profile:${input.minecraftVersion}:${chosen.version}`,
-      ...(input.signal !== undefined ? { signal: input.signal } : {}),
+      ...withOptionalSignal(input.signal),
     });
     return {
       type: Loaders.FABRIC,

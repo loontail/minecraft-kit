@@ -2,6 +2,7 @@ import { ApiEndpoints } from "../constants/api";
 import { RUNTIME_PLATFORM_KEYS } from "../constants/platform";
 import { FALLBACK_COMPONENT } from "../constants/runtime";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
+import { withOptionalSignal } from "../core/optional";
 import { fetchJson } from "../http/metadata";
 import { RuntimePreference, type RuntimePreferenceKind } from "../types/runtime";
 import type { ResolvedRuntime, RuntimeIndex, RuntimeIndexEntry } from "../types/runtime";
@@ -148,7 +149,7 @@ export class RuntimeVersionsApi {
     return fetchJson<RuntimeIndex>(this.ctx.http, this.ctx.cache, {
       url: ApiEndpoints.mojang.runtimeIndex(),
       cacheKey: "mojang-runtime-index",
-      ...(signal !== undefined ? { signal } : {}),
+      ...withOptionalSignal(signal),
     });
   }
 }

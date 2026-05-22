@@ -8,6 +8,7 @@ import { HTTP_RETRY_MAX } from "../constants/defaults";
 import { type CheckpointSources, checkpoint } from "../core/abort";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { ensureDir } from "../core/fs";
+import { withOptionalPauseController, withOptionalSignal } from "../core/optional";
 import type { PauseController } from "../core/pause-controller";
 import { isHttpRetryable, withRetry } from "../core/retry";
 import { EventTypes } from "../types/events";
@@ -86,13 +87,13 @@ export const downloadFile = async (
       let bytesDownloaded = 0;
       const hash = crypto.createHash("sha1");
       const response = await http.request(input.url, {
-        ...(input.signal !== undefined ? { signal: input.signal } : {}),
+        ...withOptionalSignal(input.signal),
       });
       const contentLength = Number(response.headers["content-length"] ?? "0");
       const total = input.expectedSize ?? (Number.isFinite(contentLength) ? contentLength : 0);
       const checkpointSources: CheckpointSources = {
-        ...(input.signal !== undefined ? { signal: input.signal } : {}),
-        ...(input.pauseController !== undefined ? { pauseController: input.pauseController } : {}),
+        ...withOptionalSignal(input.signal),
+        ...withOptionalPauseController(input.pauseController),
       };
       const counting = countingByteStream(response.stream(), checkpointSources, (chunk) => {
         bytesDownloaded += chunk.byteLength;
@@ -178,7 +179,7 @@ export const downloadFile = async (
     },
     isHttpRetryable,
     {
-      ...(input.signal !== undefined ? { signal: input.signal } : {}),
+      ...withOptionalSignal(input.signal),
       onAttemptFailed: (error, attempt) => {
         input.onEvent?.({
           type: EventTypes.DOWNLOAD_FAILED,

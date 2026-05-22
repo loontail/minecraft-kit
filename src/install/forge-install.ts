@@ -6,6 +6,7 @@ import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { atomicWrite } from "../core/fs";
 import { parseJsonStrict } from "../core/json";
 import { mavenRelativePathFor } from "../core/maven";
+import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
 import { downloadFile } from "../http/download";
 import type { MetadataCache } from "../types/cache";
@@ -72,8 +73,8 @@ export const planForgeInstall = async (input: PlanForgeInstallInput): Promise<Fo
     url: input.loader.installerUrl,
     target: installerPath,
     category: DownloadCategories.FORGE_INSTALLER,
-    ...(input.signal !== undefined ? { signal: input.signal } : {}),
-    ...(input.onEvent !== undefined ? { onEvent: input.onEvent } : {}),
+    ...withOptionalSignal(input.signal),
+    ...withOptionalOnEvent(input.onEvent),
   });
 
   const installerDownload: DownloadAction = {

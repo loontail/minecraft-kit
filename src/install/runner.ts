@@ -4,6 +4,11 @@ import { checkpoint as runCheckpoint } from "../core/abort";
 import { extractAllToDir } from "../core/archive";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { atomicWrite } from "../core/fs";
+import {
+  withOptionalOnEvent,
+  withOptionalPauseController,
+  withOptionalSignal,
+} from "../core/optional";
 import { targetPaths } from "../core/paths";
 import type { PauseController } from "../core/pause-controller";
 import { downloadFile } from "../http/download";
@@ -130,8 +135,8 @@ const createContext = (input: RunInstallInput, counters: InstallCounters): Insta
   const checkpoint = (): Promise<void> =>
     runCheckpoint(
       {
-        ...(input.signal !== undefined ? { signal: input.signal } : {}),
-        ...(input.pauseController !== undefined ? { pauseController: input.pauseController } : {}),
+        ...withOptionalSignal(input.signal),
+        ...withOptionalPauseController(input.pauseController),
       },
       "Install aborted by signal",
     );
@@ -205,11 +210,9 @@ const runDownloadGroup = async (
           ...(action.expectedSha1 !== undefined ? { expectedSha1: action.expectedSha1 } : {}),
           ...(action.expectedSize !== undefined ? { expectedSize: action.expectedSize } : {}),
           ...(action.category !== undefined ? { category: action.category } : {}),
-          ...(ctx.input.signal !== undefined ? { signal: ctx.input.signal } : {}),
-          ...(ctx.input.onEvent !== undefined ? { onEvent: ctx.input.onEvent } : {}),
-          ...(ctx.input.pauseController !== undefined
-            ? { pauseController: ctx.input.pauseController }
-            : {}),
+          ...withOptionalSignal(ctx.input.signal),
+          ...withOptionalOnEvent(ctx.input.onEvent),
+          ...withOptionalPauseController(ctx.input.pauseController),
         });
         ctx.counters.bytesDownloaded += result.bytesDownloaded;
         if (result.skipped) ctx.counters.actionsSkipped++;
@@ -265,7 +268,7 @@ const runRuntimeStage = async (ctx: InstallRunnerContext): Promise<void> => {
     directory: ctx.input.plan.directory,
     http: ctx.input.http,
     cache: ctx.input.cache,
-    ...(ctx.input.signal !== undefined ? { signal: ctx.input.signal } : {}),
+    ...withOptionalSignal(ctx.input.signal),
   });
   await materializeRuntimeExtras({
     runtime,
@@ -300,7 +303,7 @@ const runProcessorsStage = async (
       action,
       javaPath,
       spawner: ctx.input.spawner,
-      ...(ctx.input.onEvent !== undefined ? { onEvent: ctx.input.onEvent } : {}),
+      ...withOptionalOnEvent(ctx.input.onEvent),
       total: processors.length,
     });
     ctx.counters.actionsCompleted++;

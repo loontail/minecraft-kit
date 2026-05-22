@@ -1,5 +1,6 @@
 import { ApiEndpoints } from "../constants/api";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
+import { withOptionalSignal } from "../core/optional";
 import { parseMavenMetadataVersions } from "../core/xml";
 import { fetchJson, fetchText } from "../http/metadata";
 import type { ForgeBuildSummary, ResolvedForgeLoader } from "../types/forge";
@@ -65,13 +66,13 @@ export class ForgeVersionsApi {
     const xml = await fetchText(this.ctx.http, this.ctx.cache, {
       url: ApiEndpoints.forge.mavenMetadata(),
       cacheKey: "forge-maven-metadata",
-      ...(input.signal !== undefined ? { signal: input.signal } : {}),
+      ...withOptionalSignal(input.signal),
     });
     const allVersions = parseMavenMetadataVersions(xml);
     const promotions = await fetchJson<ForgePromotions>(this.ctx.http, this.ctx.cache, {
       url: ApiEndpoints.forge.promotions(),
       cacheKey: "forge-promotions",
-      ...(input.signal !== undefined ? { signal: input.signal } : {}),
+      ...withOptionalSignal(input.signal),
     });
     const summaries = allVersions
       .map((fullVersion) => buildSummary(fullVersion, promotions))
@@ -84,7 +85,7 @@ export class ForgeVersionsApi {
   async resolve(input: ForgeResolveInput): Promise<ResolvedForgeLoader> {
     const builds = await this.list({
       minecraftVersion: input.minecraftVersion,
-      ...(input.signal !== undefined ? { signal: input.signal } : {}),
+      ...withOptionalSignal(input.signal),
     });
     if (builds.length === 0) {
       throw new MinecraftKitError(

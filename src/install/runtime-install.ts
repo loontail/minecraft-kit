@@ -1,3 +1,4 @@
+import { withOptionalSignal } from "../core/optional";
 import type { MetadataCache } from "../types/cache";
 import type { HttpClient } from "../types/http";
 import type { InstallAction, InstallPlan, RuntimeOnlyInstallTarget } from "../types/install";
@@ -48,7 +49,7 @@ export const planRuntimeInstall = async (input: PlanRuntimeInstallInput): Promis
     directory: input.target.directory,
     http: input.http,
     cache: input.cache,
-    ...(input.signal !== undefined ? { signal: input.signal } : {}),
+    ...withOptionalSignal(input.signal),
   });
   const actions: readonly InstallAction[] = runtimePlan.actions;
   const totalBytes = runtimePlan.actions.reduce(
@@ -123,7 +124,7 @@ export const planStandaloneRuntimeInstall = async (
     directory: input.directory,
     http: input.http,
     cache: input.cache,
-    ...(input.signal !== undefined ? { signal: input.signal } : {}),
+    ...withOptionalSignal(input.signal),
   });
   const actions: readonly InstallAction[] = runtimePlan.actions;
   const totalBytes = runtimePlan.actions.reduce(

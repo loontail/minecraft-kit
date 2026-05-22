@@ -1,4 +1,5 @@
 import { ApiEndpoints } from "../constants/api";
+import { withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
 import { fetchJson } from "../http/metadata";
 import type { MetadataCache } from "../types/cache";
@@ -27,7 +28,7 @@ export const planAssetDownloads = async (input: {
   const indexDocument = await fetchJson<AssetIndexDocument>(input.http, input.cache, {
     url: indexUrl,
     cacheKey: `asset-index:${input.assetIndex.id}:${input.assetIndex.sha1}`,
-    ...(input.signal !== undefined ? { signal: input.signal } : {}),
+    ...withOptionalSignal(input.signal),
   });
   const actions: DownloadAction[] = [
     {

@@ -1,4 +1,5 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
+import { withOptionalSignal } from "../core/optional";
 import type { HttpClient } from "../types/http";
 
 const TENANT = "consumers";
@@ -54,7 +55,7 @@ const postTokenRequest = async (
     headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
     body: body.toString(),
     acceptNonOk: true,
-    ...(signal !== undefined ? { signal } : {}),
+    ...withOptionalSignal(signal),
   });
   if (response.status >= 200 && response.status < 300) {
     const token = (await response.json()) as TokenSuccess;

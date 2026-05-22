@@ -1,4 +1,5 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
+import { withOptionalSignal } from "../core/optional";
 import type { HttpClient } from "../types/http";
 import type { Logger } from "../types/logger";
 
@@ -54,7 +55,7 @@ export const authenticateXbl = async (input: {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json" },
       body,
-      ...(input.signal !== undefined ? { signal: input.signal } : {}),
+      ...withOptionalSignal(input.signal),
     });
   } catch (cause) {
     throw new MinecraftKitError(
@@ -103,7 +104,7 @@ export const authenticateXsts = async (input: {
     headers: { "content-type": "application/json", accept: "application/json" },
     body,
     acceptNonOk: true,
-    ...(input.signal !== undefined ? { signal: input.signal } : {}),
+    ...withOptionalSignal(input.signal),
   });
   if (response.status === 401) {
     const err = (await response.json().catch(() => ({}))) as XstsErrorResponse;

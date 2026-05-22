@@ -1,3 +1,4 @@
+import { withOptionalSignal } from "../core/optional";
 import { planInstall } from "../install/planner";
 import {
   type DownloadAction,
@@ -141,7 +142,7 @@ export const planAspectRepair = async (
     target: input.target,
     http: input.http,
     cache: input.cache,
-    ...(input.signal !== undefined ? { signal: input.signal } : {}),
+    ...withOptionalSignal(input.signal),
   });
   const issues = buildIssueIndex(input.from);
   const actions = selectRepairActions({

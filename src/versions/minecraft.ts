@@ -1,6 +1,7 @@
 import { ApiEndpoints } from "../constants/api";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { isMinecraftVersionManifestShape } from "../core/guards";
+import { withOptionalSignal } from "../core/optional";
 import { fetchJson } from "../http/metadata";
 import type {
   MinecraftChannel,
@@ -123,7 +124,7 @@ export class MinecraftVersionsApi {
     const raw = await fetchJson<unknown>(this.ctx.http, this.ctx.cache, {
       url: summary.url,
       cacheKey: `minecraft-manifest:${summary.id}:${summary.sha1}`,
-      ...(input.signal !== undefined ? { signal: input.signal } : {}),
+      ...withOptionalSignal(input.signal),
     });
     if (!isMinecraftVersionManifestShape(raw)) {
       throw new MinecraftKitError(
@@ -145,7 +146,7 @@ export class MinecraftVersionsApi {
     return fetchJson<VersionManifestRoot>(this.ctx.http, this.ctx.cache, {
       url: ApiEndpoints.mojang.versionManifest(),
       cacheKey: "minecraft-version-manifest-v2",
-      ...(signal !== undefined ? { signal } : {}),
+      ...withOptionalSignal(signal),
     });
   }
 }

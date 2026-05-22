@@ -1,6 +1,7 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { fileExists, readText } from "../core/fs";
 import { parseJsonOrUndefined } from "../core/json";
+import { withOptionalOnEvent } from "../core/optional";
 import { planLibraryDownloads } from "../install/libraries";
 import type { MetadataCache } from "../types/cache";
 import type { ProgressListener } from "../types/events";
@@ -64,7 +65,7 @@ export const verifyForge = async (input: VerifyForgeInput): Promise<Verification
     {
       targetId: input.target.id,
       kind: VerificationKinds.FORGE,
-      ...(input.onEvent !== undefined ? { onEvent: input.onEvent } : {}),
+      ...withOptionalOnEvent(input.onEvent),
     },
     async (record) => {
       const forgeVersionJsonPath = await findForgeVersionJsonPath(

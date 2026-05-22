@@ -1,3 +1,4 @@
+import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
 import { runInstall } from "../install/runner";
 import type { MetadataCache } from "../types/cache";
 import type { ProgressListener } from "../types/events";
@@ -45,8 +46,8 @@ export const runRepair = async (input: RunRepairInput): Promise<RepairReport> =>
     http: input.http,
     cache: input.cache,
     spawner: input.spawner,
-    ...(input.signal !== undefined ? { signal: input.signal } : {}),
-    ...(input.onEvent !== undefined ? { onEvent: input.onEvent } : {}),
+    ...withOptionalSignal(input.signal),
+    ...withOptionalOnEvent(input.onEvent),
   });
   return {
     targetId: report.targetId,

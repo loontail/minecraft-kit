@@ -1,5 +1,10 @@
 import { MojangAuthApi } from "./auth/index";
 import { silentLogger } from "./core/logger";
+import {
+  withOptionalOnEvent,
+  withOptionalPauseController,
+  withOptionalSignal,
+} from "./core/optional";
 import type { PauseController } from "./core/pause-controller";
 import { detectSystem } from "./core/system";
 import { createMemoryCache } from "./http/cache";
@@ -164,13 +169,13 @@ export class MinecraftKit {
     const forwardSignalAndEvent = (
       opts: { signal?: AbortSignal; onEvent?: ProgressListener } | undefined,
     ) => ({
-      ...(opts?.signal !== undefined ? { signal: opts.signal } : {}),
-      ...(opts?.onEvent !== undefined ? { onEvent: opts.onEvent } : {}),
+      ...withOptionalSignal(opts?.signal),
+      ...withOptionalOnEvent(opts?.onEvent),
     });
 
     const forwardInstallRunOptions = (opts: InstallRunOptions | undefined) => ({
       ...forwardSignalAndEvent(opts),
-      ...(opts?.pauseController !== undefined ? { pauseController: opts.pauseController } : {}),
+      ...withOptionalPauseController(opts?.pauseController),
       ...(opts?.actionCategories !== undefined ? { actionCategories: opts.actionCategories } : {}),
     });
 
@@ -206,7 +211,7 @@ export class MinecraftKit {
       from: opts.from,
       http,
       cache,
-      ...forwardSignalAndEvent({ ...(opts.signal !== undefined ? { signal: opts.signal } : {}) }),
+      ...withOptionalSignal(opts.signal),
     });
     const runRepairPlan: RepairAspect["run"] = (plan, opts) =>
       runRepair({ plan, http, cache, spawner, ...forwardSignalAndEvent(opts) });
