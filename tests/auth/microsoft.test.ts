@@ -1,53 +1,9 @@
 import { describe, expect, it } from "vitest";
-import {
-  exchangeAuthorizationCode,
-  refreshMicrosoftToken,
-  startDeviceCode,
-} from "../../src/auth/microsoft";
+import { exchangeAuthorizationCode, refreshMicrosoftToken } from "../../src/auth/microsoft";
 import { isErrorCode } from "../../src/core/errors";
 import { FakeHttpClient } from "../helpers/fake-http";
 
-const DEVICE_CODE_URL = "https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode";
 const TOKEN_URL = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
-
-describe("startDeviceCode", () => {
-  it("parses the success body into prompt + state", async () => {
-    const http = new FakeHttpClient().on(DEVICE_CODE_URL, {
-      body: JSON.stringify({
-        device_code: "DEV1",
-        user_code: "ABCD-EFGH",
-        verification_uri: "https://microsoft.com/link",
-        message: "go enter the code",
-        expires_in: 900,
-        interval: 5,
-      }),
-    });
-    const { prompt, state } = await startDeviceCode({ http, clientId: "client-1" });
-    expect(prompt.userCode).toBe("ABCD-EFGH");
-    expect(prompt.verificationUri).toBe("https://microsoft.com/link");
-    expect(state.deviceCode).toBe("DEV1");
-    expect(state.clientId).toBe("client-1");
-    expect(state.expiresAt).toBeGreaterThan(Date.now());
-  });
-
-  it("turns a 400/unauthorized_client into a helpful AUTH_DEVICE_CODE_FAILED error", async () => {
-    const http = new FakeHttpClient().on(DEVICE_CODE_URL, {
-      status: 400,
-      body: JSON.stringify({
-        error: "unauthorized_client",
-        error_description: "AADSTS7000218: app must allow public flows",
-      }),
-    });
-    try {
-      await startDeviceCode({ http, clientId: "client-1" });
-      expect.fail("expected throw");
-    } catch (error) {
-      expect(isErrorCode(error, "AUTH_DEVICE_CODE_FAILED")).toBe(true);
-      const err = error as Error;
-      expect(err.message).toMatch(/Allow public client flows/i);
-    }
-  });
-});
 
 describe("refreshMicrosoftToken", () => {
   it("returns a fresh access token and rotates the refresh token", async () => {

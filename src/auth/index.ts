@@ -4,12 +4,7 @@ import type { MojangSession, OnlineAuth } from "../types/auth";
 import type { HttpClient } from "../types/http";
 import { authDebug } from "./debug";
 import { startLoopbackServer } from "./loopback";
-import {
-  type MicrosoftToken,
-  exchangeAuthorizationCode,
-  refreshMicrosoftToken,
-  startDeviceCode,
-} from "./microsoft";
+import { type MicrosoftToken, exchangeAuthorizationCode, refreshMicrosoftToken } from "./microsoft";
 import { extractXuid, fetchMinecraftProfile, loginWithXbox } from "./minecraft";
 import { buildAuthorizeUrl, generateOAuthState, generatePkcePair } from "./oauth";
 import { authenticateXbl, authenticateXsts } from "./xbox";
@@ -130,12 +125,11 @@ export class MojangAuthApi {
       readonly prompt: DeviceCodePrompt;
       readonly state: DeviceCodeState;
     }> => {
-      const clientId = resolveClientId(options.clientId);
-      return startDeviceCode({
-        http: this.http,
-        clientId,
-        ...(options.signal !== undefined ? { signal: options.signal } : {}),
-      });
+      resolveClientId(options.clientId);
+      throw new MinecraftKitError(
+        MinecraftKitErrorCodes.AUTH_DEVICE_CODE_FAILED,
+        "Device-code start has been removed. Use `kit.auth.authorizationCode.run({ onOpenBrowser })` instead.",
+      );
     },
     poll: async (
       _state: DeviceCodeState,
