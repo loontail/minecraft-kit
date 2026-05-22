@@ -18,11 +18,14 @@ const SPAWN_TIMEOUT_MS = 1500;
  *
  * Implementation notes (every one of these used to be a bug):
  *
- * - On Windows we invoke `cmd.exe /c start` **directly**, without `shell: true`. Using
- *   `shell: true` makes Node wrap the command in another `cmd /s /c "..."`, which mangles
- *   the empty-title argument and silently drops the URL.
- * - The `""` after `start` is the window-title argument. Skipping it makes `start` treat a
- *   URL like `"https://..."` as the title and never opens anything.
+ * - On Windows we invoke `rundll32 url.dll,FileProtocolHandler <url>`, NOT
+ *   `cmd /c start`. The cmd path interprets `&` in OAuth URLs as a command
+ *   chain separator (silently truncating the URL at the first `&` — i.e.
+ *   dropping `scope`, `redirect_uri`, and everything past `client_id`), and
+ *   no amount of argv-level quoting fixes that because cmd re-parses the
+ *   line. `rundll32 url.dll,FileProtocolHandler` is the native Win32 URL
+ *   handler used by `ShellExecute`; it takes the URL as a single argument
+ *   and doesn't go through cmd at all.
  * - We resolve on the `'spawn'` event (Node ≥ 15.1) rather than `setImmediate`, otherwise we
  *   race the actual process-start and report success for commands that ENOENT'd.
  * - `windowsHide: true` keeps a console window from flashing.
@@ -71,10 +74,16 @@ const isSafeBrowserUrl = (url: string): boolean => {
   }
 };
 
-const pickCommand = (url: string): { command: string; args: string[] } => {
+/**
+ * Pick the platform-native "open this URL in the default browser" command.
+ * Exported for tests — runtime callers go through {@link openBrowser}.
+ *
+ * @internal
+ */
+export const pickCommand = (url: string): { command: string; args: string[] } => {
   switch (process.platform) {
     case "win32":
-      return { command: process.env.ComSpec ?? "cmd.exe", args: ["/c", "start", '""', url] };
+      return { command: "rundll32.exe", args: ["url.dll,FileProtocolHandler", url] };
     case "darwin":
       return { command: "open", args: [url] };
     default:
