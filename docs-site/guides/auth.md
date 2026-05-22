@@ -1,12 +1,12 @@
 # Authentication
 
-The kit ships a Microsoft OAuth 2.0 device-code flow that produces a Minecraft `accessToken`
-ready to drop into `kit.launch.compose`. Token storage is the caller's job — the kit returns
-session objects, never persists them.
+The kit ships a Microsoft OAuth 2.0 Authorization-Code + PKCE flow over a loopback redirect
+that produces a Minecraft `accessToken` ready to drop into `kit.launch.compose`. Token
+storage is the caller's job — the kit returns session objects, never persists them.
 
 ::: tip Stateless by design
-`kit.auth.login()` returns a `MojangSession` with the Minecraft profile *and* the
-refresh token. Hand that to your launcher's storage layer; on next start, call
+`kit.auth.authorizationCode.run()` returns a `MojangSession` with the Minecraft profile
+*and* the refresh token. Hand that to your launcher's storage layer; on next start, call
 `kit.auth.refresh(refreshToken)` to mint a fresh access token.
 :::
 
@@ -18,7 +18,10 @@ You need an Azure AD application id (Application/Client ID). Register one at
 1. **Supported account types:** "Personal Microsoft accounts only" or "Accounts in any
    organisational directory and personal Microsoft accounts".
 2. **Authentication → Allow public client flows:** Yes.
-3. Apply for Minecraft API access at
+3. **Authentication → Platform configurations → Mobile and desktop applications → Add a
+   platform:** add a redirect URI of `http://localhost` (no port, no path — the kit binds
+   a random port at runtime).
+4. Apply for Minecraft API access at
    [https://aka.ms/mce-reviewappid](https://aka.ms/mce-reviewappid) — without this,
    `login_with_xbox` rejects the token with `AUTH_MINECRAFT_FAILED`.
 
@@ -33,17 +36,15 @@ import { MinecraftKit } from "@loontail/minecraft-kit";
 
 const kit = new MinecraftKit();
 
-const session = await kit.auth.login({
+const session = await kit.auth.authorizationCode.run({
   clientId: process.env.MINECRAFT_KIT_MSA_CLIENT_ID,
-  onPrompt: async (prompt) => {
-    // prompt.verificationUri  → "https://microsoft.com/link"
-    // prompt.userCode         → "ABCD-EFGH"
-    // prompt.message          → Microsoft's human-readable instruction
-    // prompt.expiresIn        → seconds before the code expires (~900)
-    console.log(`Open ${prompt.verificationUri} and enter ${prompt.userCode}`);
-  },
-  onPoll: ({ nextDelayMs, expiresAt }) => {
-    // Optional. Useful for a "still waiting…" UI.
+  onOpenBrowser: async (url) => {
+    // Open `url` in the user's system browser. In Electron:
+    //   shell.openExternal(url)
+    // In a CLI:
+    //   import open from "open"; await open(url);
+    // The kit deliberately does not assume how to open browsers — that
+    // belongs to the host environment.
   },
   signal: abortController.signal,
 });
@@ -55,8 +56,10 @@ console.log(session.microsoft.refreshToken); // ← persist this
 console.log(session.microsoft.clientId);     // ← persist this too
 ```
 
-The promise resolves only after the user finishes signing in (or rejects on abort, decline,
-or timeout — see [error codes](./errors)).
+The promise resolves only after the user finishes signing in in the browser (or rejects on
+abort, decline, or `invalid_grant` — see [error codes](./errors)). The kit binds a loopback
+HTTP server on a random port, hands the caller the Microsoft authorize URL, and waits for
+Microsoft to redirect the browser back to `http://localhost:<port>` with the one-time code.
 
 ## Refresh
 
@@ -69,20 +72,6 @@ const refreshed = await kit.auth.refresh(savedRefreshToken, {
 
 Microsoft may rotate the refresh token; check `refreshed.microsoft.refreshToken` against the
 saved value and overwrite if changed.
-
-## Lower-level: decoupled prompt + poll
-
-`MojangAuthApi.deviceCode.start()` and `.poll()` let you decouple "render the prompt" from
-"block on poll" — useful when the prompt UI is a dismissible modal in a GUI.
-
-```ts
-const { prompt, state } = await kit.auth.deviceCode.start({ clientId });
-// render(prompt); kick off your modal; user copies the code, opens the browser
-const session = await kit.auth.deviceCode.poll(state, {
-  signal,
-  onTick: ({ nextDelayMs }) => { /* heartbeat */ },
-});
-```
 
 ## Plugging into launch
 
@@ -116,11 +105,14 @@ This routes auth trace to `consoleLogger` (stderr).
 See the [errors guide](./errors#authentication) for the full list. The common ones:
 
 - `AUTH_MISSING_CLIENT_ID` — set the env var or pass `clientId`.
-- `AUTH_DEVICE_CODE_FAILED` with `AADSTS7000218` in the message — flip "Allow public client
-  flows" to Yes in Azure portal.
+- `AUTH_AUTHORIZATION_CODE_FAILED` with `AADSTS7000218` in the message — flip "Allow public
+  client flows" to Yes in Azure portal.
+- `AUTH_AUTHORIZATION_CODE_DECLINED` — the user closed the browser without signing in, or
+  Microsoft returned an OAuth `access_denied` / `invalid_grant` on the redirect.
 - `AUTH_MINECRAFT_FAILED` mentioning `aka.ms/mce-reviewappid` — apply for Minecraft API
   access for this Azure AD app.
 - `AUTH_NO_GAME_OWNERSHIP` — the Microsoft account does not own Java Edition (or the wrong
   account is signed into the browser).
 - `AUTH_XSTS_FAILED` with `xerr === 2148916233` — the account never used Xbox Live; sign in
   once at [https://www.xbox.com](https://www.xbox.com) and retry.
+- `AUTH_CANCELLED` — the caller aborted via `signal`.
