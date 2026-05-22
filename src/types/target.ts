@@ -11,12 +11,12 @@ import type { ResolvedRuntime } from "./runtime";
  *
  * @example
  * ```ts
- * import { Loaders, type Target } from "@loontail/minecraft-kit";
+ * import { asMinecraftVersionId, Loaders, type Target } from "@loontail/minecraft-kit";
  *
  * const target: Target = await kit.targets.resolve({
  *   id: "vanilla-1.20.1",
  *   directory: "/games/vanilla",
- *   minecraft: { version: "1.20.1" },
+ *   minecraft: { version: asMinecraftVersionId("1.20.1") },
  *   loader: { type: Loaders.VANILLA },
  * });
  * ```
@@ -36,15 +36,15 @@ export type Target = {
  *
  * @example
  * ```ts
- * import { detectSystem, type TargetCreateInput } from "@loontail/minecraft-kit";
+ * import { asMinecraftVersionId, detectSystem, type TargetCreateInput } from "@loontail/minecraft-kit";
  *
- * const minecraft = await kit.versions.minecraft.resolve({ version: "1.20.1" });
+ * const minecraft = await kit.versions.minecraft.resolve({ version: asMinecraftVersionId("1.20.1") });
  * const runtime = await kit.versions.runtime.resolve({ system: detectSystem() });
  * const input: TargetCreateInput = {
  *   id: "vanilla-1.20.1",
  *   directory: "/games/vanilla",
  *   minecraft,
- *   loader: { type: "vanilla", minecraftVersion: "1.20.1", minecraft },
+ *   loader: { type: "vanilla", minecraftVersion: minecraft.version, minecraft },
  *   runtime,
  * };
  * const target = kit.targets.create(input);

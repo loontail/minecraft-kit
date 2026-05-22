@@ -1,13 +1,14 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { parseJsonOrUndefined } from "../core/json";
 import { withOptionalSignal } from "../core/optional";
-import { addUuidDashes } from "../core/uuid";
+import { addUuidDashes, asPlayerUuid } from "../core/uuid";
 import { isHttpOk } from "../http/status";
 import type {
   MojangAssetState,
   MojangProfileCape,
   MojangProfileSkin,
   MojangSkinVariant,
+  PlayerUuid,
 } from "../types/auth";
 import type { HttpClient } from "../types/http";
 import type { Logger } from "../types/logger";
@@ -69,7 +70,7 @@ type ProfileResponse = {
  * @internal
  */
 export type MinecraftProfile = {
-  readonly uuid: string;
+  readonly uuid: PlayerUuid;
   readonly username: string;
   readonly skins: ReadonlyArray<MojangProfileSkin>;
   readonly capes: ReadonlyArray<MojangProfileCape>;
@@ -192,7 +193,7 @@ export const fetchMinecraftProfile = async (input: {
     );
   }
   return {
-    uuid: addUuidDashes(parsed.id),
+    uuid: asPlayerUuid(addUuidDashes(parsed.id)),
     username: parsed.name,
     skins: (parsed.skins ?? []).flatMap(toProfileSkin),
     capes: (parsed.capes ?? []).flatMap(toProfileCape),

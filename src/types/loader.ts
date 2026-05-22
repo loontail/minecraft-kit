@@ -10,12 +10,12 @@ import type { ResolvedVanillaLoader } from "./vanilla";
  *
  * @example
  * ```ts
- * import { Loaders } from "@loontail/minecraft-kit";
+ * import { asMinecraftVersionId, Loaders } from "@loontail/minecraft-kit";
  *
  * await kit.targets.resolve({
  *   id: "modded",
  *   directory: "/games/modded",
- *   minecraft: { version: "1.20.1" },
+ *   minecraft: { version: asMinecraftVersionId("1.20.1") },
  *   loader: { type: Loaders.FABRIC },
  * });
  * ```

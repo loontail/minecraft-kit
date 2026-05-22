@@ -5,6 +5,7 @@ import { withOptionalSignal } from "../core/optional";
 import { fetchJson } from "../http/metadata";
 import type {
   MinecraftChannel,
+  MinecraftVersionId,
   MinecraftVersionManifest,
   MinecraftVersionSummary,
   ResolvedMinecraft,
@@ -54,15 +55,15 @@ export type MinecraftLatestInput = {
  *
  * @example
  * ```ts
- * import type { MinecraftGetInput } from "@loontail/minecraft-kit";
+ * import { asMinecraftVersionId, type MinecraftGetInput } from "@loontail/minecraft-kit";
  *
- * const input: MinecraftGetInput = { version: "1.20.1" };
+ * const input: MinecraftGetInput = { version: asMinecraftVersionId("1.20.1") };
  * const resolved = await kit.versions.minecraft.resolve(input);
  * console.log(resolved.manifest.id, resolved.manifest.javaVersion?.majorVersion);
  * ```
  */
 export type MinecraftGetInput = {
-  readonly version: string;
+  readonly version: MinecraftVersionId;
   readonly signal?: AbortSignal;
 };
 

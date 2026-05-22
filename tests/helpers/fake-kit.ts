@@ -1,3 +1,4 @@
+import { asMinecraftVersionId } from "../../src/core/version-id";
 import type { MinecraftKit } from "../../src/kit";
 import type { FabricLoaderSummary } from "../../src/types/fabric";
 import type { ForgeBuildSummary } from "../../src/types/forge";
@@ -10,11 +11,15 @@ import type { ResolvedRuntime } from "../../src/types/runtime";
 import type { DiscoveredTarget, Target } from "../../src/types/target";
 import type { VerificationResult } from "../../src/types/verify";
 
+const MC_1_20_1 = asMinecraftVersionId("1.20.1");
+const MC_1_19_4 = asMinecraftVersionId("1.19.4");
+const MC_23W14A = asMinecraftVersionId("23w14a");
+
 const fakeMinecraft: ResolvedMinecraft = {
-  version: "1.20.1",
+  version: MC_1_20_1,
   channel: "release",
   manifest: {
-    id: "1.20.1",
+    id: MC_1_20_1,
     type: "release",
     mainClass: "net.minecraft.client.main.Main",
     assetIndex: { id: "5", sha1: "x", size: 1, totalSize: 1, url: "https://idx/" },
@@ -24,7 +29,7 @@ const fakeMinecraft: ResolvedMinecraft = {
     javaVersion: { component: "java-runtime-gamma", majorVersion: 17 },
   },
   summary: {
-    id: "1.20.1",
+    id: MC_1_20_1,
     type: "release",
     url: "https://m/",
     time: "t",
@@ -86,7 +91,7 @@ export const buildFakeKit = (input: FakeKitInput = {}): MinecraftKit => {
     input.minecraftVersions ??
     ([
       {
-        id: "1.20.1",
+        id: MC_1_20_1,
         type: "release",
         url: "https://m/",
         time: "",
@@ -95,7 +100,7 @@ export const buildFakeKit = (input: FakeKitInput = {}): MinecraftKit => {
         complianceLevel: 1,
       },
       {
-        id: "1.19.4",
+        id: MC_1_19_4,
         type: "release",
         url: "https://m/",
         time: "",
@@ -104,7 +109,7 @@ export const buildFakeKit = (input: FakeKitInput = {}): MinecraftKit => {
         complianceLevel: 1,
       },
       {
-        id: "23w14a",
+        id: MC_23W14A,
         type: "snapshot",
         url: "https://m/",
         time: "",

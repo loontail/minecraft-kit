@@ -5,6 +5,7 @@ import {
   asMicrosoftRefreshToken,
   toOnlineAuth,
 } from "../../src/auth/index";
+import { asPlayerUuid } from "../../src/core/uuid";
 import { AuthModes, type MojangSession } from "../../src/types/auth";
 import { FakeHttpClient } from "../helpers/fake-http";
 
@@ -143,7 +144,7 @@ describe("toOnlineAuth", () => {
     const session: MojangSession = {
       minecraft: {
         username: "Steve",
-        uuid: "uuid",
+        uuid: asPlayerUuid("12345678-1234-1234-1234-123456789012"),
         accessToken: "at",
         expiresAt: 0,
         xuid: "xuid",

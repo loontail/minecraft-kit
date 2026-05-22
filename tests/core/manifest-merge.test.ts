@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { mergeManifest } from "../../src/core/manifest-merge";
+import { asMinecraftVersionId } from "../../src/core/version-id";
 import type { MinecraftVersionManifest } from "../../src/types/minecraft";
 
 const baseDownload = { sha1: "x", size: 1, url: "https://x" };
+const MC_PARENT = asMinecraftVersionId("1.20.1");
+const MC_CHILD = asMinecraftVersionId("fabric-1.20.1");
 
 const parent: MinecraftVersionManifest = {
-  id: "1.20.1",
+  id: MC_PARENT,
   type: "release",
   mainClass: "net.minecraft.client.main.Main",
   assetIndex: { id: "5", sha1: "x", size: 1, totalSize: 1, url: "https://x" },
@@ -16,7 +19,7 @@ const parent: MinecraftVersionManifest = {
 };
 
 const child: MinecraftVersionManifest = {
-  id: "fabric-1.20.1",
+  id: MC_CHILD,
   type: "release",
   mainClass: "fabric.Main",
   assetIndex: parent.assetIndex,
@@ -24,7 +27,7 @@ const child: MinecraftVersionManifest = {
   downloads: { client: baseDownload },
   libraries: [{ name: "x:y:1" }],
   arguments: { game: ["--child"], jvm: [] },
-  inheritsFrom: "1.20.1",
+  inheritsFrom: MC_PARENT,
 };
 
 describe("mergeManifest", () => {
@@ -59,7 +62,7 @@ describe("mergeManifest", () => {
 
   it("omits optional fields when neither side carries them", () => {
     const minimalParent: MinecraftVersionManifest = {
-      id: "1.0",
+      id: asMinecraftVersionId("1.0"),
       type: "release",
       mainClass: "M",
       assetIndex: parent.assetIndex,
@@ -67,7 +70,10 @@ describe("mergeManifest", () => {
       downloads: { client: baseDownload },
       libraries: [],
     };
-    const minimalChild: MinecraftVersionManifest = { ...minimalParent, id: "1.0-child" };
+    const minimalChild: MinecraftVersionManifest = {
+      ...minimalParent,
+      id: asMinecraftVersionId("1.0-child"),
+    };
     const result = mergeManifest(minimalParent, minimalChild);
     expect(result.arguments).toBeUndefined();
     expect(result.javaVersion).toBeUndefined();

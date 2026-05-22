@@ -7,12 +7,12 @@ import type { ResolvedMinecraft } from "./minecraft";
  *
  * @example
  * ```ts
- * import { Loaders, type ResolvedVanillaLoader } from "@loontail/minecraft-kit";
+ * import { asMinecraftVersionId, Loaders, type ResolvedVanillaLoader } from "@loontail/minecraft-kit";
  *
  * const target = await kit.targets.resolve({
  *   id: "v",
  *   directory: "/games/v",
- *   minecraft: { version: "1.20.1" },
+ *   minecraft: { version: asMinecraftVersionId("1.20.1") },
  *   loader: { type: Loaders.VANILLA },
  * });
  * const vanilla = target.loader as ResolvedVanillaLoader;

@@ -11,6 +11,7 @@ import {
 import type { AuthState } from "../../src/cli/scenarios";
 import { createStubUi } from "../../src/cli/ui";
 import { MinecraftKitError } from "../../src/core/errors";
+import { asMinecraftVersionId } from "../../src/core/version-id";
 import { AuthModes } from "../../src/types/auth";
 import type { FabricLoaderSummary } from "../../src/types/fabric";
 import type { ForgeBuildSummary } from "../../src/types/forge";
@@ -32,7 +33,7 @@ const auth = (): AuthState => ({
 });
 
 const release2: MinecraftVersionSummary = {
-  id: "1.20.1",
+  id: asMinecraftVersionId("1.20.1"),
   type: "release",
   url: "https://m/",
   time: "",

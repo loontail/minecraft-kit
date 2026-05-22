@@ -2,7 +2,11 @@ import path from "node:path";
 import { mavenRelativePath, parseMavenCoordinate } from "../core/maven";
 import { targetPaths } from "../core/paths";
 import { evaluateRules } from "../core/rules";
-import type { MinecraftLibrary, MinecraftVersionManifest } from "../types/minecraft";
+import type {
+  MinecraftLibrary,
+  MinecraftVersionId,
+  MinecraftVersionManifest,
+} from "../types/minecraft";
 import type { RuntimeSystem } from "../types/system";
 
 /**
@@ -12,7 +16,7 @@ import type { RuntimeSystem } from "../types/system";
  */
 export const buildClasspath = (input: {
   readonly directory: string;
-  readonly versionId: string;
+  readonly versionId: MinecraftVersionId;
   readonly merged: MinecraftVersionManifest;
   readonly system: RuntimeSystem;
 }): readonly string[] => {

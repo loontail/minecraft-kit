@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { ApiEndpoints } from "../../src/constants/api";
 import { silentLogger } from "../../src/core/logger";
+import { asMinecraftVersionId } from "../../src/core/version-id";
 import { createMemoryCache } from "../../src/http/cache";
 import type { MinecraftVersionManifest } from "../../src/types/minecraft";
 import { MinecraftVersionsApi } from "../../src/versions/minecraft";
 import { FakeHttpClient } from "../helpers/fake-http";
+
+const MC_1_20_1 = asMinecraftVersionId("1.20.1");
+const MC_99_0_0 = asMinecraftVersionId("99.0.0");
 
 const manifestRoot = {
   latest: { release: "1.20.1", snapshot: "23w14a" },
@@ -31,7 +35,7 @@ const manifestRoot = {
 };
 
 const versionManifest: MinecraftVersionManifest = {
-  id: "1.20.1",
+  id: MC_1_20_1,
   type: "release",
   mainClass: "net.minecraft.client.main.Main",
   assetIndex: { id: "5", sha1: "x", size: 1, totalSize: 1, url: "https://assets/" },
@@ -73,12 +77,12 @@ describe("MinecraftVersionsApi", () => {
 
   it("rejects unknown version", async () => {
     const { api } = buildKit();
-    await expect(api.get({ version: "99.0.0" })).rejects.toBeTruthy();
+    await expect(api.get({ version: MC_99_0_0 })).rejects.toBeTruthy();
   });
 
   it("resolves a version manifest", async () => {
     const { api } = buildKit();
-    const resolved = await api.resolve({ version: "1.20.1" });
+    const resolved = await api.resolve({ version: MC_1_20_1 });
     expect(resolved.manifest.mainClass).toBe("net.minecraft.client.main.Main");
   });
 
@@ -91,6 +95,6 @@ describe("MinecraftVersionsApi", () => {
       cache: createMemoryCache(),
       logger: silentLogger,
     });
-    await expect(api.resolve({ version: "1.20.1" })).rejects.toBeTruthy();
+    await expect(api.resolve({ version: MC_1_20_1 })).rejects.toBeTruthy();
   });
 });

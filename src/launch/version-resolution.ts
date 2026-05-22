@@ -3,8 +3,9 @@ import { fileExists, listChildDirectories, readText } from "../core/fs";
 import { parseJsonOrUndefined, parseJsonStrict } from "../core/json";
 import { mergeManifest } from "../core/manifest-merge";
 import { targetPaths } from "../core/paths";
+import { asMinecraftVersionId } from "../core/version-id";
 import { Loaders } from "../types/loader";
-import type { MinecraftVersionManifest } from "../types/minecraft";
+import type { MinecraftVersionId, MinecraftVersionManifest } from "../types/minecraft";
 import type { Target } from "../types/target";
 
 /**
@@ -21,11 +22,11 @@ import type { Target } from "../types/target";
  */
 export type ResolvedLaunchVersion = {
   /** Topmost version id (the one used as `${version_name}` and for the natives directory). */
-  readonly versionId: string;
+  readonly versionId: MinecraftVersionId;
   /** Merged manifest with `inheritsFrom` chain folded together. */
   readonly merged: MinecraftVersionManifest;
   /** Inherits-from chain from top (`versionId`) down to the root vanilla version. */
-  readonly chain: readonly string[];
+  readonly chain: readonly MinecraftVersionId[];
 };
 
 /**
@@ -70,8 +71,8 @@ export const resolveLaunchVersion = async (target: Target): Promise<ResolvedLaun
  */
 export const pickClientJarVersionId = async (
   directory: string,
-  chain: readonly string[],
-): Promise<string> => {
+  chain: readonly MinecraftVersionId[],
+): Promise<MinecraftVersionId> => {
   for (const id of chain) {
     const jar = targetPaths.versionJar(directory, id);
     if (await fileExists(jar)) return id;
@@ -86,9 +87,9 @@ export const pickClientJarVersionId = async (
   return fallback;
 };
 
-const pickInstalledVersionId = async (target: Target): Promise<string> => {
+const pickInstalledVersionId = async (target: Target): Promise<MinecraftVersionId> => {
   if (target.loader.type === Loaders.FABRIC) {
-    const candidate = target.loader.profile.id;
+    const candidate = asMinecraftVersionId(target.loader.profile.id);
     const versionJsonPath = targetPaths.versionJson(target.directory, candidate);
     if (await fileExists(versionJsonPath)) return candidate;
   }
@@ -103,7 +104,7 @@ const pickInstalledVersionId = async (target: Target): Promise<string> => {
         parsed?.inheritsFrom === target.minecraft.version &&
         (id.includes("forge") || (parsed.id ?? "").includes("forge"))
       ) {
-        return id;
+        return asMinecraftVersionId(id);
       }
     }
   }
@@ -116,7 +117,7 @@ const pickInstalledVersionId = async (target: Target): Promise<string> => {
 
 const loadAndMerge = async (
   directory: string,
-  versionId: string,
+  versionId: MinecraftVersionId,
   parentManifest: MinecraftVersionManifest,
 ): Promise<MinecraftVersionManifest> => {
   const versionJsonPath = targetPaths.versionJson(directory, versionId);

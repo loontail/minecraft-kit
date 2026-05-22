@@ -19,7 +19,8 @@ export { targetPaths } from "./core/paths";
 export { PauseController } from "./core/pause-controller";
 export { detectSystem } from "./core/system";
 export type { DetectSystemInput } from "./core/system";
-export { offlineUuidFor, stripUuidDashes } from "./core/uuid";
+export { asPlayerUuid, offlineUuidFor, stripUuidDashes } from "./core/uuid";
+export { asMinecraftVersionId } from "./core/version-id";
 export { createMemoryCache } from "./http/cache";
 export type { MemoryCacheOptions } from "./http/cache";
 export { FetchHttpClient } from "./http/client";
@@ -75,6 +76,7 @@ export {
   type MojangSkinVariant,
   type OfflineAuth,
   type OnlineAuth,
+  type PlayerUuid,
 } from "./types/auth";
 export type { MetadataCache } from "./types/cache";
 export type { MinecraftKitErrorContext } from "./types/errors";
@@ -150,6 +152,7 @@ export {
   type MinecraftLibrary,
   type MinecraftLibraryDownloads,
   type MinecraftLogging,
+  type MinecraftVersionId,
   type MinecraftVersionManifest,
   type MinecraftVersionSummary,
   type ResolvedMinecraft,

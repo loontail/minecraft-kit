@@ -2,7 +2,13 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { asMinecraftVersionId } from "../../src/core/version-id";
 import { pickClientJarVersionId } from "../../src/launch/version-resolution";
+
+const MC_1_20_1 = asMinecraftVersionId("1.20.1");
+const FABRIC_1_20_1 = asMinecraftVersionId("fabric-loader-0.14.21-1.20.1");
+const FORGE_1_12_2 = asMinecraftVersionId("1.12.2-forge-14.23.5");
+const MC_1_12_2 = asMinecraftVersionId("1.12.2");
 
 describe("pickClientJarVersionId", () => {
   let tmpDir: string;
@@ -21,25 +27,25 @@ describe("pickClientJarVersionId", () => {
   }
 
   it("returns the topmost id whose jar exists (vanilla)", async () => {
-    await placeJar("1.20.1");
-    expect(await pickClientJarVersionId(tmpDir, ["1.20.1"])).toBe("1.20.1");
+    await placeJar(MC_1_20_1);
+    expect(await pickClientJarVersionId(tmpDir, [MC_1_20_1])).toBe(MC_1_20_1);
   });
 
   it("falls back to the parent vanilla id when the loader id has no jar (Fabric)", async () => {
-    await placeJar("1.20.1");
-    const chain = ["fabric-loader-0.14.21-1.20.1", "1.20.1"];
-    expect(await pickClientJarVersionId(tmpDir, chain)).toBe("1.20.1");
+    await placeJar(MC_1_20_1);
+    const chain = [FABRIC_1_20_1, MC_1_20_1];
+    expect(await pickClientJarVersionId(tmpDir, chain)).toBe(MC_1_20_1);
   });
 
   it("prefers the topmost id when its jar exists (legacy Forge with universal jar)", async () => {
-    await placeJar("1.12.2-forge-14.23.5");
-    await placeJar("1.12.2");
-    const chain = ["1.12.2-forge-14.23.5", "1.12.2"];
-    expect(await pickClientJarVersionId(tmpDir, chain)).toBe("1.12.2-forge-14.23.5");
+    await placeJar(FORGE_1_12_2);
+    await placeJar(MC_1_12_2);
+    const chain = [FORGE_1_12_2, MC_1_12_2];
+    expect(await pickClientJarVersionId(tmpDir, chain)).toBe(FORGE_1_12_2);
   });
 
   it("falls back to the deepest chain entry when nothing exists yet", async () => {
-    const chain = ["fabric-loader-0.14.21-1.20.1", "1.20.1"];
-    expect(await pickClientJarVersionId(tmpDir, chain)).toBe("1.20.1");
+    const chain = [FABRIC_1_20_1, MC_1_20_1];
+    expect(await pickClientJarVersionId(tmpDir, chain)).toBe(MC_1_20_1);
   });
 });

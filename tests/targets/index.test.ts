@@ -4,6 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ApiEndpoints } from "../../src/constants/api";
 import { silentLogger } from "../../src/core/logger";
+import { asMinecraftVersionId } from "../../src/core/version-id";
 import { createMemoryCache } from "../../src/http/cache";
 import { TargetsApi } from "../../src/targets/index";
 import { Loaders } from "../../src/types/loader";
@@ -125,7 +126,7 @@ describe("TargetsApi", () => {
     const target = await targets.resolve({
       id: "t",
       directory: "/x",
-      minecraft: { version: "1.20.1" },
+      minecraft: { version: asMinecraftVersionId("1.20.1") },
       loader: { type: Loaders.VANILLA },
     });
     expect(target.minecraft.version).toBe("1.20.1");

@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { asMinecraftVersionId } from "../../src/core/version-id";
 import { buildClasspath } from "../../src/launch/classpath";
 import type { MinecraftVersionManifest } from "../../src/types/minecraft";
 import type { RuntimeSystem } from "../../src/types/system";
 
 const system: RuntimeSystem = { os: "windows", arch: "x64", osVersion: "10.0" };
+const MC_1_20_1 = asMinecraftVersionId("1.20.1");
 
 const libraryWithDownloadArtifact = {
   name: "com.example:lib:1.0",
@@ -23,7 +25,7 @@ const libraryDisallowedByOsRule = {
 };
 
 const mergedManifest: MinecraftVersionManifest = {
-  id: "1.20.1",
+  id: MC_1_20_1,
   type: "release",
   mainClass: "x",
   assetIndex: { id: "5", sha1: "x", size: 1, totalSize: 1, url: "" },
@@ -42,7 +44,7 @@ describe("buildClasspath", () => {
   it("includes libraries and version jar", () => {
     const cp = buildClasspath({
       directory: "/r",
-      versionId: "1.20.1",
+      versionId: MC_1_20_1,
       merged: mergedManifest,
       system,
     });
@@ -55,7 +57,7 @@ describe("buildClasspath", () => {
   it("dedupes by absolute path", () => {
     const cp = buildClasspath({
       directory: "/r",
-      versionId: "1.20.1",
+      versionId: MC_1_20_1,
       merged: mergedManifest,
       system,
     });
@@ -66,7 +68,7 @@ describe("buildClasspath", () => {
   it("skips libraries with natives field", () => {
     const cp = buildClasspath({
       directory: "/r",
-      versionId: "1.20.1",
+      versionId: MC_1_20_1,
       merged: mergedManifest,
       system,
     });

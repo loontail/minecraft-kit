@@ -1,6 +1,8 @@
+import { asMinecraftVersionId } from "../../../core/version-id";
 import {
   type MinecraftChannel,
   MinecraftChannels,
+  type MinecraftVersionId,
   type MinecraftVersionSummary,
 } from "../../../types/minecraft";
 import type { DiscoveredTarget } from "../../../types/target";
@@ -71,13 +73,14 @@ export const pickMinecraftVersion = async (
 export const pickMinecraftVersionFromEntry = async (
   ctx: ScenarioContext,
   entry: DiscoveredTarget,
-): Promise<string | null> => {
+): Promise<MinecraftVersionId | null> => {
   if (entry.minecraftVersions.length === 0) {
     ctx.ui.log("warn", "Installation has no Minecraft versions on disk.");
     return null;
   }
+  const first = entry.minecraftVersions[0];
   if (entry.minecraftVersions.length === 1) {
-    return entry.minecraftVersions[0] ?? null;
+    return first ? asMinecraftVersionId(first) : null;
   }
   const choice = await ctx.ui.select<string>({
     message: "Multiple Minecraft versions on disk — pick one",
@@ -85,7 +88,7 @@ export const pickMinecraftVersionFromEntry = async (
     allowCancel: true,
   });
   if (choice.kind !== "ok") return null;
-  return choice.value;
+  return asMinecraftVersionId(choice.value);
 };
 
 const dedupeAndSortNewestFirst = (

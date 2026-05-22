@@ -2,6 +2,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ApiEndpoints } from "../../src/constants/api";
 import { silentLogger } from "../../src/core/logger";
+import { asMinecraftVersionId } from "../../src/core/version-id";
 import { createMemoryCache } from "../../src/http/cache";
 import { planMinecraftRepair } from "../../src/repair/minecraft";
 import { TargetsApi } from "../../src/targets/index";
@@ -90,7 +91,7 @@ describe("planMinecraftRepair — NATIVE-category issues", () => {
     const target = await targets.resolve({
       id: "x",
       directory: "/r",
-      minecraft: { version: "1.20.1" },
+      minecraft: { version: asMinecraftVersionId("1.20.1") },
       loader: { type: Loaders.VANILLA },
     });
 
@@ -194,7 +195,7 @@ describe("planMinecraftRepair — NATIVE-category issues", () => {
     const target = await targets.resolve({
       id: "x",
       directory: "/r",
-      minecraft: { version: "1.20.1" },
+      minecraft: { version: asMinecraftVersionId("1.20.1") },
       loader: { type: Loaders.VANILLA },
     });
     const nativeJarPath = path.join(

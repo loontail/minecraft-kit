@@ -29,6 +29,27 @@ export const MinecraftChannels = {
 export type MinecraftChannel = (typeof MinecraftChannels)[keyof typeof MinecraftChannels];
 
 /**
+ * Branded Minecraft version id (e.g. `"1.20.1"`, `"1.20.1-forge-47.2.0"`,
+ * `"fabric-loader-0.14.21-1.20.1"`). Construct via `asMinecraftVersionId`
+ * (exported from the package root) — the brand prevents accidentally
+ * passing a player UUID, an asset-index id, or another opaque string where
+ * the install/launch pipeline expects a Minecraft version id.
+ *
+ * The resolver brands at the Mojang-manifest boundary; reach for
+ * `asMinecraftVersionId` when reading a saved version id from disk or when
+ * the host environment supplies one.
+ *
+ * @example
+ * ```ts
+ * import { asMinecraftVersionId, type MinecraftVersionId } from "@loontail/minecraft-kit";
+ *
+ * const id: MinecraftVersionId = asMinecraftVersionId("1.20.1");
+ * const resolved = await kit.versions.minecraft.resolve({ version: id });
+ * ```
+ */
+export type MinecraftVersionId = string & { readonly __brand: "MinecraftVersionId" };
+
+/**
  * One entry from the top-level Minecraft `version_manifest_v2.json` listing.
  *
  * Note: this is a summary entry, not the full per-version manifest. Use
@@ -45,7 +66,7 @@ export type MinecraftChannel = (typeof MinecraftChannels)[keyof typeof Minecraft
  */
 export type MinecraftVersionSummary = {
   /** Version id (e.g. `"1.20.1"`). */
-  readonly id: string;
+  readonly id: MinecraftVersionId;
   /** Release channel. */
   readonly type: MinecraftChannel;
   /** URL to the per-version manifest JSON. */
@@ -65,15 +86,15 @@ export type MinecraftVersionSummary = {
  *
  * @example
  * ```ts
- * import type { MinecraftVersionManifest } from "@loontail/minecraft-kit";
+ * import { asMinecraftVersionId, type MinecraftVersionManifest } from "@loontail/minecraft-kit";
  *
- * const resolved = await kit.versions.minecraft.resolve({ version: "1.20.1" });
+ * const resolved = await kit.versions.minecraft.resolve({ version: asMinecraftVersionId("1.20.1") });
  * const manifest: MinecraftVersionManifest = resolved.manifest;
  * console.log(manifest.mainClass, manifest.javaVersion?.majorVersion);
  * ```
  */
 export type MinecraftVersionManifest = {
-  readonly id: string;
+  readonly id: MinecraftVersionId;
   readonly type: MinecraftChannel | string;
   readonly mainClass: string;
   /** Asset index reference. */
@@ -88,7 +109,7 @@ export type MinecraftVersionManifest = {
   readonly minecraftArguments?: string;
   readonly javaVersion?: MinecraftJavaVersion;
   readonly logging?: MinecraftLogging;
-  readonly inheritsFrom?: string;
+  readonly inheritsFrom?: MinecraftVersionId;
   readonly releaseTime?: string;
   readonly time?: string;
   readonly minimumLauncherVersion?: number;
@@ -295,15 +316,17 @@ export type MinecraftLogging = {
  *
  * @example
  * ```ts
- * import type { ResolvedMinecraft } from "@loontail/minecraft-kit";
+ * import { asMinecraftVersionId, type ResolvedMinecraft } from "@loontail/minecraft-kit";
  *
- * const resolved: ResolvedMinecraft = await kit.versions.minecraft.resolve({ version: "1.20.1" });
+ * const resolved: ResolvedMinecraft = await kit.versions.minecraft.resolve({
+ *   version: asMinecraftVersionId("1.20.1"),
+ * });
  * console.log(resolved.version, resolved.channel, resolved.manifest.mainClass);
  * ```
  */
 export type ResolvedMinecraft = {
   /** Version id (e.g. `"1.20.1"`). */
-  readonly version: string;
+  readonly version: MinecraftVersionId;
   readonly channel: MinecraftChannel;
   readonly manifest: MinecraftVersionManifest;
   readonly summary: MinecraftVersionSummary;

@@ -61,6 +61,24 @@ export type AzureClientId = string & { readonly __brand: "AzureClientId" };
 export type MicrosoftRefreshToken = string & { readonly __brand: "MicrosoftRefreshToken" };
 
 /**
+ * Branded Minecraft player UUID. Construct via `asPlayerUuid` (exported from
+ * the package root) — the brand prevents accidentally passing a Minecraft
+ * version id, an Xbox userhash, or another opaque string where the launch
+ * composer expects a player UUID.
+ *
+ * `offlineUuidFor` already returns this brand; reach for `asPlayerUuid` when
+ * loading a saved UUID from disk or when the host environment supplies one.
+ *
+ * @example
+ * ```ts
+ * import { asPlayerUuid, type PlayerUuid } from "@loontail/minecraft-kit";
+ *
+ * const uuid: PlayerUuid = asPlayerUuid(await storage.load("player-uuid"));
+ * ```
+ */
+export type PlayerUuid = string & { readonly __brand: "PlayerUuid" };
+
+/**
  * Offline authentication.
  *
  * @example
@@ -78,7 +96,7 @@ export type OfflineAuth = {
   readonly mode: typeof AuthModes.OFFLINE;
   readonly username: string;
   /** Optional explicit UUID. When omitted, a deterministic UUID is derived from the username. */
-  readonly uuid?: string;
+  readonly uuid?: PlayerUuid;
 };
 
 /**
@@ -104,7 +122,7 @@ export type OfflineAuth = {
 export type OnlineAuth = {
   readonly mode: typeof AuthModes.ONLINE;
   readonly username: string;
-  readonly uuid: string;
+  readonly uuid: PlayerUuid;
   readonly accessToken: string;
   readonly userType: string;
   readonly clientId: AzureClientId;
@@ -212,7 +230,7 @@ export type MojangSession = {
     /** Player display name. */
     readonly username: string;
     /** Player UUID, dashed (e.g. `f81d4fae-7dec-11d0-a765-00a0c91e6bf6`). */
-    readonly uuid: string;
+    readonly uuid: PlayerUuid;
     /** Bearer token for `api.minecraftservices.com` and the game itself. */
     readonly accessToken: string;
     /** Wall-clock ms timestamp when {@link accessToken} expires. */

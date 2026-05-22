@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { asMinecraftVersionId } from "../../src/core/version-id";
 import { composeLaunch } from "../../src/launch/compose";
 import { AuthModes } from "../../src/types/auth";
 import type { ResolvedFabricLoader } from "../../src/types/fabric";
@@ -10,11 +11,13 @@ import type { ResolvedMinecraft } from "../../src/types/minecraft";
 import type { ResolvedRuntime } from "../../src/types/runtime";
 import type { Target } from "../../src/types/target";
 
+const MC_1_20_1 = asMinecraftVersionId("1.20.1");
+
 const minecraft: ResolvedMinecraft = {
-  version: "1.20.1",
+  version: MC_1_20_1,
   channel: "release",
   manifest: {
-    id: "1.20.1",
+    id: MC_1_20_1,
     type: "release",
     mainClass: "net.minecraft.client.main.Main",
     assetIndex: { id: "5", sha1: "x", size: 1, totalSize: 1, url: "https://idx" },
@@ -24,7 +27,7 @@ const minecraft: ResolvedMinecraft = {
     arguments: { game: ["--username", "${auth_player_name}"], jvm: [] },
   },
   summary: {
-    id: "1.20.1",
+    id: MC_1_20_1,
     type: "release",
     url: "https://m",
     time: "",

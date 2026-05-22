@@ -4,6 +4,7 @@ import { dirExists, fileExists, listChildDirectories } from "../core/fs";
 import { withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
 import { Loaders, type VersionPreferenceKind } from "../types/loader";
+import type { MinecraftVersionId } from "../types/minecraft";
 import { RuntimePreference, type RuntimePreferenceKind } from "../types/runtime";
 import type { RuntimeSystem } from "../types/system";
 import type {
@@ -23,12 +24,12 @@ import type { RuntimeVersionsApi } from "../versions/runtime";
  *
  * @example
  * ```ts
- * import { Loaders, type TargetResolveInput } from "@loontail/minecraft-kit";
+ * import { asMinecraftVersionId, Loaders, type TargetResolveInput } from "@loontail/minecraft-kit";
  *
  * const input: TargetResolveInput = {
  *   id: "vanilla-1.20.1",
  *   directory: "/games/minecraft/vanilla-1.20.1",
- *   minecraft: { version: "1.20.1" },
+ *   minecraft: { version: asMinecraftVersionId("1.20.1") },
  *   loader: { type: Loaders.VANILLA },
  * };
  * const target = await kit.targets.resolve(input);
@@ -37,7 +38,7 @@ import type { RuntimeVersionsApi } from "../versions/runtime";
 export type TargetResolveInput = {
   readonly id: string;
   readonly directory: string;
-  readonly minecraft: { readonly version: string };
+  readonly minecraft: { readonly version: MinecraftVersionId };
   readonly loader: TargetLoaderInput;
   readonly runtime?: {
     readonly preference?: RuntimePreferenceKind;
@@ -134,13 +135,13 @@ export type TargetsApiContext = {
  *
  * @example
  * ```ts
- * import { Loaders, MinecraftKit } from "@loontail/minecraft-kit";
+ * import { asMinecraftVersionId, Loaders, MinecraftKit } from "@loontail/minecraft-kit";
  *
  * const kit = new MinecraftKit();
  * const target = await kit.targets.resolve({
  *   id: "modded",
  *   directory: "/games/minecraft/modded",
- *   minecraft: { version: "1.20.1" },
+ *   minecraft: { version: asMinecraftVersionId("1.20.1") },
  *   loader: { type: Loaders.FABRIC },
  * });
  * ```

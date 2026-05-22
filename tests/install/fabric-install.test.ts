@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { asMinecraftVersionId } from "../../src/core/version-id";
 import { planFabricInstall } from "../../src/install/fabric-install";
 import type { ResolvedFabricLoader } from "../../src/types/fabric";
 import { Loaders } from "../../src/types/loader";
@@ -6,12 +7,13 @@ import type { ResolvedMinecraft } from "../../src/types/minecraft";
 import type { RuntimeSystem } from "../../src/types/system";
 
 const system: RuntimeSystem = { os: "windows", arch: "x64", osVersion: "10.0" };
+const MC_1_20_1 = asMinecraftVersionId("1.20.1");
 
 const minecraft: ResolvedMinecraft = {
-  version: "1.20.1",
+  version: MC_1_20_1,
   channel: "release",
   manifest: {
-    id: "1.20.1",
+    id: MC_1_20_1,
     type: "release",
     mainClass: "x",
     assetIndex: { id: "5", sha1: "x", size: 1, totalSize: 1, url: "" },
@@ -20,7 +22,7 @@ const minecraft: ResolvedMinecraft = {
     libraries: [],
   },
   summary: {
-    id: "1.20.1",
+    id: MC_1_20_1,
     type: "release",
     url: "",
     time: "",

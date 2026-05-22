@@ -1,4 +1,32 @@
 import crypto from "node:crypto";
+import type { PlayerUuid } from "../types/auth";
+import { MinecraftKitError, MinecraftKitErrorCodes } from "./errors";
+
+/**
+ * Validate `raw` as a Minecraft player UUID and brand it as {@link PlayerUuid}.
+ * Throws `MinecraftKitError(INVALID_INPUT)` when the input is empty after
+ * trimming. The constructor does not enforce a specific UUID shape — Mojang
+ * accepts both dashed and undashed forms in different APIs — but it does
+ * reject the empty string so a missing storage entry can't quietly become a
+ * UUID-shaped placeholder.
+ *
+ * @example
+ * ```ts
+ * import { asPlayerUuid } from "@loontail/minecraft-kit";
+ *
+ * const uuid = asPlayerUuid(await storage.load("player-uuid"));
+ * ```
+ */
+export const asPlayerUuid = (raw: string): PlayerUuid => {
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) {
+    throw new MinecraftKitError(
+      MinecraftKitErrorCodes.INVALID_INPUT,
+      "Player UUID cannot be empty.",
+    );
+  }
+  return trimmed as PlayerUuid;
+};
 
 /**
  * Derive a stable v3-style UUID for an offline player username.
@@ -15,13 +43,13 @@ import crypto from "node:crypto";
  * // auth.uuid → "069a79f4-44e9-4726-a5be-fca90e38aaf5"
  * ```
  */
-export const offlineUuidFor = (username: string): string => {
+export const offlineUuidFor = (username: string): PlayerUuid => {
   const md5 = crypto.createHash("md5");
   md5.update(`OfflinePlayer:${username}`, "utf8");
   const bytes = md5.digest();
   bytes[6] = patchVersionV3(bytes[6] ?? 0);
   bytes[8] = patchVariantRfc4122(bytes[8] ?? 0);
-  return formatUuid(bytes);
+  return formatUuid(bytes) as PlayerUuid;
 };
 
 const patchVersionV3 = (byte: number): number => (byte & 0x0f) | 0x30;

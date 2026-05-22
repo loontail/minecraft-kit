@@ -9,6 +9,48 @@ follows [Semantic Versioning](https://semver.org/).
 
 ### BREAKING CHANGES
 
+- **Branded `PlayerUuid` and `MinecraftVersionId` types.** The two most
+  easily-mixed opaque ids in the kit are now branded:
+
+  - `PlayerUuid` covers `OnlineAuth.uuid`, `OfflineAuth.uuid` (optional),
+    `MojangSession.minecraft.uuid`, and the return type of `offlineUuidFor`.
+  - `MinecraftVersionId` covers `ResolvedMinecraft.version`,
+    `MinecraftVersionSummary.id`, `MinecraftVersionManifest.id`/`inheritsFrom`,
+    `MinecraftGetInput.version`, `TargetResolveInput.minecraft.version`,
+    and the launch-pipeline internals (`ResolvedLaunchVersion`,
+    `pickClientJarVersionId`, `buildClasspath`).
+
+  Construct values via `asPlayerUuid(raw)` and `asMinecraftVersionId(raw)` —
+  both validate non-emptiness and throw `MinecraftKitError(INVALID_INPUT)`
+  on the empty string. Kit-produced values (the resolver, the auth
+  pipeline, `offlineUuidFor`) are already branded; only raw strings entering
+  from disk, env vars, or user input need the constructor.
+
+  Migration:
+
+  ```ts
+  // Before
+  const target = await kit.targets.resolve({
+    id: "vanilla",
+    directory: "/games/vanilla",
+    minecraft: { version: "1.20.1" },
+    loader: { type: Loaders.VANILLA },
+  });
+
+  // After
+  import { asMinecraftVersionId } from "@loontail/minecraft-kit";
+  const target = await kit.targets.resolve({
+    id: "vanilla",
+    directory: "/games/vanilla",
+    minecraft: { version: asMinecraftVersionId("1.20.1") },
+    loader: { type: Loaders.VANILLA },
+  });
+  ```
+
+  Callers that read `target.minecraft.version` or `session.minecraft.uuid`
+  off kit results need no change — the brand widens to `string` for any
+  downstream consumer.
+
 - **Branded `MicrosoftRefreshToken` type.** `MojangSession.microsoft.refreshToken`
   is now `MicrosoftRefreshToken` instead of `string`; `kit.auth.refresh(token, …)`
   requires the brand on its first parameter. Construct values via
