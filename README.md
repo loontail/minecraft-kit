@@ -12,8 +12,9 @@ and modern Forge.
   others, either bundled with a target or standalone.
 - **Verify, repair, launch.** Per-aspect verifiers tell you exactly which files are missing
   or corrupted; repair re-downloads only those.
-- **Microsoft OAuth.** Built-in device-code sign-in returns a `MojangSession` ready for
-  online launches. Token storage stays in your launcher's hands.
+- **Microsoft OAuth.** Built-in Microsoft sign-in (OAuth 2.0 Authorization Code + PKCE)
+  returns a `MojangSession` ready for online launches. Token storage stays in your
+  launcher's hands.
 - **Typed events.** Discriminated-union `onEvent` callbacks cover every download, integrity
   check, archive extraction, processor invocation, and launch transition.
 - **Defence in depth.** URL scheme allow-list on every download, optional host pinning,
@@ -58,10 +59,10 @@ await session.exited;
 ### Online launch via Microsoft
 
 ```ts
-const session = await kit.auth.login({
+const session = await kit.auth.authorizationCode.run({
   clientId: process.env.MINECRAFT_KIT_MSA_CLIENT_ID,
-  onPrompt: (prompt) => {
-    console.log(`Open ${prompt.verificationUri} and enter ${prompt.userCode}`);
+  onOpenBrowser: async (url) => {
+    // Open `url` in the user's browser (shell.openExternal in Electron, `open` in a CLI).
   },
 });
 
@@ -95,8 +96,8 @@ full model. Highlights:
 - Manifests pass through runtime shape guards before any code trusts them.
 - Zip extraction caps entry count, per-entry size, total size, and compression ratio;
   rejects path traversal, null bytes, reserved Windows names, and drive letters.
-- Auth tokens never touch disk inside the kit. `kit.auth.login()` returns a session; the
-  launcher decides how to persist the refresh token.
+- Auth tokens never touch disk inside the kit. `kit.auth.authorizationCode.run()` returns
+  a session; the launcher decides how to persist the refresh token.
 
 ## License
 
