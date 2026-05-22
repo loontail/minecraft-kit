@@ -194,22 +194,30 @@ const runPostMsTokenPipeline = async (
   signal: AbortSignal | undefined,
   logger: Logger,
 ): Promise<MojangSession> => {
-  const signalOpt = withOptionalSignal(signal);
   const xbl = await authenticateXbl({
     http,
     accessToken: msToken.accessToken,
     logger,
-    ...signalOpt,
+    ...withOptionalSignal(signal),
   });
-  const xsts = await authenticateXsts({ http, xblToken: xbl.token, logger, ...signalOpt });
+  const xsts = await authenticateXsts({
+    http,
+    xblToken: xbl.token,
+    logger,
+    ...withOptionalSignal(signal),
+  });
   const mc = await loginWithXbox({
     http,
     xstsToken: xsts.token,
     userHash: xsts.userHash,
     logger,
-    ...signalOpt,
+    ...withOptionalSignal(signal),
   });
-  const profile = await fetchMinecraftProfile({ http, accessToken: mc.accessToken, ...signalOpt });
+  const profile = await fetchMinecraftProfile({
+    http,
+    accessToken: mc.accessToken,
+    ...withOptionalSignal(signal),
+  });
 
   return {
     minecraft: {
