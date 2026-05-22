@@ -1,5 +1,6 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { withOptionalSignal } from "../core/optional";
+import { isHttpOk } from "../http/status";
 import type { HttpClient } from "../types/http";
 import type { Logger } from "../types/logger";
 
@@ -112,7 +113,7 @@ export const authenticateXsts = async (input: {
       context: { xerr: err.XErr ?? null, message: err.Message ?? null },
     });
   }
-  if (response.status < 200 || response.status >= 300) {
+  if (!isHttpOk(response.status)) {
     throw new MinecraftKitError(
       MinecraftKitErrorCodes.AUTH_XSTS_FAILED,
       `XSTS authorization failed with HTTP ${response.status}.`,

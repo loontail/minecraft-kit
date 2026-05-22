@@ -1,5 +1,6 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { postFormUrlEncoded } from "../http/postForm";
+import { isHttpOk } from "../http/status";
 import type { HttpClient } from "../types/http";
 
 const TENANT = "consumers";
@@ -51,7 +52,7 @@ const postTokenRequest = async (
   signal: AbortSignal | undefined,
 ): Promise<TokenResponse> => {
   const { status, json } = await postFormUrlEncoded(http, TOKEN_URL, body, signal);
-  if (status >= 200 && status < 300) {
+  if (isHttpOk(status)) {
     return { ok: true, status, token: json as TokenSuccess };
   }
   return { ok: false, status, error: json as TokenError };

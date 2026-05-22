@@ -2,6 +2,7 @@ import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { parseJsonOrUndefined } from "../core/json";
 import { withOptionalSignal } from "../core/optional";
 import { addUuidDashes } from "../core/uuid";
+import { isHttpOk } from "../http/status";
 import type {
   MojangAssetState,
   MojangProfileCape,
@@ -104,7 +105,7 @@ export const loginWithXbox = async (input: {
     acceptNonOk: true,
     ...withOptionalSignal(input.signal),
   });
-  if (response.status < 200 || response.status >= 300) {
+  if (!isHttpOk(response.status)) {
     const rawBody = await response.text().catch(() => "");
     const detail = rawBody.slice(0, 400);
     input.logger?.log("debug", `login_with_xbox failed status=${response.status} body=${detail}`);
@@ -176,7 +177,7 @@ export const fetchMinecraftProfile = async (input: {
       { context: { httpStatus: 404 } },
     );
   }
-  if (response.status < 200 || response.status >= 300) {
+  if (!isHttpOk(response.status)) {
     throw new MinecraftKitError(
       MinecraftKitErrorCodes.AUTH_MINECRAFT_FAILED,
       `Failed to load Minecraft profile (HTTP ${response.status}).`,
