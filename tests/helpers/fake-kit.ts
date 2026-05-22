@@ -10,8 +10,7 @@ import type { ResolvedRuntime } from "../../src/types/runtime";
 import type { DiscoveredTarget, Target } from "../../src/types/target";
 import type { VerificationResult } from "../../src/types/verify";
 
-/** Test fixture for the resolved-target shape. */
-export const fakeMinecraft: ResolvedMinecraft = {
+const fakeMinecraft: ResolvedMinecraft = {
   version: "1.20.1",
   channel: "release",
   manifest: {
@@ -35,8 +34,7 @@ export const fakeMinecraft: ResolvedMinecraft = {
   },
 };
 
-/** Test fixture for runtime. */
-export const fakeRuntime: ResolvedRuntime = {
+const fakeRuntime: ResolvedRuntime = {
   component: "java-runtime-gamma",
   platformKey: "windows-x64",
   versionName: "17.0.8",
@@ -45,8 +43,7 @@ export const fakeRuntime: ResolvedRuntime = {
   manifestSha1: "x",
 };
 
-/** Test fixture for vanilla loader. */
-export const fakeVanillaLoader: Loader = {
+const fakeVanillaLoader: Loader = {
   type: "vanilla" as typeof Loaders.VANILLA,
   minecraftVersion: "1.20.1",
   minecraft: fakeMinecraft,
@@ -61,8 +58,7 @@ export const fakeTarget: Target = {
   runtime: fakeRuntime,
 };
 
-/** Inputs for {@link buildFakeKit}. */
-export type FakeKitInput = {
+type FakeKitInput = {
   readonly minecraftVersions?: readonly MinecraftVersionSummary[];
   readonly fabricLoaders?:
     | readonly FabricLoaderSummary[]
