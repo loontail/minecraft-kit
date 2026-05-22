@@ -1,4 +1,5 @@
 import path from "node:path";
+import { assertNever } from "../../core/assert-never";
 import { Loaders } from "../../types/loader";
 import type { MinecraftChannel, MinecraftVersionSummary } from "../../types/minecraft";
 import { formatUserError } from "../error-format";
@@ -139,6 +140,8 @@ const advanceInstallWizard = async (
       if (result === "cancelled") return "cancelled";
       return result;
     }
+    default:
+      return assertNever(step);
   }
 };
 
@@ -237,5 +240,7 @@ const advanceRuntimeWizard = async (
         return RuntimeWizardSteps.COMPONENT;
       }
     }
+    default:
+      return assertNever(step);
   }
 };
