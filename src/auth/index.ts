@@ -104,7 +104,7 @@ export type RefreshOptions = {
 };
 
 /**
- * Options accepted by {@link MojangAuthApi.authorizationCode.run}.
+ * Options accepted by `kit.auth.authorizationCode.run`.
  *
  * @example
  * ```ts
@@ -140,9 +140,9 @@ export type AuthorizationCodeRunOptions = {
 };
 
 /**
- * High-level Microsoft / Mojang auth surface attached to {@link import("../kit").MinecraftKit}
+ * High-level Microsoft / Mojang auth surface attached to `MinecraftKit`
  * as `kit.auth`. Sign-in uses the OAuth 2.0 Authorization Code + PKCE flow with a
- * loopback redirect ({@link MojangAuthApi.authorizationCode}): the kit opens a
+ * loopback redirect (`kit.auth.authorizationCode`): the kit opens a
  * localhost server, the caller opens the system browser, the user signs in, and the
  * browser redirects back. The flow continues through the Xbox → XSTS → Minecraft
  * pipeline and returns a {@link MojangSession} carrying everything launch composition

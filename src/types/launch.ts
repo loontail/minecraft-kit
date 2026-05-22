@@ -1,4 +1,5 @@
 import type { LaunchAuth } from "./auth";
+import type { ProgressEvent } from "./events";
 
 /**
  * Optional memory configuration.
@@ -151,7 +152,7 @@ export type LaunchExit = {
  */
 export type LaunchRunOptions = {
   readonly signal?: AbortSignal;
-  readonly onEvent?: (event: import("./events").ProgressEvent) => void;
+  readonly onEvent?: (event: ProgressEvent) => void;
   /** Milliseconds to wait between SIGTERM and SIGKILL when aborting. */
   readonly killGracePeriodMs?: number;
 };

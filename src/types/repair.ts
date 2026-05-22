@@ -54,7 +54,7 @@ export type RepairPhase = (typeof RepairPhases)[keyof typeof RepairPhases];
 export type RepairPlan = {
   readonly targetId: string;
   readonly directory: string;
-  readonly target: import("./target").Target;
+  readonly target: Target;
   readonly actions: readonly InstallAction[];
   readonly totalBytes: number;
   readonly totalActions: number;

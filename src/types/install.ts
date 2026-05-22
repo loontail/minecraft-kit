@@ -1,3 +1,6 @@
+import type { ResolvedRuntime } from "./runtime";
+import type { Target } from "./target";
+
 /**
  * Coarse-grained install phases. Used in `install:phase-changed` events so consumers can
  * render a progress bar with named steps.
@@ -258,13 +261,13 @@ export type InstallAction =
 export type RuntimeOnlyInstallTarget = {
   readonly id: string;
   readonly directory: string;
-  readonly runtime: import("./runtime").ResolvedRuntime;
+  readonly runtime: ResolvedRuntime;
   readonly minecraft?: undefined;
   readonly loader?: undefined;
 };
 
 /**
- * Shape of `InstallPlan.target`. Either a fully-resolved {@link import("./target").Target} or a
+ * Shape of `InstallPlan.target`. Either a fully-resolved `Target` (from `./target`) or a
  * runtime-only stand-in. The install runner only reads `target.minecraft`/`target.loader` when
  * the plan actually contains those steps, so runtime-only plans are safe.
  *
@@ -276,7 +279,7 @@ export type RuntimeOnlyInstallTarget = {
  * console.log(directoryOf(plan.target));
  * ```
  */
-export type InstallPlanTarget = import("./target").Target | RuntimeOnlyInstallTarget;
+export type InstallPlanTarget = Target | RuntimeOnlyInstallTarget;
 
 /**
  * Pre-computed install plan: a flat ordered list of actions plus computed totals.

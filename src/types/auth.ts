@@ -208,12 +208,12 @@ export type MojangProfileCape = {
 };
 
 /**
- * Combined Microsoft + Minecraft session returned by `kit.auth.login`,
- * `kit.auth.refresh`, and `kit.auth.authorizationCode.run`.
+ * Combined Microsoft + Minecraft session returned by
+ * `kit.auth.authorizationCode.run` and `kit.auth.refresh`.
  *
- * The fields under {@link minecraft} are everything {@link OnlineAuth} needs plus the
+ * The fields under `minecraft` are everything {@link OnlineAuth} needs plus the
  * raw `/minecraft/profile` payload so callers do not have to re-fetch it for skin/cape UI.
- * The fields under {@link microsoft} are needed only to refresh the session later —
+ * The fields under `microsoft` are needed only to refresh the session later —
  * persist them to durable storage (encrypted) alongside the user's profile.
  *
  * @example

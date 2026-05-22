@@ -2,7 +2,7 @@
  * Lightweight runtime shape checks for JSON pulled over the network. The kit ships without
  * Zod to keep the dependency surface flat; these helpers cover the "is this the shape we
  * declared, or did the server change its mind" question at the cost of a few lines per
- * endpoint. Pair with {@link import("./json").parseJsonAs}.
+ * endpoint. Pair with `parseJsonAs` from `./json`.
  */
 
 import type {

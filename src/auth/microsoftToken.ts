@@ -15,7 +15,7 @@ const SCOPE = "XboxLive.signin offline_access";
 
 /**
  * Microsoft access + refresh tokens. Internal — callers receive the higher-level
- * {@link import("../types/auth").MojangSession} instead.
+ * `MojangSession` (from `../types/auth`) instead.
  *
  * @internal
  */

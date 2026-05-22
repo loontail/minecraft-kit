@@ -105,11 +105,11 @@ the injected `Spawner`. The default `ChildProcessSpawner`:
 
 ## Authentication
 
-Tokens never touch disk. `kit.auth.login()` returns a session; storing the refresh token is
-the caller's job. The kit ships zero default credentials — `MINECRAFT_KIT_MSA_CLIENT_ID`
-must be set or the caller passes `clientId` explicitly. Auth trace can leak token lengths
-(not contents); it stays silent unless a `Logger` is wired or
-`MINECRAFT_KIT_AUTH_DEBUG=1` is set.
+Tokens never touch disk. `kit.auth.authorizationCode.run()` returns a session; storing
+the refresh token is the caller's job. The kit ships zero default credentials —
+`MINECRAFT_KIT_MSA_CLIENT_ID` must be set or the caller passes `clientId` explicitly.
+Auth trace can leak token lengths (not contents); it stays silent unless a `Logger` is
+wired or `MINECRAFT_KIT_AUTH_DEBUG=1` is set.
 
 ## What the kit does NOT defend against
 

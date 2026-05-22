@@ -103,7 +103,7 @@ export const InstallWizardSteps = {
 export type InstallWizardStep = (typeof InstallWizardSteps)[keyof typeof InstallWizardSteps];
 
 /**
- * Outcome of {@link import("./install-helpers").runInstallFromSelection}.
+ * Outcome of `runInstallFromSelection` (from `./install-helpers`).
  *
  * @internal
  */

@@ -17,5 +17,16 @@
   "parametersFormat": "table",
   "propertiesFormat": "table",
   "typeDeclarationFormat": "table",
-  "indexFormat": "table"
+  "indexFormat": "table",
+  "intentionallyNotExported": [
+    "MinecraftKitErrorCode",
+    "VerifyFabricInput",
+    "VerifyForgeInput",
+    "VerifyMinecraftInput",
+    "VerifyRuntimeInput",
+    "PlanRuntimeInstallInput",
+    "RepairAllInput",
+    "RunRepairInput",
+    "ResolverContext"
+  ]
 }
