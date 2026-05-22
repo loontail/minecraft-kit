@@ -7,6 +7,15 @@ import type { Logger } from "../types/logger";
 const XBL_URL = "https://user.auth.xboxlive.com/user/authenticate";
 const XSTS_URL = "https://xsts.auth.xboxlive.com/xsts/authorize";
 
+/** Marker Microsoft expects in the XBL request body: `d=` prefix + access token. */
+const XBL_RPS_TICKET_PREFIX = "d=";
+
+/** Public retail Xbox Live sandbox; non-RETAIL sandboxes are for partner tooling only. */
+const XBOX_SANDBOX_RETAIL = "RETAIL";
+
+/** XSTS RelyingParty bound to the Minecraft services audience. */
+const MINECRAFT_SERVICES_RELYING_PARTY = "rp://api.minecraftservices.com/";
+
 /**
  * Result of either XBL or XSTS authentication: the JWT plus the user hash that prefixes the
  * Minecraft `identityToken`.
@@ -45,7 +54,7 @@ export const authenticateXbl = async (input: {
     Properties: {
       AuthMethod: "RPS",
       SiteName: "user.auth.xboxlive.com",
-      RpsTicket: `d=${input.accessToken}`,
+      RpsTicket: `${XBL_RPS_TICKET_PREFIX}${input.accessToken}`,
     },
     RelyingParty: "http://auth.xboxlive.com",
     TokenType: "JWT",
@@ -96,8 +105,8 @@ export const authenticateXsts = async (input: {
   readonly logger?: Logger;
 }): Promise<XboxToken> => {
   const body = JSON.stringify({
-    Properties: { SandboxId: "RETAIL", UserTokens: [input.xblToken] },
-    RelyingParty: "rp://api.minecraftservices.com/",
+    Properties: { SandboxId: XBOX_SANDBOX_RETAIL, UserTokens: [input.xblToken] },
+    RelyingParty: MINECRAFT_SERVICES_RELYING_PARTY,
     TokenType: "JWT",
   });
   const response = await input.http.request(XSTS_URL, {

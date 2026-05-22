@@ -15,6 +15,9 @@ const TENANT = "consumers";
 /** Authorize endpoint we redirect the user's browser to. */
 const AUTHORIZE_URL = `https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/authorize`;
 
+/** Authorize prompt that forces Microsoft to show the account picker even on a signed-in browser. */
+const MICROSOFT_PROMPT_SELECT_ACCOUNT = "select_account";
+
 /**
  * Scopes consumed by the Minecraft pipeline. Must match the device-code flow's scope
  * (see `auth/microsoft.ts`) so the refresh token Microsoft hands back works against
@@ -97,7 +100,7 @@ export const buildAuthorizeUrl = (options: BuildAuthorizeUrlOptions): string => 
     code_challenge_method: "S256",
   });
   if (options.promptSelectAccount ?? true) {
-    params.set("prompt", "select_account");
+    params.set("prompt", MICROSOFT_PROMPT_SELECT_ACCOUNT);
   }
   return `${AUTHORIZE_URL}?${params.toString()}`;
 };
