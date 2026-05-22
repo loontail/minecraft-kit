@@ -43,7 +43,7 @@ export const scenarioLogin = async (ctx: ScenarioContext): Promise<ScenarioOutco
 
 /**
  * Used by `runCli` at startup AND by the "Switch account" option. Prompts for offline /
- * Microsoft, runs the device-code flow if needed, and writes the result into `state`.
+ * Microsoft, runs the browser sign-in flow if needed, and writes the result into `state`.
  *
  * Returns `false` if the user cancels — `runCli` treats that as "exit before menu".
  */
@@ -51,19 +51,14 @@ export const pickInitialAuth = async (
   ctx: Omit<ScenarioContext, "auth">,
   state: AuthState,
 ): Promise<boolean> => {
-  const mode = await ctx.ui.select<"offline" | "browser" | "device">({
+  const mode = await ctx.ui.select<"offline" | "browser">({
     message: "How do you want to play?",
     options: [
       { label: "Offline mode", value: "offline", hint: "Pick a username, no Microsoft account" },
       {
-        label: "Sign in with Microsoft (browser)",
+        label: "Sign in with Microsoft",
         value: "browser",
         hint: "Opens your default browser — no codes to type",
-      },
-      {
-        label: "Sign in with Microsoft (device code)",
-        value: "device",
-        hint: "For headless terminals where no browser is reachable",
       },
     ],
     initialValue: "browser",
@@ -76,8 +71,7 @@ export const pickInitialAuth = async (
     state.microsoftSession = null;
     return true;
   }
-  const session =
-    mode.value === "browser" ? await runMicrosoftBrowserLogin(ctx) : await runMicrosoftLogin(ctx);
+  const session = await runMicrosoftBrowserLogin(ctx);
   if (!session) {
     // Fall back to offline rather than abort — the user already committed to running the CLI.
     ctx.ui.log("warn", "Sign-in failed — continuing in offline mode.");
@@ -144,46 +138,6 @@ const runMicrosoftBrowserLogin = async (
           ].join("\n"),
         );
         spinner.start("Waiting for browser sign-in…");
-      },
-    });
-    spinner.stop(`Signed in as ${session.minecraft.username}.`);
-    return session;
-  } catch (error) {
-    spinner.stop("Sign-in failed.");
-    ctx.ui.log("error", formatUserError(error));
-    return null;
-  }
-};
-
-const runMicrosoftLogin = async (
-  ctx: Omit<ScenarioContext, "auth">,
-): Promise<MojangSession | null> => {
-  const clientId = await resolveClientId(ctx);
-  if (clientId === null) return null;
-  const spinner = ctx.ui.spinner();
-  spinner.start("Requesting device code from Microsoft…");
-  try {
-    const session = await ctx.kit.auth.login({
-      clientId,
-      onPrompt: async (prompt) => {
-        spinner.stop("Device code issued.");
-        const opened = await openBrowser(prompt.verificationUri);
-        ctx.ui.note(
-          "Sign in with your Microsoft account",
-          [
-            opened
-              ? `1. Browser opened automatically (${prompt.verificationUri})`
-              : `1. Open ${prompt.verificationUri} in your browser`,
-            `2. Enter the code:  ${prompt.userCode}`,
-            "",
-            `(Code expires in ${Math.round(prompt.expiresIn / 60)} min — leave this terminal open)`,
-          ].join("\n"),
-        );
-        spinner.start("Waiting for browser sign-in…");
-      },
-      onPoll: ({ expiresAt }) => {
-        const left = Math.max(0, Math.round((expiresAt - Date.now()) / 1000));
-        spinner.message(`Waiting for sign-in… (${left}s left)`);
       },
     });
     spinner.stop(`Signed in as ${session.minecraft.username}.`);

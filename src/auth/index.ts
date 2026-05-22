@@ -1,25 +1,6 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { AuthModes } from "../types/auth";
 import type { MojangSession, OnlineAuth } from "../types/auth";
-
-type DeviceCodePrompt = {
-  readonly userCode: string;
-  readonly verificationUri: string;
-  readonly message: string;
-  readonly expiresIn: number;
-  readonly interval: number;
-};
-
-type DeviceCodeState = {
-  readonly deviceCode: string;
-  readonly userCode: string;
-  readonly verificationUri: string;
-  readonly message: string;
-  readonly expiresIn: number;
-  readonly interval: number;
-  readonly clientId: string;
-  readonly expiresAt: number;
-};
 import type { HttpClient } from "../types/http";
 import { authDebug } from "./debug";
 import { startLoopbackServer } from "./loopback";
@@ -33,47 +14,20 @@ export const CLIENT_ID_ENV_VAR = "MINECRAFT_KIT_MSA_CLIENT_ID";
 
 export { authDebug, buildAuthLogger, DEBUG_ENV_VAR } from "./debug";
 
-/** Options accepted by {@link MojangAuthApi.login}. */
-export type LoginOptions = {
+/** Options accepted by {@link MojangAuthApi.refresh}. */
+export type RefreshOptions = {
+  /** Azure AD application id; defaults to `process.env.MINECRAFT_KIT_MSA_CLIENT_ID`. */
+  readonly clientId?: string;
+  readonly signal?: AbortSignal;
+};
+
+/** Options accepted by {@link MojangAuthApi.authorizationCode.run}. */
+export type AuthorizationCodeRunOptions = {
   /**
    * Azure AD application id. When omitted, the value of
    * `process.env.MINECRAFT_KIT_MSA_CLIENT_ID` is used. Throws `AUTH_MISSING_CLIENT_ID` if
    * neither is set — the library cannot ship a default client id.
    */
-  readonly clientId?: string;
-  /**
-   * Called once with the URL + user code the user must enter in a browser. The promise
-   * returned by `login` resolves only after the user finishes signing in (or rejects on
-   * abort / decline / timeout).
-   */
-  readonly onPrompt: (prompt: DeviceCodePrompt) => void | Promise<void>;
-  /** Called once per polling tick — useful for UI "still waiting" feedback. */
-  readonly onPoll?: (info: { readonly nextDelayMs: number; readonly expiresAt: number }) => void;
-  readonly signal?: AbortSignal;
-};
-
-/** Options accepted by {@link MojangAuthApi.refresh}. */
-export type RefreshOptions = {
-  /** As in {@link LoginOptions.clientId}. */
-  readonly clientId?: string;
-  readonly signal?: AbortSignal;
-};
-
-/** Options accepted by {@link MojangAuthApi.deviceCode.start}. */
-export type StartDeviceCodeOptions = {
-  readonly clientId?: string;
-  readonly signal?: AbortSignal;
-};
-
-/** Options accepted by {@link MojangAuthApi.deviceCode.poll}. */
-export type PollDeviceCodeOptions = {
-  readonly signal?: AbortSignal;
-  readonly onTick?: (info: { readonly nextDelayMs: number; readonly expiresAt: number }) => void;
-};
-
-/** Options accepted by {@link MojangAuthApi.authorizationCode.run}. */
-export type AuthorizationCodeRunOptions = {
-  /** As in {@link LoginOptions.clientId}. */
   readonly clientId?: string;
   /**
    * Called exactly once with the authorize URL. The caller is expected to open this URL
@@ -92,33 +46,16 @@ export type AuthorizationCodeRunOptions = {
 
 /**
  * High-level Microsoft / Mojang auth surface attached to {@link import("../kit").MinecraftKit}
- * as `kit.auth`. Two browser-driven flows are supported:
- *
- * - **Device code** ({@link MojangAuthApi.login}, {@link MojangAuthApi.deviceCode}) —
- *   user copies a short code and pastes it into a Microsoft sign-in page. Works in
- *   headless / SSH terminals where no system browser is reachable.
- * - **Authorization code with PKCE + loopback** ({@link MojangAuthApi.authorizationCode}) —
- *   kit opens a localhost server, caller opens the system browser, user logs in and
- *   is redirected back. Better UX for desktop apps; requires a graphical browser.
- *
- * Both flows continue through the same Xbox → XSTS → Minecraft pipeline and return a
- * {@link MojangSession} carrying everything launch composition needs plus the Microsoft
- * refresh token. The library does NOT persist tokens — that's the caller's job.
+ * as `kit.auth`. Sign-in uses the OAuth 2.0 Authorization Code + PKCE flow with a
+ * loopback redirect ({@link MojangAuthApi.authorizationCode}): the kit opens a
+ * localhost server, the caller opens the system browser, the user signs in, and the
+ * browser redirects back. The flow continues through the Xbox → XSTS → Minecraft
+ * pipeline and returns a {@link MojangSession} carrying everything launch composition
+ * needs plus the Microsoft refresh token. The library does NOT persist tokens —
+ * that's the caller's job.
  */
 export class MojangAuthApi {
   constructor(private readonly http: HttpClient) {}
-
-  /**
-   * Run the full device-code flow end-to-end. The caller supplies an `onPrompt` callback to
-   * render the URL + code to the user; this method polls until they finish.
-   */
-  async login(options: LoginOptions): Promise<MojangSession> {
-    resolveClientId(options.clientId);
-    throw new MinecraftKitError(
-      MinecraftKitErrorCodes.AUTH_DEVICE_CODE_FAILED,
-      "Device-code login has been removed. Use `kit.auth.authorizationCode.run({ onOpenBrowser })` instead.",
-    );
-  }
 
   /** Refresh a previously obtained session. The Microsoft refresh token may be rotated. */
   async refresh(refreshToken: string, options: RefreshOptions = {}): Promise<MojangSession> {
@@ -131,35 +68,6 @@ export class MojangAuthApi {
     });
     return runPostMsTokenPipeline(this.http, msToken, clientId, options.signal);
   }
-
-  /**
-   * Lower-level device-code surface — exposed so callers can decouple "show prompt" from
-   * "block on poll" (e.g. a GUI that lets the user dismiss the modal). Most callers should
-   * use {@link login} instead.
-   */
-  readonly deviceCode = {
-    start: (
-      options: StartDeviceCodeOptions = {},
-    ): Promise<{
-      readonly prompt: DeviceCodePrompt;
-      readonly state: DeviceCodeState;
-    }> => {
-      resolveClientId(options.clientId);
-      throw new MinecraftKitError(
-        MinecraftKitErrorCodes.AUTH_DEVICE_CODE_FAILED,
-        "Device-code start has been removed. Use `kit.auth.authorizationCode.run({ onOpenBrowser })` instead.",
-      );
-    },
-    poll: async (
-      _state: DeviceCodeState,
-      _options: PollDeviceCodeOptions = {},
-    ): Promise<MojangSession> => {
-      throw new MinecraftKitError(
-        MinecraftKitErrorCodes.AUTH_DEVICE_CODE_FAILED,
-        "Device-code polling has been removed. Use `kit.auth.authorizationCode.run({ onOpenBrowser })` instead.",
-      );
-    },
-  };
 
   /**
    * OAuth 2.0 Authorization Code + PKCE with loopback redirect. The kit binds a temporary

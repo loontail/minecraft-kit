@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { MojangAuthApi, toOnlineAuth } from "../../src/auth/index";
-import { isErrorCode } from "../../src/core/errors";
 import { AuthModes, type MojangSession } from "../../src/types/auth";
 import { FakeHttpClient } from "../helpers/fake-http";
 
@@ -17,27 +16,6 @@ const buildAccessToken = (payload: Record<string, unknown>): string => {
     Buffer.from(s).toString("base64").replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
   return `${b64("hdr")}.${b64(JSON.stringify(payload))}.${b64("sig")}`;
 };
-
-describe("MojangAuthApi.login", () => {
-  it("throws AUTH_MISSING_CLIENT_ID when neither option nor env is set", async () => {
-    const http = new FakeHttpClient();
-    const api = new MojangAuthApi(http);
-    const previous = process.env.MINECRAFT_KIT_MSA_CLIENT_ID;
-    process.env.MINECRAFT_KIT_MSA_CLIENT_ID = "";
-    try {
-      await api.login({ onPrompt: () => undefined });
-      expect.fail("expected throw");
-    } catch (error) {
-      expect(isErrorCode(error, "AUTH_MISSING_CLIENT_ID")).toBe(true);
-    } finally {
-      if (previous !== undefined) {
-        process.env.MINECRAFT_KIT_MSA_CLIENT_ID = previous;
-      } else {
-        process.env.MINECRAFT_KIT_MSA_CLIENT_ID = "";
-      }
-    }
-  });
-});
 
 describe("MojangAuthApi.refresh", () => {
   it("uses the refresh token to fetch a fresh Minecraft session", async () => {

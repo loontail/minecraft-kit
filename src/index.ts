@@ -119,16 +119,13 @@ export {
 export { ChildProcessSpawner } from "./launch/spawner";
 
 // ─────────────────────────────────────────────────────────────────────────────────────
-// Authentication — Microsoft OAuth (device code OR authorization code) → Xbox → Minecraft
+// Authentication — Microsoft OAuth Authorization Code + PKCE → Xbox → Minecraft
 // ─────────────────────────────────────────────────────────────────────────────────────
 export {
   type AuthorizationCodeRunOptions,
   CLIENT_ID_ENV_VAR,
-  type LoginOptions,
   MojangAuthApi,
-  type PollDeviceCodeOptions,
   type RefreshOptions,
-  type StartDeviceCodeOptions,
   toOnlineAuth,
 } from "./auth/index";
 export { fetchMinecraftProfile, type MinecraftProfile } from "./auth/minecraft";
