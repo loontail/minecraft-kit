@@ -1,7 +1,12 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { withOptionalSignal } from "../core/optional";
 import { AuthModes } from "../types/auth";
-import type { AzureClientId, MojangSession, OnlineAuth } from "../types/auth";
+import type {
+  AzureClientId,
+  MicrosoftRefreshToken,
+  MojangSession,
+  OnlineAuth,
+} from "../types/auth";
 import type { HttpClient } from "../types/http";
 import type { Logger } from "../types/logger";
 import { buildAuthLogger } from "./debug";
@@ -53,6 +58,31 @@ export const asAzureClientId = (raw: string): AzureClientId => {
     );
   }
   return trimmed as AzureClientId;
+};
+
+/**
+ * Brand `raw` as a {@link MicrosoftRefreshToken}. Validates only that the value is
+ * non-empty after trimming — Microsoft refresh tokens are opaque, so the
+ * constructor's job is to put a brand on the value, not to second-guess
+ * Microsoft's format.
+ *
+ * @example
+ * ```ts
+ * import { asMicrosoftRefreshToken } from "@loontail/minecraft-kit";
+ *
+ * const token = asMicrosoftRefreshToken(await storage.load("ms-refresh"));
+ * await kit.auth.refresh(token, { clientId });
+ * ```
+ */
+export const asMicrosoftRefreshToken = (raw: string): MicrosoftRefreshToken => {
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) {
+    throw new MinecraftKitError(
+      MinecraftKitErrorCodes.INVALID_INPUT,
+      "Microsoft refresh token cannot be empty.",
+    );
+  }
+  return trimmed as MicrosoftRefreshToken;
 };
 
 /**
@@ -141,7 +171,10 @@ export class MojangAuthApi {
   }
 
   /** Refresh a previously obtained session. The Microsoft refresh token may be rotated. */
-  async refresh(refreshToken: string, options: RefreshOptions = {}): Promise<MojangSession> {
+  async refresh(
+    refreshToken: MicrosoftRefreshToken,
+    options: RefreshOptions = {},
+  ): Promise<MojangSession> {
     const clientId = resolveClientId(options.clientId);
     const msToken = await refreshMicrosoftToken({
       http: this.http,

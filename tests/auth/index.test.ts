@@ -1,11 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { MojangAuthApi, asAzureClientId, toOnlineAuth } from "../../src/auth/index";
+import {
+  MojangAuthApi,
+  asAzureClientId,
+  asMicrosoftRefreshToken,
+  toOnlineAuth,
+} from "../../src/auth/index";
 import { AuthModes, type MojangSession } from "../../src/types/auth";
 import { FakeHttpClient } from "../helpers/fake-http";
 
 const CLIENT_ID_REFRESH = asAzureClientId("00000000-0000-0000-0000-000000000000");
 const CLIENT_ID_AUTH_CODE = asAzureClientId("11111111-1111-1111-1111-111111111111");
 const CLIENT_ID_TO_ONLINE = asAzureClientId("22222222-2222-2222-2222-222222222222");
+const RT_REFRESH = asMicrosoftRefreshToken("RT-1");
+const RT_TO_ONLINE = asMicrosoftRefreshToken("rt");
 
 const TOKEN_URL = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
 const XBL_URL = "https://user.auth.xboxlive.com/user/authenticate";
@@ -77,7 +84,7 @@ describe("MojangAuthApi.refresh", () => {
       });
 
     const api = new MojangAuthApi(http);
-    const session = await api.refresh("RT-1", { clientId: CLIENT_ID_REFRESH });
+    const session = await api.refresh(RT_REFRESH, { clientId: CLIENT_ID_REFRESH });
     expect(session.minecraft.username).toBe("Alex");
     expect(session.microsoft.refreshToken).toBe("MS-RT2");
   });
@@ -143,7 +150,7 @@ describe("toOnlineAuth", () => {
         skins: [],
         capes: [],
       },
-      microsoft: { refreshToken: "rt", clientId: CLIENT_ID_TO_ONLINE },
+      microsoft: { refreshToken: RT_TO_ONLINE, clientId: CLIENT_ID_TO_ONLINE },
     };
     const auth = toOnlineAuth(session);
     expect(auth.mode).toBe(AuthModes.ONLINE);

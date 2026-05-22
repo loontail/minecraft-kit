@@ -9,6 +9,29 @@ follows [Semantic Versioning](https://semver.org/).
 
 ### BREAKING CHANGES
 
+- **Branded `MicrosoftRefreshToken` type.** `MojangSession.microsoft.refreshToken`
+  is now `MicrosoftRefreshToken` instead of `string`; `kit.auth.refresh(token, …)`
+  requires the brand on its first parameter. Construct values via
+  `asMicrosoftRefreshToken(raw)` — it validates only that the input is
+  non-empty after trimming (Microsoft refresh tokens are opaque). Persisted
+  refresh tokens loaded from storage must pass through the constructor:
+
+  ```ts
+  // Before
+  await kit.auth.refresh(await storage.load("ms-refresh"), { clientId });
+
+  // After
+  import { asMicrosoftRefreshToken } from "@loontail/minecraft-kit";
+  await kit.auth.refresh(
+    asMicrosoftRefreshToken(await storage.load("ms-refresh")),
+    { clientId },
+  );
+  ```
+
+  Refresh tokens that come straight out of `kit.auth.authorizationCode.run`
+  or `kit.auth.refresh` are already branded — only round-trips through
+  string-typed storage need the constructor.
+
 - **Branded `AzureClientId` type.** The Azure AD application id is now a
   branded `AzureClientId` instead of a raw `string` across the public auth
   surface (`RefreshOptions`, `AuthorizationCodeRunOptions`, `OnlineAuth`,

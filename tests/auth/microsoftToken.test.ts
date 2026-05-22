@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { asAzureClientId } from "../../src/auth/index";
+import { asAzureClientId, asMicrosoftRefreshToken } from "../../src/auth/index";
 import { exchangeAuthorizationCode, refreshMicrosoftToken } from "../../src/auth/microsoftToken";
 import { isErrorCode } from "../../src/core/errors";
 import type { AzureClientId } from "../../src/types/auth";
@@ -8,6 +8,9 @@ import { FakeHttpClient } from "../helpers/fake-http";
 const TOKEN_URL = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
 const CLIENT_ID_A = asAzureClientId("00000000-0000-0000-0000-000000000001");
 const CLIENT_ID_B = asAzureClientId("11111111-1111-1111-1111-111111111111");
+const RT_FRESH = asMicrosoftRefreshToken("RT1");
+const RT_OLD = asMicrosoftRefreshToken("RT-OLD");
+const RT_FAILING = asMicrosoftRefreshToken("RT");
 
 const assertAuthorizationCodeGrantBody = (
   http: FakeHttpClient,
@@ -36,7 +39,11 @@ describe("refreshMicrosoftToken", () => {
         refresh_token: "RT2",
       }),
     });
-    const token = await refreshMicrosoftToken({ http, refreshToken: "RT1", clientId: CLIENT_ID_A });
+    const token = await refreshMicrosoftToken({
+      http,
+      refreshToken: RT_FRESH,
+      clientId: CLIENT_ID_A,
+    });
     expect(token).toEqual({ accessToken: "AT2", refreshToken: "RT2", expiresIn: 3600 });
   });
 
@@ -51,7 +58,7 @@ describe("refreshMicrosoftToken", () => {
     });
     const token = await refreshMicrosoftToken({
       http,
-      refreshToken: "RT-OLD",
+      refreshToken: RT_OLD,
       clientId: CLIENT_ID_A,
     });
     expect(token.refreshToken).toBe("RT-OLD");
@@ -66,7 +73,7 @@ describe("refreshMicrosoftToken", () => {
       }),
     });
     try {
-      await refreshMicrosoftToken({ http, refreshToken: "RT", clientId: CLIENT_ID_A });
+      await refreshMicrosoftToken({ http, refreshToken: RT_FAILING, clientId: CLIENT_ID_A });
       expect.fail("expected throw");
     } catch (error) {
       expect(isErrorCode(error, "AUTH_REFRESH_FAILED")).toBe(true);

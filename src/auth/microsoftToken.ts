@@ -1,7 +1,7 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { postFormUrlEncoded } from "../http/postForm";
 import { isHttpOk } from "../http/status";
-import type { AzureClientId } from "../types/auth";
+import type { AzureClientId, MicrosoftRefreshToken } from "../types/auth";
 import type { HttpClient } from "../types/http";
 
 const TENANT = "consumers";
@@ -21,7 +21,7 @@ const SCOPE = "XboxLive.signin offline_access";
  */
 export type MicrosoftToken = {
   readonly accessToken: string;
-  readonly refreshToken: string;
+  readonly refreshToken: MicrosoftRefreshToken;
   readonly expiresIn: number;
 };
 
@@ -67,7 +67,7 @@ const postTokenRequest = async (
  */
 export const refreshMicrosoftToken = async (input: {
   readonly http: HttpClient;
-  readonly refreshToken: string;
+  readonly refreshToken: MicrosoftRefreshToken;
   readonly clientId: AzureClientId;
   readonly signal?: AbortSignal;
 }): Promise<MicrosoftToken> => {
@@ -89,10 +89,16 @@ export const refreshMicrosoftToken = async (input: {
   }
   return {
     accessToken: result.token.access_token,
-    refreshToken: result.token.refresh_token ?? input.refreshToken,
+    refreshToken: brandRefreshToken(result.token.refresh_token, input.refreshToken),
     expiresIn: result.token.expires_in,
   };
 };
+
+const brandRefreshToken = (
+  rotated: string | undefined,
+  previous: MicrosoftRefreshToken,
+): MicrosoftRefreshToken =>
+  rotated !== undefined && rotated.length > 0 ? (rotated as MicrosoftRefreshToken) : previous;
 
 /**
  * Exchange a one-time authorization `code` (returned by Microsoft on the loopback
@@ -136,7 +142,7 @@ export const exchangeAuthorizationCode = async (input: {
   }
   return {
     accessToken: result.token.access_token,
-    refreshToken: result.token.refresh_token,
+    refreshToken: result.token.refresh_token as MicrosoftRefreshToken,
     expiresIn: result.token.expires_in,
   };
 };

@@ -45,6 +45,22 @@ export type AuthMode = (typeof AuthModes)[keyof typeof AuthModes];
 export type AzureClientId = string & { readonly __brand: "AzureClientId" };
 
 /**
+ * Branded Microsoft refresh token. Construct via `asMicrosoftRefreshToken`
+ * (exported from the package root) — the brand prevents accidentally passing
+ * an access token, XSTS token, or another opaque string where a Microsoft
+ * refresh token is expected.
+ *
+ * @example
+ * ```ts
+ * import { asMicrosoftRefreshToken } from "@loontail/minecraft-kit";
+ *
+ * const refreshToken = asMicrosoftRefreshToken(await storage.load("ms-refresh"));
+ * await kit.auth.refresh(refreshToken, { clientId });
+ * ```
+ */
+export type MicrosoftRefreshToken = string & { readonly __brand: "MicrosoftRefreshToken" };
+
+/**
  * Offline authentication.
  *
  * @example
@@ -210,7 +226,7 @@ export type MojangSession = {
   };
   readonly microsoft: {
     /** Microsoft refresh token; used to obtain a fresh session without re-prompting. */
-    readonly refreshToken: string;
+    readonly refreshToken: MicrosoftRefreshToken;
     /** Azure AD application id used to mint the session. */
     readonly clientId: AzureClientId;
   };
