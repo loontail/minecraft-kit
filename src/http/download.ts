@@ -5,7 +5,7 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { HTTP_RETRY_MAX } from "../constants/defaults";
-import { checkpoint } from "../core/abort";
+import { type CheckpointSources, checkpoint } from "../core/abort";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { ensureDir } from "../core/fs";
 import type { PauseController } from "../core/pause-controller";
@@ -90,29 +90,20 @@ export const downloadFile = async (
       });
       const contentLength = Number(response.headers["content-length"] ?? "0");
       const total = input.expectedSize ?? (Number.isFinite(contentLength) ? contentLength : 0);
-      const sourceIterable = response.stream();
-      const counting = (async function* () {
-        for await (const chunk of sourceIterable) {
-          await checkpoint(
-            {
-              ...(input.signal !== undefined ? { signal: input.signal } : {}),
-              ...(input.pauseController !== undefined
-                ? { pauseController: input.pauseController }
-                : {}),
-            },
-            "Download aborted by signal",
-          );
-          bytesDownloaded += chunk.byteLength;
-          hash.update(chunk);
-          input.onEvent?.({
-            type: EventTypes.DOWNLOAD_PROGRESS,
-            file: fileRef,
-            bytesDownloaded,
-            totalBytes: total,
-          });
-          yield chunk;
-        }
-      })();
+      const checkpointSources: CheckpointSources = {
+        ...(input.signal !== undefined ? { signal: input.signal } : {}),
+        ...(input.pauseController !== undefined ? { pauseController: input.pauseController } : {}),
+      };
+      const counting = countingByteStream(response.stream(), checkpointSources, (chunk) => {
+        bytesDownloaded += chunk.byteLength;
+        hash.update(chunk);
+        input.onEvent?.({
+          type: EventTypes.DOWNLOAD_PROGRESS,
+          file: fileRef,
+          bytesDownloaded,
+          totalBytes: total,
+        });
+      });
       try {
         await pipeline(Readable.from(counting), createWriteStream(tmp));
       } catch (cause) {
@@ -225,16 +216,33 @@ const checkExistingFile = async (
 const safeUnlink = async (filePath: string): Promise<void> => {
   try {
     await fs.unlink(filePath);
-  } catch {
-    // Best-effort.
-  }
+  } catch {}
 };
 
-// Manifests are loaded over the network; an attacker controlling DNS or a man-in-the-middle
-// could rewrite `library.url` to `file:///etc/passwd` and the streaming `fetch` would happily
-// follow it. Restrict downloads to plain HTTP(S) so manifests can never coax `fetch` into
-// reading local files, executing JS, or following data URIs. Callers that ship in a hostile
-// environment can additionally pin to a host allow-list.
+async function* countingByteStream(
+  source: AsyncIterable<Uint8Array>,
+  sources: CheckpointSources,
+  onChunk: (chunk: Uint8Array) => void,
+): AsyncGenerator<Uint8Array> {
+  for await (const chunk of source) {
+    await checkpoint(sources, "Download aborted by signal");
+    onChunk(chunk);
+    yield chunk;
+  }
+}
+
+/**
+ * Reject download URLs that aren't plain HTTP(S) — and optionally, hosts outside an
+ * allow-list — before they reach `fetch`.
+ *
+ * Manifests are loaded over the network: an attacker controlling DNS or sitting in the
+ * middle could rewrite `library.url` to `file:///etc/passwd`, and the streaming `fetch`
+ * would happily follow it. Restricting to `http:`/`https:` blocks `file:`, `data:`, and
+ * other schemes that would let `fetch` read local files or follow data URIs. Callers
+ * that ship into a hostile environment can additionally pin to a host allow-list.
+ *
+ * @internal
+ */
 const assertSafeDownloadUrl = (url: string, allowList: readonly string[] | undefined): void => {
   let parsed: URL;
   try {
