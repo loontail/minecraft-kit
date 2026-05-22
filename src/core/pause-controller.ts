@@ -18,26 +18,26 @@
  * ```
  */
 export class PauseController {
-  #paused = false;
-  #waiters: Array<() => void> = [];
+  private paused_ = false;
+  private waiters: Array<() => void> = [];
 
   get paused(): boolean {
-    return this.#paused;
+    return this.paused_;
   }
 
   pause(): void {
-    this.#paused = true;
+    this.paused_ = true;
   }
 
   resume(): void {
-    this.#paused = false;
-    const list = this.#waiters;
-    this.#waiters = [];
+    this.paused_ = false;
+    const list = this.waiters;
+    this.waiters = [];
     for (const resolve of list) resolve();
   }
 
   waitWhilePaused(): Promise<void> {
-    if (!this.#paused) return Promise.resolve();
-    return new Promise<void>((resolve) => this.#waiters.push(resolve));
+    if (!this.paused_) return Promise.resolve();
+    return new Promise<void>((resolve) => this.waiters.push(resolve));
   }
 }
