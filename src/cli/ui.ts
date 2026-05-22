@@ -117,7 +117,14 @@ type ClackModule = {
  * dependency out of the library's main entry point.
  */
 export const createClackUi = async (): Promise<Ui> => {
-  const clack = (await import("@clack/prompts")) as unknown as ClackModule;
+  let clack: ClackModule;
+  try {
+    clack = (await import("@clack/prompts")) as unknown as ClackModule;
+  } catch {
+    throw new Error(
+      "The `mckit` CLI requires the optional dependency `@clack/prompts`. Install it with `npm install @clack/prompts` (or run `npm install` without `--omit=optional`).",
+    );
+  }
   return buildUi(clack);
 };
 
