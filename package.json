@@ -14,13 +14,14 @@
   },
   "keywords": [
     "minecraft",
+    "minecraft-launcher",
     "launcher",
     "fabric",
     "forge",
     "mojang",
     "java-runtime",
-    "cli",
-    "typescript"
+    "microsoft-oauth",
+    "mckit"
   ],
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
