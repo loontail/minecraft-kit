@@ -250,9 +250,8 @@ const toProfileCape = (raw: RawProfileCape): ReadonlyArray<MojangProfileCape> =>
  * @internal
  */
 export const extractXuid = (accessToken: string): string => {
-  const parts = accessToken.split(".");
-  const payload = parts[1];
-  if (typeof payload !== "string") return "";
+  const [, payload] = accessToken.split(".");
+  if (payload === undefined) return "";
   const json = Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString(
     "utf8",
   );
