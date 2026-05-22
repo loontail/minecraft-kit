@@ -4,7 +4,11 @@ import type { MojangSession, OnlineAuth } from "../types/auth";
 import type { HttpClient } from "../types/http";
 import { authDebug } from "./debug";
 import { startLoopbackServer } from "./loopback";
-import { type MicrosoftToken, exchangeAuthorizationCode, refreshMicrosoftToken } from "./microsoft";
+import {
+  type MicrosoftToken,
+  exchangeAuthorizationCode,
+  refreshMicrosoftToken,
+} from "./microsoftToken";
 import { extractXuid, fetchMinecraftProfile, loginWithXbox } from "./minecraft";
 import { buildAuthorizeUrl, generateOAuthState, generatePkcePair } from "./oauth";
 import { authenticateXbl, authenticateXsts } from "./xbox";

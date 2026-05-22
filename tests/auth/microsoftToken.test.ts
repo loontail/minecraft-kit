@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { exchangeAuthorizationCode, refreshMicrosoftToken } from "../../src/auth/microsoft";
+import { exchangeAuthorizationCode, refreshMicrosoftToken } from "../../src/auth/microsoftToken";
 import { isErrorCode } from "../../src/core/errors";
 import { FakeHttpClient } from "../helpers/fake-http";
 
