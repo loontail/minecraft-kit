@@ -251,6 +251,17 @@ export const createInstallProgressTracker = (
     pendingTimer = setTimeout(push, throttleMs - elapsed);
   };
 
+  const applyCompletionWhenStartWasMissed = (
+    target: string,
+    eventBytes: number | undefined,
+  ): void => {
+    const stage = stageOfTarget.get(target);
+    if (!stage) return;
+    const bytes = eventBytes ?? expectedSizeOf.get(target) ?? 0;
+    stageDone[stage] += bytes;
+    totalDone += bytes;
+  };
+
   const onEvent: ProgressListener = (event: ProgressEvent) => {
     switch (event.type) {
       case EventTypes.INSTALL_PHASE_CHANGED: {
@@ -303,13 +314,7 @@ export const createInstallProgressTracker = (
           totalDone += finalBytes;
           inFlightByTarget.delete(event.file.target);
         } else {
-          // No `download:started` observed (subscriber attached mid-flight, or tests).
-          const stage = stageOfTarget.get(event.file.target);
-          if (stage) {
-            const bytes = event.bytes ?? expectedSizeOf.get(event.file.target) ?? 0;
-            stageDone[stage] += bytes;
-            totalDone += bytes;
-          }
+          applyCompletionWhenStartWasMissed(event.file.target, event.bytes);
         }
         schedulePush();
         return;

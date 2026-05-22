@@ -168,16 +168,27 @@ const runDownloadsStage = async (
     ctx.enterPhase(group.phase);
     await runDownloadGroup(ctx, groupActions);
   }
-  // Categories not declared in DOWNLOAD_GROUPS fall back to the generic libraries phase, so a
-  // newly-added download category does not silently skip its progress reporting.
+  await runUngroupedDownloadsAsLibraries(ctx, downloads);
+};
+
+/**
+ * Run downloads whose category isn't claimed by any {@link DOWNLOAD_GROUPS} entry.
+ *
+ * Acts as a safety net: a newly-added `DownloadCategory` lands here under the generic
+ * libraries phase instead of silently skipping its progress reporting, until
+ * `DOWNLOAD_GROUPS` is updated to claim it.
+ */
+const runUngroupedDownloadsAsLibraries = async (
+  ctx: InstallRunnerContext,
+  downloads: readonly DownloadAction[],
+): Promise<void> => {
   const ungrouped = downloads.filter(
     (action) => !DOWNLOAD_GROUPS.some((g) => g.categories.includes(action.category)),
   );
-  if (ungrouped.length > 0) {
-    await ctx.checkpoint();
-    ctx.enterPhase(InstallPhases.DOWNLOADING_LIBRARIES);
-    await runDownloadGroup(ctx, ungrouped);
-  }
+  if (ungrouped.length === 0) return;
+  await ctx.checkpoint();
+  ctx.enterPhase(InstallPhases.DOWNLOADING_LIBRARIES);
+  await runDownloadGroup(ctx, ungrouped);
 };
 
 const runDownloadGroup = async (

@@ -54,11 +54,7 @@ export const planLibraryDownloads = (input: {
       );
       if (!seenPaths.has(targetPath)) {
         seenPaths.add(targetPath);
-        // Empty URL in a Forge install_profile / version JSON means "the file is
-        // provided by the installer's `maven/` extraction or by a processor output —
-        // do not issue a download." Still record the path on the classpath so the
-        // launch composer can find it after install.
-        if (artifact.url) {
+        if (hasDownloadableUrl(artifact)) {
           downloads.push({
             kind: InstallActionKinds.DOWNLOAD_FILE,
             url: artifact.url,
@@ -77,7 +73,7 @@ export const planLibraryDownloads = (input: {
       const targetPath = path.join(targetPaths.librariesDir(input.directory), native.relativePath);
       if (!seenPaths.has(targetPath)) {
         seenPaths.add(targetPath);
-        if (native.url) {
+        if (hasDownloadableUrl(native)) {
           downloads.push({
             kind: InstallActionKinds.DOWNLOAD_FILE,
             url: native.url,
@@ -105,6 +101,16 @@ type ArtifactDescription = {
   readonly sha1: string | undefined;
   readonly size: number | undefined;
 };
+
+/**
+ * Whether the artifact should produce a download action.
+ *
+ * Forge install_profile / version JSON entries can carry an empty `url`. That marker
+ * means "the file is provided by the installer's `maven/` extraction or by a processor
+ * output — do not issue a download." The library still belongs on the classpath so the
+ * launch composer can find it after install.
+ */
+const hasDownloadableUrl = (artifact: ArtifactDescription): boolean => artifact.url !== "";
 
 const pickPrimaryArtifact = (library: MinecraftLibrary): ArtifactDescription | null => {
   if (library.downloads?.artifact) {

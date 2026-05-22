@@ -4,7 +4,7 @@ import { fetchJson } from "../http/metadata";
 import type { MetadataCache } from "../types/cache";
 import type { HttpClient } from "../types/http";
 import { type DownloadAction, DownloadCategories, InstallActionKinds } from "../types/install";
-import type { AssetIndexDocument, AssetIndexReference } from "../types/minecraft";
+import type { AssetIndexDocument, AssetIndexReference, AssetObject } from "../types/minecraft";
 
 /**
  * Plan asset downloads: fetch the asset index and emit a download action per object plus the
@@ -39,14 +39,7 @@ export const planAssetDownloads = async (input: {
       category: DownloadCategories.ASSET_INDEX,
     },
   ];
-  // Asset indexes routinely list the same hash under multiple virtual paths (e.g. legacy
-  // localized variants of the same byte content). Emit one DOWNLOAD_FILE per unique hash so
-  // we never schedule two parallel writes to the same `assets/objects/<hash>` target — that
-  // race produces a "Failed to finalize download" error during repair.
-  const seen = new Set<string>();
-  for (const entry of Object.values(indexDocument.objects)) {
-    if (seen.has(entry.hash)) continue;
-    seen.add(entry.hash);
+  for (const entry of uniqueObjectsByHash(indexDocument.objects)) {
     actions.push({
       kind: InstallActionKinds.DOWNLOAD_FILE,
       url: ApiEndpoints.resources.asset(entry.hash),
@@ -58,3 +51,20 @@ export const planAssetDownloads = async (input: {
   }
   return { actions, indexDocument };
 };
+
+/**
+ * Yield one entry per unique asset hash from the asset index.
+ *
+ * Asset indexes routinely list the same hash under multiple virtual paths (e.g. legacy
+ * localized variants of the same byte content). Emitting one `DOWNLOAD_FILE` per unique
+ * hash keeps two parallel writes from racing the same `assets/objects/<hash>` target — a
+ * race that surfaces during repair as a "Failed to finalize download" error.
+ */
+function* uniqueObjectsByHash(objects: AssetIndexDocument["objects"]): Generator<AssetObject> {
+  const seen = new Set<string>();
+  for (const entry of Object.values(objects)) {
+    if (seen.has(entry.hash)) continue;
+    seen.add(entry.hash);
+    yield entry;
+  }
+}
