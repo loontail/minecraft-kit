@@ -49,7 +49,6 @@ describe("Ui.searchableSelect", () => {
     const ui = buildUi(fake.module);
     const result = await ui.searchableSelect({ message: "Pick", options });
     expect(result).toEqual({ kind: "ok", value: "1.21.5" });
-    // Single clack call: a select. No text prompt before it, no filter UI inside it.
     expect(fake.recorded).toHaveLength(1);
     expect(fake.recorded[0]?.kind).toBe("select");
     const opts = fake.recorded[0]?.opts as { options: { label: string }[] };

@@ -237,7 +237,6 @@ describe("scenarioInstallMinecraft (runtime override)", () => {
 
 describe("scenarioInstallRuntime", () => {
   it("installs the picked runtime component without asking for a Minecraft version", async () => {
-    // 1) component select, 2) directory select ("default"), 3) install-root select ("per-target"), 4) confirm.
     const ui = createStubUi(["java-runtime-gamma", "default", "per-target", true]);
     const kit = buildFakeKit({
       runtimeList: [{ component: "java-runtime-gamma", versionName: "17.0.8" }],
@@ -329,9 +328,7 @@ describe("scenarioRepair", () => {
 });
 
 describe("scenarioLaunch", () => {
-  it("composes and runs a launch", async () => {
-    // Auth is picked once at runCli startup, so the launch scenario no longer prompts for
-    // a username — only the target picker + spawn confirm.
+  it("prompts only for target + spawn confirm (auth was picked at runCli startup)", async () => {
     const ui = createStubUi([fakeTarget.id, true]);
     const kit = buildFakeKit({ listResult: [discoveredFor(fakeTarget.id)] });
     expect(await scenarioLaunch({ kit, ui, rootDir: ROOT_DIR, auth: auth() })).toBe("completed");

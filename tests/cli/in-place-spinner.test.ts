@@ -34,7 +34,6 @@ describe("createInPlaceSpinner (TTY)", () => {
     sp.message("step 1");
     sp.message("step 2");
     expect(out.chunks).toEqual(["starting", `${CR_ERASE}step 1`, `${CR_ERASE}step 2`]);
-    // Critically: no chunk contains a newline — the spinner stays on a single line.
     for (const chunk of out.chunks) {
       expect(chunk).not.toContain("\n");
     }
@@ -86,14 +85,13 @@ describe("createInPlaceSpinner (TTY)", () => {
 });
 
 describe("createInPlaceSpinner (non-TTY)", () => {
-  it("prints the start message on its own line and no in-flight updates", () => {
+  it("emits start+newline, suppresses message() calls, and emits stop+newline", () => {
     const out = fakeNonTty();
     const sp = createInPlaceSpinner({ out });
     sp.start("starting");
     sp.message("step 1");
     sp.message("step 2");
     sp.stop("done");
-    // start prints starting+\n, message calls are suppressed, stop prints done+\n.
     expect(out.chunks).toEqual(["starting\n", "done\n"]);
   });
 

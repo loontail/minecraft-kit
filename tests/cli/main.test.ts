@@ -40,8 +40,10 @@ describe("runCli", () => {
     expect(ui.calls.some((c) => c.kind === "log")).toBe(true);
   });
 
-  // Every interactive `runCli` test begins with the startup auth picker: pick "offline",
-  // then type a username. After that the main menu drives whatever the test wants.
+  /**
+   * Every interactive `runCli` test begins with the startup auth picker: pick "offline",
+   * then type a username. After that the main menu drives whatever the test wants.
+   */
   const STARTUP = ["offline", "Player"] as const;
 
   it("exits cleanly when user picks Exit after startup auth", async () => {
