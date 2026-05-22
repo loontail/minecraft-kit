@@ -5,9 +5,6 @@ import { FakeHttpClient } from "../helpers/fake-http";
 
 describe("planAssetDownloads", () => {
   it("emits a single download per unique hash even when multiple virtual paths share it", async () => {
-    // Two virtual paths (`a.txt` and `localized/a.txt`) point at the same hash. The planner
-    // must collapse them to one DOWNLOAD_FILE — otherwise repair runs them in parallel and
-    // they race on `fs.rename` to `assets/objects/<hash>`.
     const sharedHash = "5ff04807c356f1beed0b86ccf659b44b9983e3fa";
     const otherHash = "0123456789abcdef0123456789abcdef01234567";
     const indexBody = JSON.stringify({
@@ -26,7 +23,6 @@ describe("planAssetDownloads", () => {
       cache,
     });
     const objectActions = result.actions.filter((a) => a.category === "asset");
-    // One per unique hash: 2 unique → 2 actions.
     expect(objectActions.length).toBe(2);
     const hashes = objectActions.map((a) => a.expectedSha1);
     expect(new Set(hashes).size).toBe(hashes.length);

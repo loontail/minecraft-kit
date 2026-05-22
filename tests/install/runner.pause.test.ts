@@ -110,9 +110,6 @@ describe("install runner — grouped phases", () => {
         if (event.type === "install:phase-changed") phases.push(event.phase);
       },
     });
-    // Planning is always first. Runtime materialisation re-enters INSTALLING_RUNTIME
-    // after the asset/library groups because the runtime target is set in the fake
-    // plan; the assertion focuses on the downloads-pass order.
     const downloadPhases = phases.filter((p) => p !== InstallPhases.COMPLETED);
     expect(downloadPhases.indexOf(InstallPhases.INSTALLING_RUNTIME)).toBeLessThan(
       downloadPhases.indexOf(InstallPhases.DOWNLOADING_CLIENT_JAR),
@@ -162,8 +159,7 @@ describe("install runner — pause controller", () => {
       },
     });
 
-    // Give the loop a turn to reach the first pause checkpoint.
-    await new Promise<void>((resolve) => setTimeout(resolve, 30));
+    await giveLoopTurnsToReachPauseCheckpoint();
     expect(completedFiles).toHaveLength(0);
 
     pauseController.resume();
@@ -173,10 +169,8 @@ describe("install runner — pause controller", () => {
   });
 
   it("pauses an in-flight download between chunks", async () => {
-    // A slow HTTP response that yields multiple chunks with delays in between
-    // simulates a real download. Pausing should stop new chunks from being
-    // counted until resume.
-    const chunkBody = new Uint8Array(64 * 1024); // 64KB chunk
+    const CHUNK_BYTES = 64 * 1024;
+    const chunkBody = new Uint8Array(CHUNK_BYTES);
     const totalChunks = 6;
     const totalSize = chunkBody.byteLength * totalChunks;
     const sha1 = (() => {
@@ -235,13 +229,11 @@ describe("install runner — pause controller", () => {
       },
     });
 
-    // Wait for the download to start streaming, then pause.
-    await new Promise<void>((r) => setTimeout(r, 25));
+    await waitForStreamingToStart();
     pauseController.pause();
     const pausedAt = lastProgress;
 
-    // Confirm progress freezes within ~50ms of the pause request.
-    await new Promise<void>((r) => setTimeout(r, 50));
+    await waitForFreezeToSettle();
     const stillPaused = lastProgress;
     expect(stillPaused).toBe(pausedAt);
 
@@ -265,12 +257,19 @@ describe("install runner — pause controller", () => {
       signal: controller.signal,
     });
 
-    // While the loop is parked on the pause checkpoint, abort it. The wait should
-    // be released by resume(), but the immediate re-check of the signal flag wins.
-    await new Promise<void>((resolve) => setTimeout(resolve, 30));
+    await giveLoopTurnsToReachPauseCheckpoint();
     controller.abort();
     pauseController.resume();
 
     await expect(runPromise).rejects.toBeInstanceOf(MinecraftKitError);
   });
 });
+
+const giveLoopTurnsToReachPauseCheckpoint = (): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, 30));
+
+const waitForStreamingToStart = (): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, 25));
+
+const waitForFreezeToSettle = (): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, 50));

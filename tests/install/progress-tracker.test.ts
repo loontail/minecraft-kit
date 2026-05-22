@@ -10,7 +10,6 @@ import {
   InstallPhases,
   type InstallPlan,
 } from "../../src/types/install";
-import { fakeTarget } from "../helpers/fake-kit";
 
 const download = (
   target: string,
@@ -45,7 +44,7 @@ describe("createInstallProgressTracker", () => {
       ]),
       { throttleMs: 0 },
     );
-    expect(tracker.snapshot().totalBytes).toBe(0); // initial stage is `prepare`
+    expect(tracker.snapshot().totalBytes).toBe(0);
 
     tracker.onEvent({
       type: "install:phase-changed",
@@ -53,7 +52,7 @@ describe("createInstallProgressTracker", () => {
       previous: null,
     });
     expect(tracker.snapshot().stage).toBe(InstallStages.MINECRAFT);
-    expect(tracker.snapshot().totalBytes).toBe(300); // client-jar + library
+    expect(tracker.snapshot().totalBytes).toBe(300);
 
     tracker.onEvent({
       type: "download:completed",
@@ -117,7 +116,6 @@ describe("createInstallProgressTracker", () => {
     });
     const seen: number[] = [];
     tracker.subscribe((s) => seen.push(s.overallPercent));
-    // initial push from subscribe
     expect(seen.length).toBe(1);
 
     tracker.onEvent({
@@ -138,12 +136,9 @@ describe("createInstallProgressTracker", () => {
         totalBytes: 100,
       });
     }
-    // burst should not have emitted yet (throttled), but the phase-change
-    // pushes immediately, so the count is bounded.
     expect(seen.length).toBeLessThan(5);
 
     tracker.finish();
     expect(seen.at(-1)).toBe(100);
-    expect(fakeTarget.id).toBe("demo"); // sanity touch to satisfy unused-import
   });
 });

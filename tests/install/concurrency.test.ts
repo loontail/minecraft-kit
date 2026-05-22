@@ -51,14 +51,12 @@ describe("install runner worker-pool", () => {
     let peak = 0;
     const release: (() => void)[] = [];
 
+    const RUNTIME_MANIFEST_URL = "https://rm/";
+
     const http: HttpClient = {
       async request(url): Promise<HttpResponse> {
-        // Runtime manifest lives at "https://rm/" — release it immediately so it doesn't
-        // block the post-download phase. The worker-pool assertion only cares about the
-        // file downloads.
-        if (url === "https://rm/") {
-          const body = new TextEncoder().encode('{"files":{}}');
-          return makeResponse(url, body);
+        if (url === RUNTIME_MANIFEST_URL) {
+          return respondWithEmptyRuntimeManifest(url);
         }
         inFlight++;
         peak = Math.max(peak, inFlight);
@@ -103,28 +101,61 @@ describe("install runner worker-pool", () => {
       concurrency,
     });
 
-    // Step 1: pool fills to `concurrency`. 16 files exist; only 4 should be in flight.
-    await waitFor(() => inFlight >= concurrency);
-    expect(inFlight).toBe(concurrency);
-    expect(peak).toBe(concurrency);
+    await assertPoolFillsToConcurrency({
+      concurrency,
+      waitForFill: () => waitFor(() => inFlight >= concurrency),
+      readInFlight: () => inFlight,
+      readPeak: () => peak,
+    });
 
-    // Step 2: drain. When we release one slot, the runner must immediately schedule a
-    // new request — there is no batch barrier. We verify this by releasing the queue one
-    // entry at a time and confirming the queue refills until no work remains.
-    let remaining = fileCount;
-    while (remaining > 0) {
-      const expected = Math.min(concurrency, remaining);
-      await waitFor(() => release.length === expected);
-      const next = release.shift();
-      next?.();
-      remaining--;
-    }
+    await drainOneAtATimeAndRequireRefill({
+      concurrency,
+      fileCount,
+      release,
+      waitFor,
+    });
 
     const report = await runPromise;
     expect(report.actionsCompleted).toBeGreaterThanOrEqual(fileCount);
     expect(peak).toBe(concurrency);
   }, 10_000);
 });
+
+const respondWithEmptyRuntimeManifest = (url: string): HttpResponse => {
+  const body = new TextEncoder().encode('{"files":{}}');
+  return makeResponse(url, body);
+};
+
+const assertPoolFillsToConcurrency = async (input: {
+  readonly concurrency: number;
+  readonly waitForFill: () => Promise<void>;
+  readonly readInFlight: () => number;
+  readonly readPeak: () => number;
+}): Promise<void> => {
+  await input.waitForFill();
+  expect(input.readInFlight()).toBe(input.concurrency);
+  expect(input.readPeak()).toBe(input.concurrency);
+};
+
+/**
+ * Release one in-flight slot at a time and confirm the worker pool immediately re-fills.
+ * Verifies there is no batch barrier — a finished slot triggers the next dispatch.
+ */
+const drainOneAtATimeAndRequireRefill = async (input: {
+  readonly concurrency: number;
+  readonly fileCount: number;
+  readonly release: (() => void)[];
+  readonly waitFor: (predicate: () => boolean) => Promise<void>;
+}): Promise<void> => {
+  let remaining = input.fileCount;
+  while (remaining > 0) {
+    const expected = Math.min(input.concurrency, remaining);
+    await input.waitFor(() => input.release.length === expected);
+    const next = input.release.shift();
+    next?.();
+    remaining--;
+  }
+};
 
 const makeResponse = (url: string, body: Uint8Array): HttpResponse => {
   return {

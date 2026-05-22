@@ -88,14 +88,13 @@ describe("planRuntimeInstall", () => {
     });
 
     const plan = await planRuntimeInstall({ target, http, cache });
-    expect(plan.actions.length).toBe(2); // 2 runtime files, the directory entry is materialised separately
+    expect(plan.actions.length).toBe(2);
     for (const action of plan.actions) {
       expect(action.kind).toBe("download-file");
       if (action.kind === "download-file") {
         expect(action.category).toBe("runtime-file");
       }
     }
-    // No client-jar or library actions should leak in.
     const categories = plan.actions
       .filter((a) => a.kind === "download-file")
       .map((a) => (a as { readonly category: string }).category);
