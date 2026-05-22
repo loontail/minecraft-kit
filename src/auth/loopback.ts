@@ -177,7 +177,7 @@ export const startLoopbackServer = async (
 
   // Detach captureSettled / closed cleanup once the promise settles so future
   // requests can still be answered (with 410) without bookkeeping noise.
-  captured
+  void captured
     .catch(() => {})
     .finally(() => {
       // Caller decides when to close — flow uses captured then close() in sequence.
