@@ -51,7 +51,15 @@ export const runCli = async (input: RunCliInput): Promise<number> => {
   if (hasFlag(input.args, CLI_FLAGS.HELP)) {
     input.ui.note(
       "mckit — minecraft-kit CLI",
-      "Run with no arguments for the interactive menu.\n--version, --help, --debug",
+      [
+        "Run with no arguments for the interactive menu.",
+        "",
+        "Flags:",
+        "  --help, -h     Show this help.",
+        "  --version, -v  Print the kit version.",
+        "  --debug        Print raw stack traces from scenario crashes instead of the",
+        "                 friendly formatUserError translation. Useful for bug reports.",
+      ].join("\n"),
     );
     return 0;
   }
