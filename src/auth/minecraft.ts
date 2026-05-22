@@ -7,7 +7,7 @@ import type {
   MojangSkinVariant,
 } from "../types/auth";
 import type { HttpClient } from "../types/http";
-import { authDebug } from "./debug";
+import type { Logger } from "../types/logger";
 
 const MC_LOGIN_URL = "https://api.minecraftservices.com/authentication/login_with_xbox";
 const MC_PROFILE_URL = "https://api.minecraftservices.com/minecraft/profile";
@@ -65,11 +65,13 @@ export const loginWithXbox = async (input: {
   readonly xstsToken: string;
   readonly userHash: string;
   readonly signal?: AbortSignal;
+  readonly logger?: Logger;
 }): Promise<MinecraftLoginResult> => {
   const body = JSON.stringify({
     identityToken: `XBL3.0 x=${input.userHash};${input.xstsToken}`,
   });
-  authDebug(
+  input.logger?.log(
+    "debug",
     `login_with_xbox POST — userHashLen=${input.userHash.length}, xstsTokenLen=${input.xstsToken.length}`,
   );
   const response = await input.http.request(MC_LOGIN_URL, {
@@ -92,7 +94,7 @@ export const loginWithXbox = async (input: {
     // a bare status code.
     const rawBody = await response.text().catch(() => "");
     const detail = rawBody.slice(0, 400);
-    authDebug(`login_with_xbox failed status=${response.status} body=${detail}`);
+    input.logger?.log("debug", `login_with_xbox failed status=${response.status} body=${detail}`);
     if (response.status === 403) {
       // Mojang ships a "blessed apps" allow-list. New Azure AD client_ids must be approved
       // through https://aka.ms/mce-reviewappid before login_with_xbox accepts them. Catch

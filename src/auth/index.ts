@@ -2,7 +2,8 @@ import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { AuthModes } from "../types/auth";
 import type { MojangSession, OnlineAuth } from "../types/auth";
 import type { HttpClient } from "../types/http";
-import { authDebug } from "./debug";
+import type { Logger } from "../types/logger";
+import { buildAuthLogger } from "./debug";
 import { startLoopbackServer } from "./loopback";
 import {
   type MicrosoftToken,
@@ -57,7 +58,18 @@ export type AuthorizationCodeRunOptions = {
  * that's the caller's job.
  */
 export class MojangAuthApi {
-  constructor(private readonly http: HttpClient) {}
+  private readonly logger: Logger;
+
+  constructor(
+    private readonly http: HttpClient,
+    logger?: Logger,
+  ) {
+    // `buildAuthLogger` wraps the supplied logger in an `auth` scope, or honours
+    // `MINECRAFT_KIT_AUTH_DEBUG=1` to route through `consoleLogger` when no logger
+    // was wired. Either way, the auth flow logs through the kit's structured logger
+    // interface rather than touching `console` directly.
+    this.logger = buildAuthLogger(logger);
+  }
 
   /** Refresh a previously obtained session. The Microsoft refresh token may be rotated. */
   async refresh(refreshToken: string, options: RefreshOptions = {}): Promise<MojangSession> {
@@ -68,7 +80,7 @@ export class MojangAuthApi {
       clientId,
       ...(options.signal !== undefined ? { signal: options.signal } : {}),
     });
-    return runPostMsTokenPipeline(this.http, msToken, clientId, options.signal);
+    return runPostMsTokenPipeline(this.http, msToken, clientId, options.signal, this.logger);
   }
 
   /**
@@ -83,13 +95,14 @@ export class MojangAuthApi {
     run: async (options: AuthorizationCodeRunOptions): Promise<MojangSession> => {
       const t0 = Date.now();
       const lap = (label: string): void =>
-        authDebug(`authorizationCode.run: ${label} (+${Date.now() - t0}ms)`);
+        this.logger.log("debug", `authorizationCode.run: ${label} (+${Date.now() - t0}ms)`);
       const clientId = resolveClientId(options.clientId);
       const state = generateOAuthState();
       const { codeVerifier, codeChallenge } = generatePkcePair();
 
       const server = await startLoopbackServer({
         expectedState: state,
+        logger: this.logger,
         ...(options.port !== undefined ? { port: options.port } : {}),
         ...(options.successHtml !== undefined ? { successHtml: options.successHtml } : {}),
         ...(options.signal !== undefined ? { signal: options.signal } : {}),
@@ -120,7 +133,13 @@ export class MojangAuthApi {
           ...(options.signal !== undefined ? { signal: options.signal } : {}),
         });
         lap("MS token obtained — running Xbox/XSTS/Minecraft pipeline");
-        const session = await runPostMsTokenPipeline(this.http, msToken, clientId, options.signal);
+        const session = await runPostMsTokenPipeline(
+          this.http,
+          msToken,
+          clientId,
+          options.signal,
+          this.logger,
+        );
         lap("Mojang session built");
         return session;
       } finally {
@@ -137,14 +156,21 @@ const runPostMsTokenPipeline = async (
   msToken: MicrosoftToken,
   clientId: string,
   signal: AbortSignal | undefined,
+  logger: Logger,
 ): Promise<MojangSession> => {
   const signalOpt = signal !== undefined ? { signal } : {};
-  const xbl = await authenticateXbl({ http, accessToken: msToken.accessToken, ...signalOpt });
-  const xsts = await authenticateXsts({ http, xblToken: xbl.token, ...signalOpt });
+  const xbl = await authenticateXbl({
+    http,
+    accessToken: msToken.accessToken,
+    logger,
+    ...signalOpt,
+  });
+  const xsts = await authenticateXsts({ http, xblToken: xbl.token, logger, ...signalOpt });
   const mc = await loginWithXbox({
     http,
     xstsToken: xsts.token,
     userHash: xsts.userHash,
+    logger,
     ...signalOpt,
   });
   const profile = await fetchMinecraftProfile({ http, accessToken: mc.accessToken, ...signalOpt });

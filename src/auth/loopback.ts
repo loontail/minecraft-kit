@@ -1,7 +1,7 @@
 import { type IncomingMessage, type Server, type ServerResponse, createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
-import { authDebug } from "./debug";
+import type { Logger } from "../types/logger";
 
 /**
  * Loopback HTTP server that captures a single OAuth callback. The Authorization Code
@@ -62,6 +62,8 @@ export type StartLoopbackServerOptions = {
   readonly successHtml?: string;
   /** Aborting cancels the capture promise and tears the server down. */
   readonly signal?: AbortSignal;
+  /** Optional logger for per-request debug traces (path, state mismatch, capture). */
+  readonly logger?: Logger;
 };
 
 /**
@@ -87,18 +89,25 @@ export const startLoopbackServer = async (
   });
 
   const server: Server = createServer((req, res) => {
-    handleRequest(req, res, options.expectedState, successHtml, {
-      onCode: (code) => {
-        if (captureSettled) return;
-        captureSettled = true;
-        resolveCapture({ code });
+    handleRequest(
+      req,
+      res,
+      options.expectedState,
+      successHtml,
+      {
+        onCode: (code) => {
+          if (captureSettled) return;
+          captureSettled = true;
+          resolveCapture({ code });
+        },
+        onProviderError: (errorCode, description) => {
+          if (captureSettled) return;
+          captureSettled = true;
+          rejectCapture(buildProviderError(errorCode, description));
+        },
       },
-      onProviderError: (errorCode, description) => {
-        if (captureSettled) return;
-        captureSettled = true;
-        rejectCapture(buildProviderError(errorCode, description));
-      },
-    });
+      options.logger,
+    );
   });
   // Aggressive keep-alive timeout — the kit only needs one round-trip with the
   // browser. Default Node keep-alive (5s) plus the browser's connection-reuse
@@ -195,8 +204,9 @@ const handleRequest = (
     onCode: (code: string) => void;
     onProviderError: (code: string, description: string | null) => void;
   },
+  logger: Logger | undefined,
 ): void => {
-  authDebug(`loopback: incoming ${req.method ?? "?"} ${req.url ?? "?"}`);
+  logger?.log("debug", `loopback: incoming ${req.method ?? "?"} ${req.url ?? "?"}`);
   if (req.method !== "GET" || req.url === undefined) {
     respondText(res, 405, "Method Not Allowed");
     return;
@@ -204,7 +214,7 @@ const handleRequest = (
   // `req.url` is the path+query only; supply a base so URL() parses it.
   const url = new URL(req.url, "http://127.0.0.1");
   if (url.pathname !== CALLBACK_PATH) {
-    authDebug(`loopback: 404 for path ${url.pathname}`);
+    logger?.log("debug", `loopback: 404 for path ${url.pathname}`);
     respondText(res, 404, "Not Found");
     return;
   }
@@ -213,7 +223,8 @@ const handleRequest = (
     // State mismatch — reject the request entirely. We do NOT settle the capture
     // promise, since this might be a stale request from a previous flow (e.g. user
     // reopened an old tab); the legitimate callback can still arrive.
-    authDebug(
+    logger?.log(
+      "debug",
       `loopback: state mismatch (expected=${expectedState.slice(0, 8)}…, got=${(state ?? "<null>").slice(0, 8)}…)`,
     );
     respondText(res, 400, "Bad Request: state mismatch");
@@ -222,18 +233,18 @@ const handleRequest = (
   const providerError = url.searchParams.get("error");
   if (providerError !== null) {
     const description = url.searchParams.get("error_description");
-    authDebug(`loopback: provider error ${providerError}`);
+    logger?.log("debug", `loopback: provider error ${providerError}`);
     hooks.onProviderError(providerError, description);
     respondText(res, 400, `Sign-in failed: ${providerError}`);
     return;
   }
   const code = url.searchParams.get("code");
   if (code === null || code.length === 0) {
-    authDebug("loopback: callback missing code");
+    logger?.log("debug", "loopback: callback missing code");
     respondText(res, 400, "Bad Request: missing code");
     return;
   }
-  authDebug("loopback: captured code, responding success HTML");
+  logger?.log("debug", "loopback: captured code, responding success HTML");
   hooks.onCode(code);
   respondHtml(res, 200, successHtml);
 };

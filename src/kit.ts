@@ -148,7 +148,10 @@ export class MinecraftKit {
     const runtime = new RuntimeVersionsApi(ctx);
     this.versions = { minecraft, fabric, forge, runtime };
     this.targets = new TargetsApi({ minecraft, fabric, forge, runtime, system });
-    this.auth = new MojangAuthApi(http);
+    // Pass the original `options.logger` (may be undefined) so `buildAuthLogger` inside
+    // MojangAuthApi can still honour `MINECRAFT_KIT_AUTH_DEBUG=1` when no caller logger
+    // is wired. Passing the resolved `silentLogger` would short-circuit that fallback.
+    this.auth = new MojangAuthApi(http, options.logger);
     this.cache = cache;
 
     // Carry signal/onEvent from operation-level options through to internal call sites.
