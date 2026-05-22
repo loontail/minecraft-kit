@@ -22,13 +22,13 @@ export default defineConfig({
       ],
       // Floors, not targets. V8 line/branch counting can wobble by a few tenths of a
       // percent between runs, so leave ~5% headroom above the actual aggregate (currently
-      // ~76% lines / ~76% branches / ~77% functions) — a single new untested branch should
-      // not block a push.
+      // ~78.6% lines / ~76.7% branches / ~78.6% functions) — a single new untested branch
+      // should not block a push.
       thresholds: {
-        lines: 65,
-        branches: 70,
-        functions: 65,
-        statements: 65,
+        lines: 73,
+        branches: 71,
+        functions: 73,
+        statements: 73,
       },
       all: true,
       clean: true,
