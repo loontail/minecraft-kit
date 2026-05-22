@@ -158,33 +158,31 @@ export class MinecraftKit {
     const runtime = new RuntimeVersionsApi(ctx);
     this.versions = { minecraft, fabric, forge, runtime };
     this.targets = new TargetsApi({ minecraft, fabric, forge, runtime, system });
-    // Pass the original `options.logger` (may be undefined) so `buildAuthLogger` inside
-    // MojangAuthApi can still honour `MINECRAFT_KIT_AUTH_DEBUG=1` when no caller logger
-    // is wired. Passing the resolved `silentLogger` would short-circuit that fallback.
     this.auth = new MojangAuthApi(http, options.logger);
     this.cache = cache;
 
-    // Carry signal/onEvent from operation-level options through to internal call sites.
-    // Centralising this avoids the same conditional spread appearing in every method below.
-    const carry = (opts: { signal?: AbortSignal; onEvent?: ProgressListener } | undefined) => ({
+    const forwardSignalAndEvent = (
+      opts: { signal?: AbortSignal; onEvent?: ProgressListener } | undefined,
+    ) => ({
       ...(opts?.signal !== undefined ? { signal: opts.signal } : {}),
       ...(opts?.onEvent !== undefined ? { onEvent: opts.onEvent } : {}),
     });
 
-    const carryInstall = (opts: InstallRunOptions | undefined) => ({
-      ...carry(opts),
+    const forwardInstallRunOptions = (opts: InstallRunOptions | undefined) => ({
+      ...forwardSignalAndEvent(opts),
       ...(opts?.pauseController !== undefined ? { pauseController: opts.pauseController } : {}),
       ...(opts?.actionCategories !== undefined ? { actionCategories: opts.actionCategories } : {}),
     });
 
     const runInstallPlan = (plan: InstallPlan, opts?: InstallRunOptions) =>
-      runInstall({ plan, http, cache, spawner, ...carryInstall(opts) });
+      runInstall({ plan, http, cache, spawner, ...forwardInstallRunOptions(opts) });
 
     this.install = {
-      plan: (target, opts) => planInstall({ target, http, cache, ...carry(opts) }),
+      plan: (target, opts) => planInstall({ target, http, cache, ...forwardSignalAndEvent(opts) }),
       run: runInstallPlan,
       runtime: {
-        plan: (target, opts) => planRuntimeInstall({ target, http, cache, ...carry(opts) }),
+        plan: (target, opts) =>
+          planRuntimeInstall({ target, http, cache, ...forwardSignalAndEvent(opts) }),
         run: runInstallPlan,
         standalonePlan: (input) => planStandaloneRuntimeInstall({ ...input, http, cache }),
       },
@@ -194,7 +192,7 @@ export class MinecraftKit {
       target,
       http,
       cache,
-      ...carry(opts),
+      ...forwardSignalAndEvent(opts),
     });
     this.verify = {
       minecraft: { run: (target, opts) => verifyMinecraft(verifyArgs(target, opts)) },
@@ -208,10 +206,10 @@ export class MinecraftKit {
       from: opts.from,
       http,
       cache,
-      ...carry({ ...(opts.signal !== undefined ? { signal: opts.signal } : {}) }),
+      ...forwardSignalAndEvent({ ...(opts.signal !== undefined ? { signal: opts.signal } : {}) }),
     });
     const runRepairPlan: RepairAspect["run"] = (plan, opts) =>
-      runRepair({ plan, http, cache, spawner, ...carry(opts) });
+      runRepair({ plan, http, cache, spawner, ...forwardSignalAndEvent(opts) });
     this.repair = {
       minecraft: {
         plan: (target, opts) => planMinecraftRepair(repairArgs(target, opts)),
@@ -235,7 +233,7 @@ export class MinecraftKit {
           http,
           cache,
           spawner,
-          ...carry(opts),
+          ...forwardSignalAndEvent(opts),
         }),
     };
 
