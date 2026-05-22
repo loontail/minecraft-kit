@@ -1,5 +1,5 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
-import { withOptionalSignal } from "../core/optional";
+import { postFormUrlEncoded } from "../http/postForm";
 import type { HttpClient } from "../types/http";
 
 const TENANT = "consumers";
@@ -41,28 +41,20 @@ type TokenResponse =
   | { readonly ok: false; readonly status: number; readonly error: TokenError };
 
 /**
- * Shared POST to `/consumers/oauth2/v2.0/token` used by every grant — device_code,
- * refresh_token, and authorization_code. Each caller decides how to interpret the
- * Microsoft `error` field, so this helper just returns the parsed body either way.
+ * Typed wrapper around {@link postFormUrlEncoded} for Microsoft's
+ * `/consumers/oauth2/v2.0/token` endpoint. Splits the response into the `TokenSuccess` /
+ * `TokenError` discriminated union; each grant caller decides how to react.
  */
 const postTokenRequest = async (
   http: HttpClient,
   body: URLSearchParams,
   signal: AbortSignal | undefined,
 ): Promise<TokenResponse> => {
-  const response = await http.request(TOKEN_URL, {
-    method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
-    body: body.toString(),
-    acceptNonOk: true,
-    ...withOptionalSignal(signal),
-  });
-  if (response.status >= 200 && response.status < 300) {
-    const token = (await response.json()) as TokenSuccess;
-    return { ok: true, status: response.status, token };
+  const { status, json } = await postFormUrlEncoded(http, TOKEN_URL, body, signal);
+  if (status >= 200 && status < 300) {
+    return { ok: true, status, token: json as TokenSuccess };
   }
-  const error = (await response.json().catch(() => ({}))) as TokenError;
-  return { ok: false, status: response.status, error };
+  return { ok: false, status, error: json as TokenError };
 };
 
 /**
