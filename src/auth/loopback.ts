@@ -1,5 +1,6 @@
 import { type IncomingMessage, type Server, type ServerResponse, createServer } from "node:http";
 import type { AddressInfo } from "node:net";
+import { deferred } from "../core/deferred";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import type { Logger } from "../types/logger";
 
@@ -118,14 +119,7 @@ export const startLoopbackServer = async (
 ): Promise<LoopbackServer> => {
   const successHtml = options.successHtml ?? DEFAULT_SUCCESS_HTML;
   let closed = false;
-  let captureSettled = false;
-  let resolveCapture: (value: { code: string }) => void;
-  let rejectCapture: (reason: unknown) => void;
-
-  const captured = new Promise<{ readonly code: string }>((resolve, reject) => {
-    resolveCapture = resolve;
-    rejectCapture = reject;
-  });
+  const cap = deferred<{ readonly code: string }>();
 
   const server: Server = createServer((req, res) => {
     handleRequest(
@@ -134,16 +128,9 @@ export const startLoopbackServer = async (
       options.expectedState,
       successHtml,
       {
-        onCode: (code) => {
-          if (captureSettled) return;
-          captureSettled = true;
-          resolveCapture({ code });
-        },
-        onProviderError: (errorCode, description) => {
-          if (captureSettled) return;
-          captureSettled = true;
-          rejectCapture(buildProviderError(errorCode, description));
-        },
+        onCode: (code) => cap.resolve({ code }),
+        onProviderError: (errorCode, description) =>
+          cap.reject(buildProviderError(errorCode, description)),
       },
       options.logger,
     );
@@ -153,22 +140,19 @@ export const startLoopbackServer = async (
   const close = async (): Promise<void> => {
     if (closed) return;
     closed = true;
-    if (!captureSettled) {
-      captureSettled = true;
-      const aborted = options.signal?.aborted === true;
-      rejectCapture(
-        aborted
-          ? new MinecraftKitError(
-              MinecraftKitErrorCodes.AUTH_CANCELLED,
-              "Microsoft sign-in cancelled before the user completed it.",
-              { context: { reason: options.signal?.reason } },
-            )
-          : new MinecraftKitError(
-              MinecraftKitErrorCodes.AUTH_AUTHORIZATION_CODE_FAILED,
-              "Loopback server closed before capturing the OAuth callback.",
-            ),
-      );
-    }
+    const aborted = options.signal?.aborted === true;
+    cap.reject(
+      aborted
+        ? new MinecraftKitError(
+            MinecraftKitErrorCodes.AUTH_CANCELLED,
+            "Microsoft sign-in cancelled before the user completed it.",
+            { context: { reason: options.signal?.reason } },
+          )
+        : new MinecraftKitError(
+            MinecraftKitErrorCodes.AUTH_AUTHORIZATION_CODE_FAILED,
+            "Loopback server closed before capturing the OAuth callback.",
+          ),
+    );
     server.closeAllConnections?.();
     server.closeIdleConnections?.();
     await new Promise<void>((resolve) => server.close(() => resolve()));
@@ -211,9 +195,9 @@ export const startLoopbackServer = async (
     else options.signal.addEventListener("abort", onAbort, { once: true });
   }
 
-  void captured.catch(() => {});
+  void cap.promise.catch(() => {});
 
-  return { port: address.port, captured, close };
+  return { port: address.port, captured: cap.promise, close };
 };
 
 const handleRequest = (
