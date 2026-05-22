@@ -34,7 +34,8 @@ import { authenticateXbl, authenticateXsts } from "./xbox";
  */
 export const CLIENT_ID_ENV_VAR = "MINECRAFT_KIT_MSA_CLIENT_ID";
 
-const AZURE_CLIENT_ID_PATTERN = /^[0-9a-fA-F-]{8,}$/;
+const AZURE_CLIENT_ID_PATTERN =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 /**
  * Validate `raw` as an Azure AD application id and brand it as {@link AzureClientId}.
@@ -54,7 +55,7 @@ export const asAzureClientId = (raw: string): AzureClientId => {
   if (trimmed.length === 0 || !AZURE_CLIENT_ID_PATTERN.test(trimmed)) {
     throw new MinecraftKitError(
       MinecraftKitErrorCodes.INVALID_INPUT,
-      `"${raw}" does not look like an Azure AD client id. Expected a GUID-shaped string (hex + dashes, at least 8 chars).`,
+      `"${raw}" does not look like an Azure AD client id. Expected the canonical 8-4-4-4-12 GUID format.`,
     );
   }
   return trimmed as AzureClientId;

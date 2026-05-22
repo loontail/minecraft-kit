@@ -226,7 +226,9 @@ const resolveClientId = async (
     validate: (s) => {
       const v = s.trim();
       if (v.length === 0) return undefined;
-      return /^[0-9a-fA-F-]{8,}$/.test(v) ? undefined : "Does not look like a GUID";
+      return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(v)
+        ? undefined
+        : "Expected the 8-4-4-4-12 GUID format";
     },
   });
   if (entered.kind !== "ok") return null;
