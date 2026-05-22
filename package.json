@@ -1,6 +1,6 @@
 {
   "name": "@loontail/minecraft-kit",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "description": "Stateless TypeScript Minecraft launcher library and interactive CLI for vanilla, Fabric, and modern Forge.",
   "type": "module",
   "license": "MIT",
@@ -41,11 +41,7 @@
   "bin": {
     "mckit": "./dist/cli/index.mjs"
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
+  "files": ["dist", "README.md", "LICENSE"],
   "engines": {
     "node": ">=20.11"
   },

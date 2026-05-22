@@ -7,6 +7,8 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-05-22
+
 ### BREAKING CHANGES
 
 - **Authentication.** Removed the Microsoft device-code sign-in flow:
