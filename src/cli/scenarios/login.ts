@@ -1,8 +1,14 @@
 import { CLIENT_ID_ENV_VAR, toOnlineAuth } from "../../auth/index";
-import { AuthModes, type LaunchAuth, type MojangSession } from "../../types/auth";
+import { assertNever } from "../../core/assert-never";
+import { AuthModes, type LaunchAuth, type MojangSession, type OnlineAuth } from "../../types/auth";
 import { formatUserError } from "../error-format";
 import { openBrowser } from "../open-browser";
 import type { AuthState, ScenarioContext, ScenarioOutcome } from "./types";
+
+type AuthOutcome =
+  | { readonly kind: "signed-in"; readonly session: MojangSession; readonly auth: OnlineAuth }
+  | { readonly kind: "offline"; readonly auth: LaunchAuth }
+  | { readonly kind: "cancelled" };
 
 /**
  * Scenario: shown from the main menu after the initial sign-in already happened at startup.
@@ -54,6 +60,24 @@ export const pickInitialAuth = async (
   ctx: Omit<ScenarioContext, "auth">,
   state: AuthState,
 ): Promise<boolean> => {
+  const outcome = await decideInitialAuth(ctx);
+  switch (outcome.kind) {
+    case "signed-in":
+      state.microsoftSession = outcome.session;
+      state.current = outcome.auth;
+      return true;
+    case "offline":
+      state.current = outcome.auth;
+      state.microsoftSession = null;
+      return true;
+    case "cancelled":
+      return false;
+    default:
+      return assertNever(outcome);
+  }
+};
+
+const decideInitialAuth = async (ctx: Omit<ScenarioContext, "auth">): Promise<AuthOutcome> => {
   const mode = await ctx.ui.select<"offline" | "browser">({
     message: "How do you want to play?",
     options: [
@@ -66,26 +90,17 @@ export const pickInitialAuth = async (
     ],
     initialValue: "browser",
   });
-  if (mode.kind !== "ok") return false;
-  if (mode.value === "offline") {
-    const offline = await promptOfflineAuth(ctx);
-    if (!offline) return false;
-    state.current = offline;
-    state.microsoftSession = null;
-    return true;
-  }
+  if (mode.kind !== "ok") return { kind: "cancelled" };
+  if (mode.value === "offline") return await chooseOfflineOutcome(ctx);
   const session = await runMicrosoftBrowserLogin(ctx);
-  if (!session) {
-    ctx.ui.log("warn", "Sign-in failed — continuing in offline mode.");
-    const offline = await promptOfflineAuth(ctx);
-    if (!offline) return false;
-    state.current = offline;
-    state.microsoftSession = null;
-    return true;
-  }
-  state.microsoftSession = session;
-  state.current = toOnlineAuth(session);
-  return true;
+  if (session) return { kind: "signed-in", session, auth: toOnlineAuth(session) };
+  ctx.ui.log("warn", "Sign-in failed — continuing in offline mode.");
+  return await chooseOfflineOutcome(ctx);
+};
+
+const chooseOfflineOutcome = async (ctx: Omit<ScenarioContext, "auth">): Promise<AuthOutcome> => {
+  const offline = await promptOfflineAuth(ctx);
+  return offline ? { kind: "offline", auth: offline } : { kind: "cancelled" };
 };
 
 const runSwitch = async (ctx: ScenarioContext): Promise<ScenarioOutcome> => {
