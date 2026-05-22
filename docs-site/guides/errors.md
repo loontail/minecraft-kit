@@ -68,15 +68,14 @@ The OAuth flow has its own code surface so you can branch on the exact failure:
 | Code | Meaning |
 |---|---|
 | `AUTH_MISSING_CLIENT_ID` | No `clientId` passed and `MINECRAFT_KIT_MSA_CLIENT_ID` is unset. |
-| `AUTH_DEVICE_CODE_FAILED` | Microsoft `/devicecode` rejected the request. Message includes a precise Azure-portal hint for common AADSTS sub-codes. |
-| `AUTH_DEVICE_CODE_DECLINED` | User declined the sign-in. |
-| `AUTH_DEVICE_CODE_EXPIRED` | Device code expired before sign-in completed. |
+| `AUTH_AUTHORIZATION_CODE_FAILED` | Microsoft's `/token` endpoint rejected the authorization code exchange (PKCE mismatch, redirect_uri mismatch, public-flow misconfig, …). |
+| `AUTH_AUTHORIZATION_CODE_DECLINED` | The user closed the browser without signing in, or Microsoft returned `access_denied` on the loopback redirect. |
 | `AUTH_REFRESH_FAILED` | Microsoft refused a refresh-token exchange. |
 | `AUTH_XBOX_FAILED` | Xbox Live RPS exchange failed or returned incomplete data. |
 | `AUTH_XSTS_FAILED` | XSTS returned 401 + `XErr`. The `context.xerr` numeric tells you whether the account has no Xbox profile, is a child account, is region-restricted, etc. |
 | `AUTH_MINECRAFT_FAILED` | Mojang `login_with_xbox` / `minecraft/profile` failed, including the 403 + "invalid app registration" case that needs `https://aka.ms/mce-reviewappid`. |
 | `AUTH_NO_GAME_OWNERSHIP` | This Microsoft account does not own Java Edition. |
-| `AUTH_CANCELLED` | Caller's `AbortSignal` aborted the device-code polling. |
+| `AUTH_CANCELLED` | Caller's `AbortSignal` aborted the loopback wait or the post-token pipeline. |
 
 ### Misc
 

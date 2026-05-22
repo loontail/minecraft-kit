@@ -81,6 +81,5 @@ literal. The derived union type is what TypeScript shows in signatures.
 | `VerificationKinds` | `types/verify` | `VerificationResult.kind`. |
 | `RepairPhases` | `types/repair` | Phase argument of `repair:phase-changed`. |
 | `AuthModes` | `types/auth` | `OFFLINE` vs `ONLINE`. |
-| `AuthDeviceCodeErrorReasons` | `types/auth` | Sub-codes for AUTH_DEVICE_CODE_FAILED context. |
 | `WizardOutcomes` | `cli/ui` | CLI picker `kind` values (`OK`, `BACK`, `CANCEL`). |
 | `InstallWizardSteps`, `InstallRunResults` | `cli/scenarios/types` | CLI install wizard state machine. |
