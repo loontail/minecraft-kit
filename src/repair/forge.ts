@@ -65,30 +65,41 @@ export const planForgeRepair = async (input: PlanForgeRepairInput): Promise<Repa
       if (action.kind === InstallActionKinds.WRITE_VERSION_JSON) {
         return (action as WriteVersionJsonAction).path === forgeJsonPath;
       }
-      // Processors handled in the postprocess step (only when JSON was missing).
       return false;
     },
     ({ actions, installPlan, issues }) => {
       if (!issues.has(forgeJsonPath)) return;
-      // Forge JSON was missing during verify → libraries couldn't be enumerated. Include
-      // every forge-library download (skip-on-correct keeps this cheap) plus the processors
-      // that regenerate the JSON.
-      const alreadyIncluded = new Set(
-        actions
-          .filter((a): a is DownloadAction => a.kind === InstallActionKinds.DOWNLOAD_FILE)
-          .map((a) => a.target),
-      );
-      for (const action of installPlan.actions) {
-        if (
-          action.kind === InstallActionKinds.DOWNLOAD_FILE &&
-          (action as DownloadAction).category === DownloadCategories.FORGE_LIBRARY &&
-          !alreadyIncluded.has((action as DownloadAction).target)
-        ) {
-          actions.push(action);
-        } else if (action.kind === InstallActionKinds.RUN_FORGE_PROCESSOR) {
-          actions.push(action);
-        }
-      }
+      expandRepairForMissingForgeJson({ actions, installPlan });
     },
   );
+};
+
+/**
+ * Postprocess step for when the Forge version JSON was missing during verify.
+ *
+ * Without the JSON, the verify pass cannot enumerate Forge libraries — so every
+ * `FORGE_LIBRARY` download has to be re-emitted defensively (the regular skip-on-correct
+ * keeps this cheap). The processors that regenerate the JSON are pulled in too.
+ */
+const expandRepairForMissingForgeJson = (input: {
+  readonly actions: InstallAction[];
+  readonly installPlan: { readonly actions: readonly InstallAction[] };
+}): void => {
+  const { actions, installPlan } = input;
+  const alreadyIncluded = new Set(
+    actions
+      .filter((a): a is DownloadAction => a.kind === InstallActionKinds.DOWNLOAD_FILE)
+      .map((a) => a.target),
+  );
+  for (const action of installPlan.actions) {
+    if (
+      action.kind === InstallActionKinds.DOWNLOAD_FILE &&
+      (action as DownloadAction).category === DownloadCategories.FORGE_LIBRARY &&
+      !alreadyIncluded.has((action as DownloadAction).target)
+    ) {
+      actions.push(action);
+    } else if (action.kind === InstallActionKinds.RUN_FORGE_PROCESSOR) {
+      actions.push(action);
+    }
+  }
 };

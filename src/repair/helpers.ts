@@ -186,7 +186,6 @@ export const selectRepairActions = (input: {
         matching.push(action);
       }
     } else {
-      // Non-standard kinds (e.g. RUN_FORGE_PROCESSOR) are admitted by the aspect filter.
       matching.push(action);
     }
   }
