@@ -150,11 +150,13 @@ const createContext = (input: RunInstallInput, counters: InstallCounters): Insta
 };
 
 const partitionActions = (input: RunInstallInput): PlannedActions => {
-  const filter = input.actionCategories;
+  const allowedCategories = input.actionCategories;
+  const allDownloads = input.plan.actions.filter(isDownload);
   return {
-    downloads: input.plan.actions
-      .filter(isDownload)
-      .filter((a) => (filter ? filter.has(a.category) : true)),
+    downloads:
+      allowedCategories === undefined
+        ? allDownloads
+        : allDownloads.filter((a) => allowedCategories.has(a.category)),
     natives: input.plan.actions.filter(isNative),
     writes: input.plan.actions.filter(isWrite),
     processors: input.plan.actions.filter(isProcessor),
