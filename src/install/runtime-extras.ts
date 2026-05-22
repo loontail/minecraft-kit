@@ -32,12 +32,20 @@ export const materializeRuntimeExtras = async (input: {
       await unlinkIfPresent(fullPath);
       await createLinkOrCopy(root, relativePath, entry.target, fullPath);
     } else if (entry.executable && process.platform !== "win32") {
-      // chmod failure is non-fatal: the file may simply be on a filesystem that ignores mode
-      // bits (FAT, SMB). The launcher will fail later with a clearer error if the binary is
-      // truly not executable.
-      await fs.chmod(fullPath, 0o755).catch(() => {});
+      await tryMakeExecutable(fullPath);
     }
   }
+};
+
+/**
+ * Best-effort `chmod 0o755` of a runtime binary on POSIX.
+ *
+ * Failure is intentionally swallowed: the file may simply be on a filesystem that ignores
+ * mode bits (FAT, SMB), in which case the launcher will fail later with a clearer error
+ * if the binary is truly not executable.
+ */
+const tryMakeExecutable = async (fullPath: string): Promise<void> => {
+  await fs.chmod(fullPath, 0o755).catch(() => {});
 };
 
 const unlinkIfPresent = async (target: string): Promise<void> => {
@@ -53,6 +61,13 @@ const unlinkIfPresent = async (target: string): Promise<void> => {
   }
 };
 
+/**
+ * Try a symlink first, then fall back to copying the resolved file.
+ *
+ * Symlink creation is restricted on Windows and some filesystems; the copy fallback keeps
+ * the runtime usable in those environments. If the copy itself also fails the runtime is
+ * unusable, so the error rethrows with both the symlink and copy failures attached.
+ */
 const createLinkOrCopy = async (
   root: string,
   relativePath: string,
@@ -63,9 +78,6 @@ const createLinkOrCopy = async (
     await fs.symlink(linkTarget, destination);
     return;
   } catch (symlinkError) {
-    // Symlinks are restricted on Windows and some filesystems. Fall back to copying the
-    // resolved file. If copy ALSO fails the runtime is unusable, so we throw with both
-    // failures attached as context.
     const absoluteSource = path.resolve(path.dirname(path.join(root, relativePath)), linkTarget);
     try {
       await fs.copyFile(absoluteSource, destination);

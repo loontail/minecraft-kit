@@ -54,11 +54,15 @@ export const runProcessor = async (input: RunProcessorInput): Promise<void> => {
   await verifyProcessorOutputs(input, mainClass);
 };
 
+/**
+ * Read `Main-Class` from the processor JAR (always `classpath[0]`) now that all
+ * libraries have been downloaded.
+ *
+ * Deferring this lookup from planning to runtime is what lets newer Forge versions work:
+ * their processor JARs ship as regular Maven libraries rather than being bundled inside
+ * the installer, so the JAR doesn't exist on disk at planning time.
+ */
 const resolveProcessorMainClass = async (action: RunForgeProcessorAction): Promise<string> => {
-  // Resolve Main-Class from the processor JAR (always classpath[0]) now that all
-  // libraries have been downloaded. Deferring this from planning to runtime is what
-  // lets newer Forge versions work, since their processor JARs ship as regular Maven
-  // libraries instead of being bundled inside the installer.
   const processorJar = action.classpath[0];
   if (processorJar === undefined) {
     throw new MinecraftKitError(
@@ -96,9 +100,7 @@ const spawnProcessor = async (
   ];
   const stderrTail: string[] = [];
   const child = input.spawner.spawn(input.javaPath, args, { cwd: process.cwd() });
-  child.stdout.on("data", () => {
-    // Forge processors print noisy progress to stdout; we don't surface it.
-  });
+  child.stdout.on("data", () => {});
   child.stderr.on("data", (line) => {
     if (stderrTail.length >= MAX_PROCESSOR_STDERR_LINES) stderrTail.shift();
     stderrTail.push(line);

@@ -7,7 +7,6 @@ import { atomicWrite } from "../core/fs";
 import { parseJsonStrict } from "../core/json";
 import { mavenRelativePathFor } from "../core/maven";
 import { targetPaths } from "../core/paths";
-import { evaluateRules } from "../core/rules";
 import { downloadFile } from "../http/download";
 import type { MetadataCache } from "../types/cache";
 import type { ProgressListener } from "../types/events";
@@ -125,7 +124,6 @@ export const planForgeInstall = async (input: PlanForgeInstallInput): Promise<Fo
     minecraft: input.minecraft,
     installerPath,
     directory: input.directory,
-    system: input.system,
     dataResolved,
   });
 
@@ -236,7 +234,6 @@ const buildProcessorActions = async (input: {
   readonly minecraft: ResolvedMinecraft;
   readonly installerPath: string;
   readonly directory: string;
-  readonly system: RuntimeSystem;
   readonly dataResolved: ResolvedProfileData;
 }): Promise<readonly RunForgeProcessorAction[]> => {
   const builtIns: Record<string, ResolvedTokenValue> = {
@@ -260,9 +257,6 @@ const buildProcessorActions = async (input: {
     if (!processorAppliesToClient(processor)) {
       continue;
     }
-    if (!evaluateRules([], { system: input.system })) {
-      // Currently processors do not carry rules; placeholder for future expansion.
-    }
     const action = buildProcessorAction({
       processor,
       directory: input.directory,
@@ -280,6 +274,13 @@ const processorAppliesToClient = (processor: ForgeProcessor): boolean => {
   return processor.sides.includes("client");
 };
 
+/**
+ * Build the `RUN_FORGE_PROCESSOR` action for one processor entry.
+ *
+ * The classpath starts with the raw processor JAR — `Main-Class` is read from that JAR
+ * at runtime, not here, because newer Forge versions ship some processor JARs as regular
+ * Maven libraries that aren't downloaded yet at planning time.
+ */
 const buildProcessorAction = (input: {
   readonly processor: ForgeProcessor;
   readonly directory: string;
@@ -290,9 +291,6 @@ const buildProcessorAction = (input: {
     targetPaths.librariesDir(input.directory),
     mavenRelativePathFor(input.processor.jar),
   );
-  // Note: `Main-Class` is read from the JAR at runtime, not here. Newer Forge versions
-  // ship some processor JARs as regular Maven libraries that haven't been downloaded
-  // yet at planning time.
   const classpath = [
     jarPath,
     ...input.processor.classpath.map((coord) =>
@@ -339,10 +337,14 @@ const substituteToken = (
   });
 };
 
-/** @internal */
+/**
+ * Strip the single-quote wrapping that Forge `install_profile.json` puts around literal
+ * values (in contrast to `{token}` placeholders and `[g:a:v]` maven coords). Both the
+ * leading and trailing quote are removed when present.
+ *
+ * @internal
+ */
 export const stripLiteralPrefix = (value: string): string => {
-  // Forge install_profile.json wraps literal values in single quotes (vs `{token}` /
-  // `[g:a:v]` maven coords). Both quotes must be stripped.
   const stripped = value.startsWith("'") ? value.slice(1) : value;
   return stripped.endsWith("'") ? stripped.slice(0, -1) : stripped;
 };
