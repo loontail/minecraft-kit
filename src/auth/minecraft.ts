@@ -13,6 +13,15 @@ const MC_LOGIN_URL = "https://api.minecraftservices.com/authentication/login_wit
 const MC_PROFILE_URL = "https://api.minecraftservices.com/minecraft/profile";
 
 /**
+ * User-Agent sent to `api.minecraftservices.com`. Mojang silently filters
+ * unknown/non-launcher UAs on the auth endpoints with a 403 + opaque body,
+ * so we send a string that matches what real Minecraft launchers use.
+ *
+ * @internal
+ */
+const MINECRAFT_KIT_USER_AGENT = "Minecraft Launcher/2.0 (minecraft-kit)";
+
+/**
  * Result of `login_with_xbox` — Minecraft bearer token + lifetime.
  *
  * @internal
@@ -87,27 +96,18 @@ export const loginWithXbox = async (input: {
     headers: {
       "content-type": "application/json",
       accept: "application/json",
-      // Mojang sometimes rejects unknown user-agents on the auth endpoints. Override the
-      // library default with a UA that matches what real Minecraft launchers send, so we
-      // don't trip an "anomalous client" filter.
-      "user-agent": "Minecraft Launcher/2.0 (minecraft-kit)",
+      "user-agent": MINECRAFT_KIT_USER_AGENT,
     },
     body,
     acceptNonOk: true,
     ...(input.signal !== undefined ? { signal: input.signal } : {}),
   });
   if (response.status < 200 || response.status >= 300) {
-    // Read the response body for diagnostic context. Mojang sometimes returns a JSON
-    // payload like `{"error":"FORBIDDEN","errorMessage":"..."}` — much more actionable than
-    // a bare status code.
     const rawBody = await response.text().catch(() => "");
     const detail = rawBody.slice(0, 400);
     input.logger?.log("debug", `login_with_xbox failed status=${response.status} body=${detail}`);
     if (response.status === 403) {
-      // Mojang ships a "blessed apps" allow-list. New Azure AD client_ids must be approved
-      // through https://aka.ms/mce-reviewappid before login_with_xbox accepts them. Catch
-      // that specific error message and surface a precise fix.
-      if (/invalid app registration/i.test(detail)) {
+      if (is403InvalidAppReg(detail)) {
         throw new MinecraftKitError(
           MinecraftKitErrorCodes.AUTH_MINECRAFT_FAILED,
           `Mojang has not approved this Azure AD application id for the Minecraft API. The OAuth + Xbox/XSTS exchange all succeeded, but api.minecraftservices.com only accepts client_ids that are on its allow-list. Apply at https://aka.ms/mce-reviewappid (Application ID, contact email, purpose) — approval typically takes a few days. Raw response: ${detail}`,
@@ -137,6 +137,16 @@ export const loginWithXbox = async (input: {
 };
 
 /**
+ * Detect Mojang's "blessed apps" allow-list failure mode. New Azure AD
+ * client_ids must be approved through https://aka.ms/mce-reviewappid before
+ * `login_with_xbox` accepts them; until they are, Mojang returns 403 with the
+ * literal phrase "invalid app registration" in the body.
+ *
+ * @internal
+ */
+const is403InvalidAppReg = (body: string): boolean => /invalid app registration/i.test(body);
+
+/**
  * Step 5 — fetch the player profile using the Minecraft bearer token. Returns the rich
  * payload (UUID + display name + every skin/cape slot Mojang has issued) so callers can
  * drive their skin-picker UI without an extra round-trip.
@@ -152,7 +162,7 @@ export const fetchMinecraftProfile = async (input: {
     headers: {
       authorization: `Bearer ${input.accessToken}`,
       accept: "application/json",
-      "user-agent": "Minecraft Launcher/2.0 (minecraft-kit)",
+      "user-agent": MINECRAFT_KIT_USER_AGENT,
     },
     acceptNonOk: true,
     ...(input.signal !== undefined ? { signal: input.signal } : {}),
@@ -189,9 +199,15 @@ export const fetchMinecraftProfile = async (input: {
 const ASSET_STATES: ReadonlySet<MojangAssetState> = new Set(["ACTIVE", "INACTIVE"]);
 const SKIN_VARIANTS: ReadonlySet<MojangSkinVariant> = new Set(["CLASSIC", "SLIM"]);
 
-// Drop rows whose required fields Mojang omitted. Unknown variants/states are
-// rejected rather than coerced — better an empty list than a row that violates
-// our union types and corrupts downstream UI assumptions.
+/**
+ * Narrow a raw Mojang skin row into the strongly-typed shape. Rows are dropped
+ * (returned as an empty array, for `flatMap`) when required fields are missing
+ * or when the `state`/`variant` carries a value outside our enum — better an
+ * empty list than a row that violates our union types and corrupts downstream
+ * UI assumptions.
+ *
+ * @internal
+ */
 const toProfileSkin = (raw: RawProfileSkin): ReadonlyArray<MojangProfileSkin> => {
   if (!raw.id || !raw.url || !raw.state || !raw.variant) return [];
   if (!ASSET_STATES.has(raw.state as MojangAssetState)) return [];
@@ -206,6 +222,12 @@ const toProfileSkin = (raw: RawProfileSkin): ReadonlyArray<MojangProfileSkin> =>
   ];
 };
 
+/**
+ * Narrow a raw Mojang cape row into the strongly-typed shape. Same rejection
+ * policy as {@link toProfileSkin}.
+ *
+ * @internal
+ */
 const toProfileCape = (raw: RawProfileCape): ReadonlyArray<MojangProfileCape> => {
   if (!raw.id || !raw.url || !raw.state) return [];
   if (!ASSET_STATES.has(raw.state as MojangAssetState)) return [];
