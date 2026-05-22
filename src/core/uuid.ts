@@ -46,3 +46,25 @@ const formatUuid = (bytes: Buffer): string => {
 export const stripUuidDashes = (uuid: string): string => {
   return uuid.replaceAll("-", "");
 };
+
+/**
+ * Insert the canonical 8-4-4-4-12 dashes into a 32-char hex UUID. Inverse of
+ * {@link stripUuidDashes}. Returns the input unchanged if it already contains
+ * a `-` or is not 32 characters — the caller is expected to recover from
+ * malformed input downstream.
+ *
+ * @example
+ * ```ts
+ * import { addUuidDashes } from "@loontail/minecraft-kit";
+ *
+ * addUuidDashes("069a79f444e94726a5befca90e38aaf5");
+ * // → "069a79f4-44e9-4726-a5be-fca90e38aaf5"
+ * ```
+ *
+ * @internal
+ */
+export const addUuidDashes = (raw: string): string => {
+  if (raw.includes("-")) return raw;
+  if (raw.length !== 32) return raw;
+  return `${raw.slice(0, 8)}-${raw.slice(8, 12)}-${raw.slice(12, 16)}-${raw.slice(16, 20)}-${raw.slice(20)}`;
+};

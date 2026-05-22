@@ -1,6 +1,7 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { parseJsonOrUndefined } from "../core/json";
 import { withOptionalSignal } from "../core/optional";
+import { addUuidDashes } from "../core/uuid";
 import type {
   MojangAssetState,
   MojangProfileCape,
@@ -190,7 +191,7 @@ export const fetchMinecraftProfile = async (input: {
     );
   }
   return {
-    uuid: dashUuid(parsed.id),
+    uuid: addUuidDashes(parsed.id),
     username: parsed.name,
     skins: (parsed.skins ?? []).flatMap(toProfileSkin),
     capes: (parsed.capes ?? []).flatMap(toProfileCape),
@@ -257,14 +258,4 @@ export const extractXuid = (accessToken: string): string => {
   );
   const parsed = parseJsonOrUndefined<{ xuid?: unknown }>(json);
   return typeof parsed?.xuid === "string" ? parsed.xuid : "";
-};
-
-/** Convert a dashless UUID (Mojang format) into the dashed canonical form. */
-const dashUuid = (raw: string): string => {
-  if (raw.includes("-")) return raw;
-  if (raw.length !== 32) return raw;
-  return `${raw.slice(0, 8)}-${raw.slice(8, 12)}-${raw.slice(12, 16)}-${raw.slice(
-    16,
-    20,
-  )}-${raw.slice(20)}`;
 };
