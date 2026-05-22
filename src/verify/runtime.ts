@@ -14,7 +14,11 @@ import {
 } from "../types/verify";
 import { runVerification, verifyHashedFile } from "./helpers";
 
-/** Inputs to {@link verifyRuntime}. */
+/**
+ * Inputs to {@link verifyRuntime}.
+ *
+ * @internal
+ */
 export type VerifyRuntimeInput = {
   readonly target: Target;
   readonly http: HttpClient;

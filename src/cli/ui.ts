@@ -1,11 +1,28 @@
-/** Discriminator values for {@link WizardOutcome}. */
+/**
+ * Internal CLI UI contract. Exposed for the `mckit` binary, the scenario implementations,
+ * and the test suite — never re-exported through `src/index.ts` or `src/cli/index.ts`,
+ * so no consumer of `@loontail/minecraft-kit` should depend on anything in this file.
+ *
+ * @internal
+ * @packageDocumentation
+ */
+
+/**
+ * Discriminator values for {@link WizardOutcome}.
+ *
+ * @internal
+ */
 export const WizardOutcomes = {
   OK: "ok",
   BACK: "back",
   CANCEL: "cancel",
 } as const;
 
-/** Literal union of {@link WizardOutcome} discriminators. */
+/**
+ * Literal union of {@link WizardOutcome} discriminators.
+ *
+ * @internal
+ */
 export type WizardOutcomeKind = (typeof WizardOutcomes)[keyof typeof WizardOutcomes];
 
 /**
@@ -14,27 +31,41 @@ export type WizardOutcomeKind = (typeof WizardOutcomes)[keyof typeof WizardOutco
  * - `ok`     — user picked a value.
  * - `back`   — user asked to go to the previous step (only available when {@link UiPromptInput.allowBack}).
  * - `cancel` — user pressed Ctrl+C, picked the explicit "Cancel" option, or otherwise aborted.
+ *
+ * @internal
  */
 export type WizardOutcome<T> =
   | { readonly kind: typeof WizardOutcomes.OK; readonly value: T }
   | { readonly kind: typeof WizardOutcomes.BACK }
   | { readonly kind: typeof WizardOutcomes.CANCEL };
 
-/** A select option. */
+/**
+ * A select option.
+ *
+ * @internal
+ */
 export type SelectOption<T> = {
   readonly label: string;
   readonly value: T;
   readonly hint?: string;
 };
 
-/** Common shape for every interactive prompt input. */
+/**
+ * Common shape for every interactive prompt input.
+ *
+ * @internal
+ */
 export type UiPromptInput = {
   readonly message: string;
   readonly allowBack?: boolean;
   readonly allowCancel?: boolean;
 };
 
-/** Inputs for {@link Ui.text}. */
+/**
+ * Inputs for {@link Ui.text}.
+ *
+ * @internal
+ */
 export interface TextInput extends UiPromptInput {
   readonly placeholder?: string;
   readonly initial?: string;
@@ -42,14 +73,22 @@ export interface TextInput extends UiPromptInput {
   readonly validate?: (value: string) => string | undefined;
 }
 
-/** Inputs for {@link Ui.select}. */
+/**
+ * Inputs for {@link Ui.select}.
+ *
+ * @internal
+ */
 export interface SelectInput<T> extends UiPromptInput {
   readonly options: readonly SelectOption<T>[];
   /** Optional initial selection. */
   readonly initialValue?: T;
 }
 
-/** Inputs for {@link Ui.searchableSelect}. */
+/**
+ * Inputs for {@link Ui.searchableSelect}.
+ *
+ * @internal
+ */
 export interface SearchableSelectInput<T> extends SelectInput<T> {
   /**
    * Lists with at most this many entries are rendered as a normal select. Larger lists are
@@ -58,12 +97,20 @@ export interface SearchableSelectInput<T> extends SelectInput<T> {
   readonly searchThreshold?: number;
 }
 
-/** Inputs for {@link Ui.confirm}. */
+/**
+ * Inputs for {@link Ui.confirm}.
+ *
+ * @internal
+ */
 export interface ConfirmInput extends UiPromptInput {
   readonly initial?: boolean;
 }
 
-/** Spinner handle. */
+/**
+ * Spinner handle.
+ *
+ * @internal
+ */
 export type UiSpinner = {
   /** Start the spinner with an initial message. */
   start(message: string): void;
@@ -73,7 +120,11 @@ export type UiSpinner = {
   stop(message?: string): void;
 };
 
-/** Public interactive-UI contract. */
+/**
+ * Public interactive-UI contract.
+ *
+ * @internal
+ */
 export type Ui = {
   intro(message: string): void;
   outro(message: string): void;
@@ -115,6 +166,8 @@ type ClackModule = {
 /**
  * Build the production {@link Ui} backed by `@clack/prompts`. Lazy import keeps the CLI
  * dependency out of the library's main entry point.
+ *
+ * @internal
  */
 export const createClackUi = async (): Promise<Ui> => {
   let clack: ClackModule;
@@ -128,13 +181,25 @@ export const createClackUi = async (): Promise<Ui> => {
   return buildUi(clack);
 };
 
-/** Maximum number of options shown in a single select. Above this, a filter is required. */
+/**
+ * Maximum number of options shown in a single select. Above this, a filter is required.
+ *
+ * @internal
+ */
 export const MAX_VISIBLE_OPTIONS = 50;
 
-/** Threshold above which {@link Ui.searchableSelect} prompts for a filter first. */
+/**
+ * Threshold above which {@link Ui.searchableSelect} prompts for a filter first.
+ *
+ * @internal
+ */
 export const DEFAULT_SEARCH_THRESHOLD = 30;
 
-/** Build a {@link Ui} from any module that implements the clack contract. Exposed for tests. */
+/**
+ * Build a {@link Ui} from any module that implements the clack contract. Exposed for tests.
+ *
+ * @internal
+ */
 export const buildUi = (clack: ClackModule): Ui => {
   return {
     intro: (m) => clack.intro(m),
@@ -185,7 +250,11 @@ const DEFAULT_OUT: { write(chunk: string): void; isTTY: boolean } = {
   },
 };
 
-/** Inputs to {@link createInPlaceSpinner}. */
+/**
+ * Inputs to {@link createInPlaceSpinner}.
+ *
+ * @internal
+ */
 export type InPlaceSpinnerInput = {
   /** Sink the spinner writes to. Defaults to `process.stdout`. */
   readonly out?: { write(chunk: string): void; isTTY: boolean };
@@ -199,6 +268,8 @@ export type InPlaceSpinnerInput = {
  *
  * Exposed for tests; the production {@link Ui} created by {@link createClackUi} already uses
  * this internally.
+ *
+ * @internal
  */
 export const createInPlaceSpinner = (input: InPlaceSpinnerInput = {}): UiSpinner => {
   const out = input.out ?? DEFAULT_OUT;
@@ -320,6 +391,8 @@ const searchableSelect = async <T>(
  * - a {@link WizardOutcome} object directly.
  *
  * The stub also captures every log/note/intro/outro call so tests can assert on them.
+ *
+ * @internal
  */
 export const createStubUi = (script: readonly unknown[] = []): StubUi => {
   const queue = [...script];
@@ -361,7 +434,11 @@ export const createStubUi = (script: readonly unknown[] = []): StubUi => {
   };
 };
 
-/** Recorded stub-UI call. */
+/**
+ * Recorded stub-UI call.
+ *
+ * @internal
+ */
 export type StubUiCall = {
   readonly kind:
     | "intro"
@@ -381,7 +458,11 @@ export type StubUiCall = {
   readonly body?: string;
 };
 
-/** Stub UI handle (extends {@link Ui} with a `calls` log for test assertions). */
+/**
+ * Stub UI handle (extends {@link Ui} with a `calls` log for test assertions).
+ *
+ * @internal
+ */
 export interface StubUi extends Ui {
   readonly calls: readonly StubUiCall[];
 }

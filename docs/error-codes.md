@@ -106,7 +106,6 @@ network failed vs. Xbox Live missing).
 | `VERIFICATION_FAILED` | Reserved for future use. | — |
 | `NOT_IMPLEMENTED` | A code path is intentionally not implemented yet. | — |
 | `UNSUPPORTED_VERSION` | The selected Minecraft version is outside the supported range (e.g. legacy Forge < 1.13). | `version` |
-| `LZMA_DECODE_ERROR` | Mojang runtime sidecar LZMA stream failed to decompress. | — |
 
 ## Conventions
 

@@ -8,7 +8,11 @@ import type { RepairPlan } from "../types/repair";
 import type { AspectRepairInput } from "../types/repair";
 import { planAspectRepair } from "./helpers";
 
-/** Inputs to {@link planRuntimeRepair}. */
+/**
+ * Inputs to {@link planRuntimeRepair}. Alias for {@link AspectRepairInput}.
+ *
+ * @internal
+ */
 export type PlanRuntimeRepairInput = AspectRepairInput;
 
 /**

@@ -59,7 +59,6 @@ export type {
   RuntimeListInput,
   RuntimeResolveInput,
 } from "./versions/runtime";
-export type { ResolverContext } from "./versions/context";
 
 // ─────────────────────────────────────────────────────────────────────────────────────
 // Install — plan a runtime/standalone install + observe progress
@@ -67,7 +66,6 @@ export type { ResolverContext } from "./versions/context";
 export {
   planRuntimeInstall,
   planStandaloneRuntimeInstall,
-  type PlanRuntimeInstallInput,
   type PlanStandaloneRuntimeInstallInput,
 } from "./install/runtime-install";
 export {
@@ -82,29 +80,14 @@ export {
 // ─────────────────────────────────────────────────────────────────────────────────────
 // Verify + repair — detect missing/corrupt files and re-derive an install plan
 // ─────────────────────────────────────────────────────────────────────────────────────
-export {
-  type VerifyFabricInput,
-  type VerifyForgeInput,
-  verifyFabric,
-  verifyForge,
-  verifyMinecraft,
-  type VerifyMinecraftInput,
-  verifyRuntime,
-  type VerifyRuntimeInput,
-} from "./verify/index";
+export { verifyFabric, verifyForge, verifyMinecraft, verifyRuntime } from "./verify/index";
 export {
   planFabricRepair,
   planForgeRepair,
   planMinecraftRepair,
-  type PlanFabricRepairInput,
-  type PlanForgeRepairInput,
-  type PlanMinecraftRepairInput,
-  type PlanRuntimeRepairInput,
   planRuntimeRepair,
-  type RepairAllInput,
   type RepairAllReport,
   repairAll,
-  type RunRepairInput,
   runRepair,
 } from "./repair/index";
 
@@ -124,7 +107,6 @@ export {
   type RefreshOptions,
   toOnlineAuth,
 } from "./auth/index";
-export { fetchMinecraftProfile, type MinecraftProfile } from "./auth/minecraft";
 
 // ─────────────────────────────────────────────────────────────────────────────────────
 // HTTP + cache abstractions consumers plug into MinecraftKit
@@ -144,7 +126,145 @@ export { targetPaths } from "./core/paths";
 export { PauseController } from "./core/pause-controller";
 
 // ─────────────────────────────────────────────────────────────────────────────────────
-// Public type surface (events, manifests, error codes, enums, etc.)
+// Public type surface (events, manifests, error codes, enums, etc.).
+//
+// Re-exports below are listed explicitly, grouped by source file, alphabetised by name.
+// Names not listed here are internal and may change without notice. Constants under
+// `src/constants/` (HTTP timeouts, JVM args, Maven base URLs, etc.) are intentionally
+// internal and are not part of the published surface.
 // ─────────────────────────────────────────────────────────────────────────────────────
-export * from "./constants/index";
-export * from "./types/index";
+export {
+  type AuthMode,
+  AuthModes,
+  type LaunchAuth,
+  type MojangAssetState,
+  type MojangProfileCape,
+  type MojangProfileSkin,
+  type MojangSession,
+  type MojangSkinVariant,
+  type OfflineAuth,
+  type OnlineAuth,
+} from "./types/auth";
+export type { MetadataCache } from "./types/cache";
+export type { MinecraftKitErrorContext } from "./types/errors";
+export {
+  type EventType,
+  EventTypes,
+  type FileRef,
+  type OperationOptions,
+  type ProcessorRef,
+  type ProgressEvent,
+  type ProgressListener,
+} from "./types/events";
+export type {
+  FabricLoaderSummary,
+  FabricProfile,
+  ResolvedFabricLoader,
+} from "./types/fabric";
+export type { ForgeBuildSummary, ResolvedForgeLoader } from "./types/forge";
+export type {
+  HttpClient,
+  HttpHeaders,
+  HttpMethod,
+  HttpRequestBody,
+  HttpRequestOptions,
+  HttpResponse,
+} from "./types/http";
+export {
+  type DownloadAction,
+  DownloadCategories,
+  type DownloadCategory,
+  type ExtractNativeAction,
+  type InstallAction,
+  type InstallActionKind,
+  InstallActionKinds,
+  type InstallPhase,
+  InstallPhases,
+  type InstallPlan,
+  type InstallPlanTarget,
+  type InstallReport,
+  type RunForgeProcessorAction,
+  type RuntimeOnlyInstallTarget,
+  type WriteLoggingConfigAction,
+  type WriteVersionJsonAction,
+} from "./types/install";
+export type {
+  LaunchComposition,
+  LaunchExit,
+  LaunchMemoryOptions,
+  LaunchOptions,
+  LaunchResolutionOptions,
+  LaunchRunOptions,
+  LaunchSession,
+} from "./types/launch";
+export {
+  type Loader,
+  type LoaderKind,
+  Loaders,
+  VersionPreference,
+  type VersionPreferenceKind,
+} from "./types/loader";
+export { type LogLevel, LogLevels, type Logger } from "./types/logger";
+export {
+  type ArgumentEntry,
+  type ArtifactDownload,
+  type AssetIndexReference,
+  type LibraryArtifact,
+  type LibraryRule,
+  type MinecraftArguments,
+  type MinecraftChannel,
+  MinecraftChannels,
+  type MinecraftDownloads,
+  type MinecraftJavaVersion,
+  type MinecraftLibrary,
+  type MinecraftLibraryDownloads,
+  type MinecraftLogging,
+  type MinecraftVersionManifest,
+  type MinecraftVersionSummary,
+  type ResolvedMinecraft,
+} from "./types/minecraft";
+export {
+  type AspectRepairInput,
+  type RepairPhase,
+  RepairPhases,
+  type RepairPlan,
+  type RepairReport,
+} from "./types/repair";
+export {
+  type ResolvedRuntime,
+  type RuntimeComponent,
+  RuntimeComponents,
+  RuntimePreference,
+  type RuntimePreferenceKind,
+} from "./types/runtime";
+export type {
+  ProcessStream,
+  SpawnedProcess,
+  SpawnOptions,
+  Spawner,
+} from "./types/spawner";
+export {
+  type Architecture,
+  Architectures,
+  type OperatingSystem,
+  OperatingSystems,
+  type RuntimeSystem,
+} from "./types/system";
+export type {
+  DiscoveredLoaderHint,
+  DiscoveredRuntimeHint,
+  DiscoveredTarget,
+  Target,
+  TargetCreateInput,
+} from "./types/target";
+export type { ResolvedVanillaLoader } from "./types/vanilla";
+export {
+  type VerificationFileResult,
+  type VerificationKind,
+  VerificationKinds,
+  type VerificationResult,
+  VerifyFileCategories,
+  type VerifyFileCategory,
+  type VerifyFileStatus,
+  VerifyFileStatuses,
+} from "./types/verify";

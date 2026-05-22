@@ -10,7 +10,11 @@ import type { Target } from "../types/target";
 import { VerificationKinds, type VerificationResult, VerifyFileCategories } from "../types/verify";
 import { runVerification, verifyExistence, verifyHashedFile } from "./helpers";
 
-/** Inputs to {@link verifyFabric}. */
+/**
+ * Inputs to {@link verifyFabric}.
+ *
+ * @internal
+ */
 export type VerifyFabricInput = {
   readonly target: Target;
   readonly http: HttpClient;

@@ -47,7 +47,11 @@ type ProfileResponse = {
   readonly capes?: ReadonlyArray<RawProfileCape>;
 };
 
-/** Rich `/minecraft/profile` payload — UUID + display name + all skin/cape slots. */
+/**
+ * Rich `/minecraft/profile` payload — UUID + display name + all skin/cape slots.
+ *
+ * @internal
+ */
 export type MinecraftProfile = {
   readonly uuid: string;
   readonly username: string;
@@ -126,6 +130,8 @@ export const loginWithXbox = async (input: {
  * Step 5 — fetch the player profile using the Minecraft bearer token. Returns the rich
  * payload (UUID + display name + every skin/cape slot Mojang has issued) so callers can
  * drive their skin-picker UI without an extra round-trip.
+ *
+ * @internal
  */
 export const fetchMinecraftProfile = async (input: {
   readonly http: HttpClient;

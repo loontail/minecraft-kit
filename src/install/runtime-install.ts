@@ -5,7 +5,14 @@ import type { ResolvedRuntime } from "../types/runtime";
 import type { Target } from "../types/target";
 import { planRuntimeDownloads } from "./runtime";
 
-/** Inputs to {@link planRuntimeInstall}. */
+/**
+ * Inputs to {@link planRuntimeInstall}. Same `{ target, http, cache, signal? }` shape the
+ * kit wraps for `kit.install.runtime.plan(target, opts)`. Consumers calling the standalone
+ * helper can write the shape inline or recover it via
+ * `Parameters<typeof planRuntimeInstall>[0]`.
+ *
+ * @internal
+ */
 export type PlanRuntimeInstallInput = {
   readonly target: Target;
   readonly http: HttpClient;

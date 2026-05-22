@@ -17,7 +17,11 @@ const FORGE_DOWNLOAD_CATEGORIES = new Set<DownloadCategory>([
   DownloadCategories.FORGE_INSTALLER,
 ]);
 
-/** Inputs to {@link planForgeRepair}. */
+/**
+ * Inputs to {@link planForgeRepair}. Alias for {@link AspectRepairInput}.
+ *
+ * @internal
+ */
 export type PlanForgeRepairInput = AspectRepairInput;
 
 /**

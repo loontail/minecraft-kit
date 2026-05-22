@@ -16,7 +16,11 @@ import {
 } from "../types/verify";
 import { runVerification, verifyExistence, verifyHashedFile } from "./helpers";
 
-/** Inputs to {@link verifyMinecraft}. */
+/**
+ * Inputs to {@link verifyMinecraft}.
+ *
+ * @internal
+ */
 export type VerifyMinecraftInput = {
   readonly target: Target;
   readonly http: HttpClient;

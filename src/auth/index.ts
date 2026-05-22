@@ -16,8 +16,6 @@ import { authenticateXbl, authenticateXsts } from "./xbox";
 /** Env var consulted when no explicit `clientId` is supplied. */
 export const CLIENT_ID_ENV_VAR = "MINECRAFT_KIT_MSA_CLIENT_ID";
 
-export { authDebug, buildAuthLogger, DEBUG_ENV_VAR } from "./debug";
-
 /** Options accepted by {@link MojangAuthApi.refresh}. */
 export type RefreshOptions = {
   /** Azure AD application id; defaults to `process.env.MINECRAFT_KIT_MSA_CLIENT_ID`. */

@@ -22,7 +22,11 @@ import {
   verifyHashedFile,
 } from "./helpers";
 
-/** Inputs to {@link verifyForge}. */
+/**
+ * Inputs to {@link verifyForge}.
+ *
+ * @internal
+ */
 export type VerifyForgeInput = {
   readonly target: Target;
   readonly http: HttpClient;

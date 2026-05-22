@@ -150,14 +150,22 @@ export type ResolvedMinecraft = {
   readonly summary: MinecraftVersionSummary;
 };
 
-/** Asset index document body. */
+/**
+ * Asset index document body.
+ *
+ * @internal
+ */
 export type AssetIndexDocument = {
   readonly objects: Readonly<Record<string, AssetObject>>;
   readonly virtual?: boolean;
   readonly map_to_resources?: boolean;
 };
 
-/** A single asset object hash + size. */
+/**
+ * A single asset object hash + size.
+ *
+ * @internal
+ */
 export type AssetObject = {
   readonly hash: string;
   readonly size: number;

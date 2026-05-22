@@ -34,5 +34,6 @@ Runtime files land under `<directory>/runtime/<component>/...`. The Java executa
 | Linux    | `runtime/<component>/bin/java`                        |
 
 Symlinks declared in the per-component manifest are materialized natively on macOS/Linux and
-fall back to byte copies on Windows where unprivileged users cannot create symlinks. LZMA1
-sidecars are decompressed on demand using a pure-JS decoder — no native build step required.
+fall back to byte copies on Windows where unprivileged users cannot create symlinks. The kit
+downloads each runtime file from its raw URL; the optional LZMA1 sidecar advertised by Mojang
+is ignored.

@@ -16,6 +16,7 @@ import { planMinecraftRepair } from "./minecraft";
 import { runRepair } from "./runner";
 import { planRuntimeRepair } from "./runtime";
 
+/** @internal */
 export type RepairAllInput = {
   readonly target: Target;
   readonly http: HttpClient;

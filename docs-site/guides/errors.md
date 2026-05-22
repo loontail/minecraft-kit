@@ -79,8 +79,7 @@ The OAuth flow has its own code surface so you can branch on the exact failure:
 
 ### Misc
 
-`INVALID_INPUT`, `VERIFICATION_FAILED`, `NOT_IMPLEMENTED`, `UNSUPPORTED_VERSION`,
-`LZMA_DECODE_ERROR`.
+`INVALID_INPUT`, `VERIFICATION_FAILED`, `NOT_IMPLEMENTED`, `UNSUPPORTED_VERSION`.
 
 ## Conventions
 

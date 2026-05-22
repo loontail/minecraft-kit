@@ -33,28 +33,53 @@ export const RuntimePreference = {
 /** Runtime preference literal. */
 export type RuntimePreferenceKind = (typeof RuntimePreference)[keyof typeof RuntimePreference];
 
-/** Top-level runtime index returned by Mojang. */
+/**
+ * Top-level runtime index returned by Mojang.
+ *
+ * @internal
+ */
 export type RuntimeIndex = Readonly<Record<string, RuntimeIndexPlatform>>;
 
-/** Per-platform component map inside the runtime index. */
+/**
+ * Per-platform component map inside the runtime index.
+ *
+ * @internal
+ */
 export type RuntimeIndexPlatform = Readonly<Record<string, readonly RuntimeIndexEntry[]>>;
 
-/** A single available runtime release. */
+/**
+ * A single available runtime release.
+ *
+ * @internal
+ */
 export type RuntimeIndexEntry = {
   readonly availability: { readonly group: number; readonly progress: number };
   readonly manifest: { readonly sha1: string; readonly size: number; readonly url: string };
   readonly version: { readonly name: string; readonly released: string };
 };
 
-/** Inner per-component file manifest. */
+/**
+ * Inner per-component file manifest.
+ *
+ * @internal
+ */
 export type RuntimeFilesManifest = {
   readonly files: Readonly<Record<string, RuntimeFileEntry>>;
 };
 
-/** A single file in the runtime manifest. */
+/**
+ * A single file in the runtime manifest.
+ *
+ * @internal
+ */
 export type RuntimeFileEntry = RuntimeFileFile | RuntimeFileDirectory | RuntimeFileLink;
 
-/** A file entry: real bytes to download, may have lzma sidecar. */
+/**
+ * A file entry: real bytes to download. Mojang advertises an optional `lzma` sidecar
+ * alongside `raw`; the kit ignores it and always downloads the raw payload.
+ *
+ * @internal
+ */
 export type RuntimeFileFile = {
   readonly type: "file";
   readonly executable: boolean;
@@ -64,12 +89,20 @@ export type RuntimeFileFile = {
   };
 };
 
-/** A directory placeholder. */
+/**
+ * A directory placeholder.
+ *
+ * @internal
+ */
 export type RuntimeFileDirectory = {
   readonly type: "directory";
 };
 
-/** A relative symlink. */
+/**
+ * A relative symlink.
+ *
+ * @internal
+ */
 export type RuntimeFileLink = {
   readonly type: "link";
   readonly target: string;

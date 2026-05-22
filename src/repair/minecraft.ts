@@ -18,7 +18,11 @@ const MINECRAFT_DOWNLOAD_CATEGORIES = new Set<DownloadCategory>([
   DownloadCategories.LOGGING_CONFIG,
 ]);
 
-/** Inputs to {@link planMinecraftRepair}. */
+/**
+ * Inputs to {@link planMinecraftRepair}. Alias for {@link AspectRepairInput}.
+ *
+ * @internal
+ */
 export type PlanMinecraftRepairInput = AspectRepairInput;
 
 /**

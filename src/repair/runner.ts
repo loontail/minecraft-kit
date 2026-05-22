@@ -5,7 +5,11 @@ import type { HttpClient } from "../types/http";
 import type { RepairPlan, RepairReport } from "../types/repair";
 import type { Spawner } from "../types/spawner";
 
-/** Inputs to {@link runRepair}. Shared across all aspect-specific repair flows. */
+/**
+ * Inputs to {@link runRepair}. Shared across all aspect-specific repair flows.
+ *
+ * @internal
+ */
 export type RunRepairInput = {
   readonly plan: RepairPlan;
   readonly http: HttpClient;

@@ -15,7 +15,11 @@ export type ForgeBuildSummary = {
   readonly isLatest: boolean;
 };
 
-/** Modern Forge `install_profile.json` (spec 1) shape — only fields we actually consume. */
+/**
+ * Modern Forge `install_profile.json` (spec 1) shape — only fields we actually consume.
+ *
+ * @internal
+ */
 export type ForgeInstallProfile = {
   readonly spec: number;
   readonly profile: string;
@@ -31,13 +35,21 @@ export type ForgeInstallProfile = {
   readonly serverJarPath?: string;
 };
 
-/** Side-keyed data value pair. */
+/**
+ * Side-keyed data value pair.
+ *
+ * @internal
+ */
 export type ForgeProfileData = {
   readonly client: string;
   readonly server: string;
 };
 
-/** A single processor invocation. */
+/**
+ * A single processor invocation.
+ *
+ * @internal
+ */
 export type ForgeProcessor = {
   readonly sides?: readonly ("client" | "server" | "extract")[];
   readonly jar: string;
@@ -46,7 +58,11 @@ export type ForgeProcessor = {
   readonly outputs?: Readonly<Record<string, string>>;
 };
 
-/** The version.json stored inside the Forge installer JAR. */
+/**
+ * The version.json stored inside the Forge installer JAR.
+ *
+ * @internal
+ */
 export type ForgeVersionJson = {
   readonly id: string;
   readonly inheritsFrom: string;

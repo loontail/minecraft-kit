@@ -13,7 +13,6 @@ const kit = new MinecraftKit();
 | `kit.versions.{minecraft,fabric,forge,runtime}` | `list`, `resolve`, and (`minecraft`-only) `latest` / `get` |
 | `kit.targets` | `create`, `resolve`, `list` |
 | `kit.install` | `plan`, `run`, `runtime.{plan,run,standalonePlan}` |
-| `kit.update` | `plan`, `run` |
 | `kit.verify.{minecraft,fabric,forge,runtime}` | `run` |
 | `kit.repair.{minecraft,fabric,forge,runtime}` | `plan`, `run`, `all` |
 | `kit.launch` | `compose`, `run` |

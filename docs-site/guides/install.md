@@ -110,9 +110,8 @@ await kit.install.runtime.run(plan, {
 entry point. The plan contains only `DOWNLOAD_FILE` actions for the runtime files — no
 client jar, no libraries.
 
-## Update
+## Updates
 
-`kit.update.plan` is `kit.install.plan` (the structures are identical), and the install
-runner already skips files that are already correct on disk, so an "update" is the same call
-as an install. The `update` namespace exists to communicate intent and produces an
-`UpdateReport` whose `actionsSkipped` field tells you how many files were already current.
+An "update" is just an install: the install runner skips files whose on-disk size and SHA-1
+already match the manifest. `InstallReport.actionsSkipped` tells you how many files were
+already current. There is no separate `kit.update.*` surface.

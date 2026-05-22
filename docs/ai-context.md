@@ -45,9 +45,6 @@ Skip the user-facing tree (`docs-site/`) unless you are editing public documenta
 - **`pickClientJarVersionId`** walks `inheritsFrom` because Fabric and modern Forge use the
   *vanilla* client jar on the classpath; their own `versions/<id>/<id>.jar` is empty. Do
   not "fix" this by always picking the top of the chain.
-- **`UpdatePlan` is structurally `InstallPlan`.** They are nominally distinct types to leave
-  room for divergence; the `planUpdate` runtime forwards directly.
-
 ## Tests live in `tests/`, mirror `src/`
 
 `tests/helpers/`:

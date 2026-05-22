@@ -16,7 +16,24 @@ import {
 } from "../constants/files";
 import type { OperatingSystem } from "../types/system";
 
-/** Helpers for the per-target directory layout. */
+/**
+ * Helpers for the per-target Minecraft directory layout. Use these to derive paths to a
+ * specific file (`versions/<id>/<id>.jar`, `assets/objects/<aa>/<sha1>`, …) consistently with
+ * what the install and verify runners write/expect.
+ *
+ * @example
+ * ```ts
+ * import { targetPaths } from "@loontail/minecraft-kit";
+ *
+ * const jar = targetPaths.versionJar(target.directory, target.minecraft.version);
+ * const java = targetPaths.runtimeJavaExecutable(
+ *   target.directory,
+ *   target.runtime.component,
+ *   target.runtime.system.os,
+ *   target.runtime.installRoot,
+ * );
+ * ```
+ */
 export const targetPaths = {
   versionsDir: (root: string): string => path.join(root, VERSIONS_DIR),
   versionDir: (root: string, versionId: string): string => path.join(root, VERSIONS_DIR, versionId),

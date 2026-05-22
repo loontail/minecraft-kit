@@ -19,6 +19,81 @@ follows [Semantic Versioning](https://semver.org/).
   `AUTH_DEVICE_CODE_FAILED` are gone too. Migrate to
   `kit.auth.authorizationCode.run({ onOpenBrowser })` — see
   [docs/guides/auth](https://loontail.github.io/minecraft-kit/guides/auth).
+- **Runtime install.** Removed the unused `lzma` package dependency, the
+  `decodeLzma` helper, and the ambient `declare module "lzma"` shim. The kit
+  downloads runtime files from the raw URL only; the optional LZMA1 sidecar
+  advertised by Mojang's runtime index is ignored. Error code
+  `LZMA_DECODE_ERROR` is removed because it can no longer be thrown.
+- **Dead `ProgressEvent` arms pruned.** Two event kinds had no emit site in
+  `src/`: `verify:completed` (no producer at all) and `repair:phase-changed`
+  (the repair runner never emitted phase events; only the CLI progress
+  renderer listened). Both arms — and the corresponding `EventTypes.VERIFY_COMPLETED`
+  / `EventTypes.REPAIR_PHASE_CHANGED` registry entries — are removed.
+  Consumers' exhaustive `switch (event.type)` over `ProgressEvent` will now
+  compile without the removed cases.
+- **Runtime-install input narrowed.** `PlanRuntimeInstallInput` is no longer
+  re-exported (the kit's `kit.install.runtime.plan(target, opts)` hides it).
+  `PlanStandaloneRuntimeInstallInput` stays public — the kit's
+  `kit.install.runtime.standalonePlan` advertises it through
+  `Omit<PlanStandaloneRuntimeInstallInput, "http" | "cache">`, so the public
+  name is load-bearing.
+- **Verify input types narrowed.** `VerifyFabricInput`, `VerifyForgeInput`,
+  `VerifyMinecraftInput`, and `VerifyRuntimeInput` are no longer re-exported.
+  All four describe the kit-built `{ target, http, cache, signal?, onEvent? }`
+  shape that `kit.verify.<aspect>.run` wraps; consumers calling the
+  documented standalone helpers (`verifyMinecraft`, etc.) can write the
+  shape inline or recover it via `Parameters<typeof verifyMinecraft>[0]`.
+  The functions themselves stay public.
+- **Repair input types narrowed.** `PlanFabricRepairInput`,
+  `PlanForgeRepairInput`, `PlanMinecraftRepairInput`, `PlanRuntimeRepairInput`,
+  and `RunRepairInput` are no longer re-exported. All five are aliases over
+  shapes already accessible via the kit facade (`kit.repair.<aspect>.plan`
+  / `.run`) or via the public `AspectRepairInput` type. The functions
+  themselves (`planMinecraftRepair`, `runRepair`, etc.) stay public as
+  documented standalone escape hatches.
+- **Repair surface narrowed.** `RepairAllInput` is no longer re-exported.
+  `kit.repair.all(target, options)` is the documented entry point and the
+  input shape is an implementation detail. `RepairAllReport` (the return
+  type) stays public.
+- **Versions surface narrowed.** `ResolverContext` is no longer re-exported.
+  It's a DI bundle (`http` + `cache` + `logger`) the `MinecraftKit` constructor
+  builds for its own `*VersionsApi` instances — consumers do not construct
+  versions APIs directly.
+- **Update API removed.** `kit.update.plan()` / `kit.update.run()` and the
+  `UpdatePlan` / `UpdateReport` types are gone. The implementation forwarded
+  directly to `planInstall` / `runInstall`; the install runner already skips
+  files whose on-disk size and SHA-1 match the manifest, so a no-op update is
+  the same call as an install. Migrate:
+
+  ```ts
+  // Before
+  const plan = await kit.update.plan(target);
+  const report = await kit.update.run(plan);
+
+  // After
+  const plan = await kit.install.plan(target);
+  const report = await kit.install.run(plan);
+  ```
+
+  `InstallReport.actionsSkipped` carries the same per-action skip count
+  `UpdateReport.actionsSkipped` did.
+- **Auth surface narrowed.** `fetchMinecraftProfile` and `MinecraftProfile`
+  are no longer re-exported from `@loontail/minecraft-kit`. The `MojangSession`
+  returned by `kit.auth.authorizationCode.run()` and `kit.auth.refresh()`
+  already carries the profile data (`session.minecraft.username`, `.uuid`,
+  `.skins`, `.capes`) — fetch it from there instead.
+- **Public type surface narrowed.** `src/index.ts` no longer re-exports
+  `./constants/*` or `./types/*` through `export *` barrels. Re-exports are now an
+  explicit, audited list. The following names are no longer part of the published
+  API: every constant under `src/constants/` (HTTP timeouts and retries, cache
+  defaults, JVM args, extraction limits, Maven base URLs, launch placeholders,
+  platform mappings, runtime fallback, `ApiEndpoints`), plus the types
+  `AssetIndexDocument`, `AssetObject`, `FabricCompatibilityEntry`,
+  `ForgeInstallProfile`, `ForgeProcessor`, `ForgeProfileData`, `ForgeVersionJson`,
+  `RuntimeFileDirectory`, `RuntimeFileEntry`, `RuntimeFileFile`, `RuntimeFileLink`,
+  `RuntimeFilesManifest`, `RuntimeIndex`, `RuntimeIndexEntry`, and
+  `RuntimeIndexPlatform`. Consumers that need any of these should inline the shape
+  locally or file an issue.
 
 ### Added
 
@@ -63,8 +138,6 @@ follows [Semantic Versioning](https://semver.org/).
   `extends` remain `interface`.
 - **`InstallPlan.target`** typed as `InstallPlanTarget = Target | RuntimeOnlyInstallTarget`.
   Replaces the `as unknown as Target` placeholder in `planStandaloneRuntimeInstall`.
-- **`UpdatePlan.target`** widened to `InstallPlanTarget` for compatibility with the install
-  runner.
 - **`install/runner.ts`** split into focused stage functions (`runDownloadsStage`,
   `runWritesStage`, `runNativesStage`, `runRuntimeStage`, `runProcessorsStage`) backed by
   an `InstallRunnerContext`. `runProcessor` extracted to `install/processor.ts`.

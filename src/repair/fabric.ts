@@ -12,7 +12,12 @@ import type { RepairPlan } from "../types/repair";
 import type { AspectRepairInput } from "../types/repair";
 import { planAspectRepair } from "./helpers";
 
-/** Inputs to {@link planFabricRepair}. */
+/**
+ * Inputs to {@link planFabricRepair}. Alias for {@link AspectRepairInput}; consumers calling
+ * the standalone planner can use either name.
+ *
+ * @internal
+ */
 export type PlanFabricRepairInput = AspectRepairInput;
 
 /** Build a repair plan covering the Fabric loader slice: profile JSON + libraries. */

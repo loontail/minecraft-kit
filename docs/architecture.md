@@ -11,7 +11,6 @@ src/install/         ← plan + execute install
 src/verify/          ← per-aspect file checks
 src/repair/          ← verify result → repair plan
 src/launch/          ← argument composition + child process
-src/update/          ← update wrapper over install
 src/auth/            ← Microsoft OAuth → Xbox → Minecraft sign-in
 src/versions/        ← Mojang / Fabric / Forge / Adoptium resolvers
 src/targets/         ← target resolution & discovery
@@ -25,7 +24,7 @@ src/constants/       ← endpoint URLs, defaults, limits, file segments
 
 Allowed dependency direction: any layer may depend on layers below it. CLI may not be imported
 by anything except itself and the bin entry point. Domain modules (install / verify / repair /
-launch / update / versions / targets) may not import from `src/cli/`.
+launch / versions / targets) may not import from `src/cli/`.
 
 ## Public surface
 

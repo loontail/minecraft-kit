@@ -1,12 +1,15 @@
 import { EventTypes } from "../types/events";
 import type { ProgressEvent, ProgressListener } from "../types/events";
 import type { InstallPhase } from "../types/install";
-import type { RepairPhase } from "../types/repair";
 import type { Ui, UiSpinner } from "./ui";
 
-type PhaseLabel = InstallPhase | RepairPhase | "idle";
+type PhaseLabel = InstallPhase | "idle";
 
-/** Aggregated metrics produced by {@link ProgressRenderer.summary}. */
+/**
+ * Aggregated metrics produced by {@link ProgressRenderer.summary}.
+ *
+ * @internal
+ */
 export type ProgressSummary = {
   readonly filesDownloaded: number;
   readonly filesSkipped: number;
@@ -16,7 +19,11 @@ export type ProgressSummary = {
   readonly avgSpeedBps: number;
 };
 
-/** Inputs to {@link ProgressRenderer}. */
+/**
+ * Inputs to {@link ProgressRenderer}.
+ *
+ * @internal
+ */
 export type ProgressRendererInput = {
   readonly ui: Ui;
   /** Optional plan totals (used as the denominator for files / bytes when known). */
@@ -43,6 +50,8 @@ const SAFETY_MARGIN = 1;
  * download count, and a textual progress bar. Updates land **in-place** through
  * {@link UiSpinner.message} — there is no per-event newline. Aggregate bytes are computed
  * as `completedBytes + sum(activeBytes)` so retries cannot over-count.
+ *
+ * @internal
  */
 export class ProgressRenderer {
   private readonly ui: Ui;
@@ -129,7 +138,6 @@ export class ProgressRenderer {
     let forceRender = false;
     switch (event.type) {
       case EventTypes.INSTALL_PHASE_CHANGED:
-      case EventTypes.REPAIR_PHASE_CHANGED:
         this.currentPhase = event.phase;
         forceRender = true;
         break;
@@ -286,7 +294,11 @@ const clipToColumns = (line: string, cols: number): string => {
   return `${line.slice(0, Math.max(0, limit - 1))}…`;
 };
 
-/** Format bytes with binary-prefixed suffixes (KB/MB/GB). */
+/**
+ * Format bytes with binary-prefixed suffixes (KB/MB/GB).
+ *
+ * @internal
+ */
 export const formatBytes = (bytes: number): string => {
   if (!Number.isFinite(bytes) || bytes < 0) return "—";
   if (bytes < 1024) return `${bytes} B`;
@@ -295,7 +307,11 @@ export const formatBytes = (bytes: number): string => {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 };
 
-/** Format milliseconds as h:mm:ss / mm:ss / s. Used for elapsed durations only. */
+/**
+ * Format milliseconds as h:mm:ss / mm:ss / s. Used for elapsed durations only.
+ *
+ * @internal
+ */
 export const formatDuration = (ms: number): string => {
   if (!Number.isFinite(ms) || ms < 0) return "—";
   const seconds = Math.round(ms / 1000);

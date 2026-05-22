@@ -36,9 +36,7 @@ import type { RepairPlan, RepairReport } from "./types/repair";
 import type { Spawner } from "./types/spawner";
 import type { RuntimeSystem } from "./types/system";
 import type { Target } from "./types/target";
-import type { UpdatePlan, UpdateReport } from "./types/update";
 import type { VerificationResult } from "./types/verify";
-import { planUpdate, runUpdate } from "./update/runner";
 import { verifyFabric } from "./verify/fabric";
 import { verifyForge } from "./verify/forge";
 import { verifyMinecraft } from "./verify/minecraft";
@@ -92,10 +90,6 @@ export class MinecraftKit {
         input: Omit<PlanStandaloneRuntimeInstallInput, "http" | "cache">,
       ): Promise<InstallPlan>;
     };
-  };
-  readonly update: {
-    plan(target: Target, options?: OperationOptions): Promise<UpdatePlan>;
-    run(plan: UpdatePlan, options?: OperationOptions): Promise<UpdateReport>;
   };
   readonly verify: {
     /** Verify the vanilla Minecraft slice (client jar, libraries, assets, natives, log config). */
@@ -183,11 +177,6 @@ export class MinecraftKit {
       },
     };
 
-    this.update = {
-      plan: (target, opts) => planUpdate({ target, http, cache, ...carry(opts) }),
-      run: (plan, opts) => runUpdate({ plan, http, cache, spawner, ...carry(opts) }),
-    };
-
     const verifyArgs = (target: Target, opts?: VerifyOperationOptions) => ({
       target,
       http,
@@ -251,7 +240,29 @@ export class MinecraftKit {
 
 /** Options accepted by `install.run` (and `install.runtime.run`). */
 export interface InstallRunOptions extends OperationOptions {
+  /**
+   * Cooperative pause/resume primitive — see {@link PauseController}. The runner checks the
+   * pause state at every stage boundary and between download chunks.
+   */
   readonly pauseController?: PauseController;
+  /**
+   * Filter the run to a subset of action categories. Useful for partial reinstalls
+   * (e.g. assets-only). When omitted, every action in the plan runs.
+   *
+   * @example
+   * ```ts
+   * import { DownloadCategories } from "@loontail/minecraft-kit";
+   *
+   * await kit.install.run(plan, {
+   *   actionCategories: new Set([
+   *     DownloadCategories.CLIENT_JAR,
+   *     DownloadCategories.LIBRARY,
+   *     DownloadCategories.ASSET_INDEX,
+   *     DownloadCategories.ASSET,
+   *   ]),
+   * });
+   * ```
+   */
   readonly actionCategories?: ReadonlySet<DownloadAction["category"]>;
 }
 

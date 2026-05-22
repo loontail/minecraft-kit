@@ -79,7 +79,7 @@ literal. The derived union type is what TypeScript shows in signatures.
 | `RuntimePreference` | `types/runtime` | Runtime version selection. |
 | `VerifyFileCategories`, `VerifyFileStatuses` | `types/verify` | Per-file verification result. |
 | `VerificationKinds` | `types/verify` | `VerificationResult.kind`. |
-| `RepairPhases` | `types/repair` | Phase argument of `repair:phase-changed`. |
+| `RepairPhases` | `types/repair` | `RepairPhase` string union (reserved for future emit sites). |
 | `AuthModes` | `types/auth` | `OFFLINE` vs `ONLINE`. |
 | `WizardOutcomes` | `cli/ui` | CLI picker `kind` values (`OK`, `BACK`, `CANCEL`). |
 | `InstallWizardSteps`, `InstallRunResults` | `cli/scenarios/types` | CLI install wizard state machine. |

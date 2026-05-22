@@ -13,6 +13,12 @@ export type DetectSystemInput = {
 /**
  * Resolve the current host system identifiers.
  *
+ * Most callers do not need to invoke this directly: the `MinecraftKit` constructor
+ * defaults to `detectSystem()` when no `system` option is supplied, and
+ * `kit.targets.system` exposes the cached result. Use this helper when you want to
+ * override one of the host values (e.g. force a different `arch` for a cross-platform
+ * runtime install) before constructing the kit.
+ *
  * @throws {@link MinecraftKitError} with code `RUNTIME_UNSUPPORTED_PLATFORM` when the
  * platform/arch combination is not understood.
  */

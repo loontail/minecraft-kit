@@ -33,12 +33,12 @@ function handle(e: ProgressEvent) {
 
 | Group | Events |
 |---|---|
-| Phase | `install:phase-changed`, `repair:phase-changed` |
+| Phase | `install:phase-changed` |
 | Download | `download:started`, `download:progress`, `download:skipped`, `download:completed`, `download:failed` |
 | Integrity | `integrity:verified`, `integrity:mismatch` |
 | Archive | `archive:extracted` |
 | Forge | `forge:processor-started`, `forge:processor-completed`, `forge:processor-output-verified` |
-| Verify | `verify:file-checked`, `verify:completed` |
+| Verify | `verify:file-checked` |
 | Launch | `launch:starting`, `launch:started`, `launch:stdout`, `launch:stderr`, `launch:exited`, `launch:aborted` |
 
 The full payload of each event is in the [API reference](../api/).

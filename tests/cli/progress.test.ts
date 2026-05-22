@@ -283,25 +283,4 @@ describe("ProgressRenderer", () => {
     expect(stop?.message).toContain("failed");
     expect(stop?.message).toContain("something broke");
   });
-
-  it("repair phase events update the phase label", () => {
-    const ui = createStubUi();
-    const renderer = new ProgressRenderer({
-      ui,
-      label: "Repair",
-      now: () => 0,
-      minRenderIntervalMs: 0,
-    });
-    const onEvent = renderer.attach();
-    onEvent({ type: "repair:phase-changed", phase: "repairing-libraries", previous: null });
-    // The renderer drops the verbose "repairing-" prefix to keep lines compact —
-    // context is already "Repair" via the renderer's label.
-    const last =
-      ui.calls
-        .filter((c) => c.kind === "spinner-message")
-        .map((c) => c.message)
-        .at(-1) ?? "";
-    expect(last).toContain("[libraries]");
-    expect(last).not.toContain("repairing-libraries");
-  });
 });

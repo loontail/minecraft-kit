@@ -149,12 +149,6 @@ Cross-cutting utilities. Bottom of the dependency graph.
   ~30 LOC after the M6 refactor).
 - `runner.ts` — `runRepair` is a thin wrapper that calls `runInstall` on the repair plan.
 
-## `src/update/`
-
-- `runner.ts` — `planUpdate` is `planInstall` directly; `runUpdate` is `runInstall` plus a
-  report-shape adjustment. The update concept exists for user-facing clarity, not internal
-  difference.
-
 ## `src/auth/`
 
 Microsoft OAuth → Xbox Live → Minecraft sign-in pipeline. **Stateless** — the kit returns

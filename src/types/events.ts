@@ -1,6 +1,5 @@
 import type { InstallPhase } from "./install";
-import type { RepairPhase } from "./repair";
-import type { VerificationFileResult, VerificationResult } from "./verify";
+import type { VerificationFileResult } from "./verify";
 
 /**
  * Stable string constants for the `type` discriminator of every {@link ProgressEvent}.
@@ -20,8 +19,6 @@ export const EventTypes = {
   FORGE_PROCESSOR_COMPLETED: "forge:processor-completed",
   FORGE_PROCESSOR_OUTPUT_VERIFIED: "forge:processor-output-verified",
   VERIFY_FILE_CHECKED: "verify:file-checked",
-  VERIFY_COMPLETED: "verify:completed",
-  REPAIR_PHASE_CHANGED: "repair:phase-changed",
   LAUNCH_STARTING: "launch:starting",
   LAUNCH_STARTED: "launch:started",
   LAUNCH_STDOUT: "launch:stdout",
@@ -112,12 +109,6 @@ export type ProgressEvent =
       readonly path: string;
     }
   | { readonly type: "verify:file-checked"; readonly file: VerificationFileResult }
-  | { readonly type: "verify:completed"; readonly summary: VerificationResult }
-  | {
-      readonly type: "repair:phase-changed";
-      readonly phase: RepairPhase;
-      readonly previous: RepairPhase | null;
-    }
   | {
       readonly type: "launch:starting";
       readonly command: string;

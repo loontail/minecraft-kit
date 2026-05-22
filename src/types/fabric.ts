@@ -10,7 +10,11 @@ export type FabricLoaderSummary = {
   readonly separator: string;
 };
 
-/** Compatibility entry from `/v2/versions/loader/{minecraftVersion}`. */
+/**
+ * Compatibility entry from `/v2/versions/loader/{minecraftVersion}`.
+ *
+ * @internal
+ */
 export type FabricCompatibilityEntry = {
   readonly loader: FabricLoaderSummary;
   readonly intermediary: {
