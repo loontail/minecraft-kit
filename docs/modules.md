@@ -66,7 +66,6 @@ Cross-cutting utilities. Bottom of the dependency graph.
 - `logger.ts` — `silentLogger` (default), `consoleLogger`, and `scopedLogger(base, scope,
   baseFields?)` which prefixes every line with `[scope]` and merges optional default
   fields. Returns `silentLogger` short-circuit when the base is silent.
-- `lzma.ts` — `decodeLzma` for Mojang runtime sidecars (LZMA1 "alone" format).
 - `manifest-merge.ts` — merge a child Minecraft manifest with its `inheritsFrom` parent.
 - `maven.ts` — `parseMavenCoordinate`, `mavenRelativePath`, and `mavenRelativePathFor`.
 - `pause-controller.ts` — caller-driven pause/resume primitive consumed by `downloadFile`
@@ -172,9 +171,10 @@ code.
 - `minecraft.ts` — `loginWithXbox`, `fetchMinecraftProfile`, `extractXuid` (decodes the
   `xuid` claim from the JWT-shaped access token). 403 + `"invalid app registration"` is
   recognised and points the user at `https://aka.ms/mce-reviewappid`.
-- `debug.ts` — `DEBUG_ENV_VAR` (`MINECRAFT_KIT_AUTH_DEBUG`), legacy `authDebug` stderr
-  writer, and `buildAuthLogger(base)` that routes auth trace through a `Logger` interface
-  with an env-toggled `consoleLogger` fallback.
+- `debug.ts` — `DEBUG_ENV_VAR` (`MINECRAFT_KIT_AUTH_DEBUG`) and `buildAuthLogger(base)`
+  that routes auth trace through a `Logger` interface with an env-toggled `consoleLogger`
+  fallback. Auth-flow helpers (`startLoopbackServer`, `loginWithXbox`, the
+  `MojangAuthApi` pipeline) accept a `logger?` option and emit `debug` lines through it.
 
 ## `src/versions/`
 

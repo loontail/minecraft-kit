@@ -96,7 +96,6 @@ export default defineConfig({
         {
           text: "Reference",
           items: [
-            { text: "Constants", link: "/guides/constants" },
             { text: "Errors", link: "/guides/errors" },
             { text: "Events", link: "/guides/events" },
             { text: "Enums & types", link: "/guides/types" },
