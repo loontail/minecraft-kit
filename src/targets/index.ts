@@ -215,8 +215,6 @@ export class TargetsApi {
         : resolvedRuntime;
     let loader: import("../types/loader").Loader;
     if (input.loader.type === Loaders.VANILLA) {
-      // Vanilla loader is just a wrapper around the already-resolved Minecraft manifest —
-      // no upstream fetch needed.
       loader = {
         type: Loaders.VANILLA,
         minecraftVersion: minecraft.version,

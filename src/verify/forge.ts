@@ -82,8 +82,6 @@ export const verifyForge = async (input: VerifyForgeInput): Promise<Verification
 
       const parsed = parseJsonOrUndefined<ForgeVersionJson>(await readText(forgeVersionJsonPath));
       if (parsed === undefined) {
-        // Surface as CORRUPT so repair rewrites the JSON. Library verification will pick up
-        // on the next pass once the file parses.
         record({
           path: forgeVersionJsonPath,
           category: VerifyFileCategories.LOADER_LIBRARY,

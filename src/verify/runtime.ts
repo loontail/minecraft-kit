@@ -12,7 +12,7 @@ import {
   VerifyFileCategories,
   VerifyFileStatuses,
 } from "../types/verify";
-import { runVerification, verifyHashedFile } from "./helpers";
+import { type VerificationRecorder, runVerification, verifyHashedFile } from "./helpers";
 
 /**
  * Inputs to {@link verifyRuntime}.
@@ -59,13 +59,7 @@ export const verifyRuntime = async (input: VerifyRuntimeInput): Promise<Verifica
           ...(input.signal !== undefined ? { signal: input.signal } : {}),
         });
       } catch {
-        // Manifest unreachable — record one MISSING issue keyed on the manifest URL so the
-        // caller sees that the runtime cannot be verified right now. Repair will re-attempt.
-        record({
-          path: input.target.runtime.manifestUrl,
-          category: VerifyFileCategories.RUNTIME_FILE,
-          status: VerifyFileStatuses.MISSING,
-        });
+        recordRuntimeManifestUnreachable(record, input.target.runtime.manifestUrl);
         return;
       }
       const runtimeRoot = targetPaths.runtimeRoot(
@@ -87,4 +81,20 @@ export const verifyRuntime = async (input: VerifyRuntimeInput): Promise<Verifica
       }
     },
   );
+};
+
+/**
+ * Record a single `MISSING` issue keyed on the manifest URL when the runtime manifest is
+ * unreachable. Lets the caller see that the runtime cannot be verified right now; repair
+ * will re-attempt the manifest fetch on its next pass.
+ */
+const recordRuntimeManifestUnreachable = (
+  record: VerificationRecorder,
+  manifestUrl: string,
+): void => {
+  record({
+    path: manifestUrl,
+    category: VerifyFileCategories.RUNTIME_FILE,
+    status: VerifyFileStatuses.MISSING,
+  });
 };

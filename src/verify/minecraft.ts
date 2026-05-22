@@ -14,7 +14,12 @@ import {
   VerifyFileCategories,
   VerifyFileStatuses,
 } from "../types/verify";
-import { runVerification, verifyExistence, verifyHashedFile } from "./helpers";
+import {
+  type VerificationRecorder,
+  runVerification,
+  verifyExistence,
+  verifyHashedFile,
+} from "./helpers";
 
 /**
  * Inputs to {@link verifyMinecraft}.
@@ -53,107 +58,129 @@ export const verifyMinecraft = async (input: VerifyMinecraftInput): Promise<Veri
       ...(input.onEvent !== undefined ? { onEvent: input.onEvent } : {}),
     },
     async (record) => {
-      const { directory, minecraft, runtime } = input.target;
-
-      // Client jar.
-      record(
-        await verifyHashedFile({
-          path: targetPaths.versionJar(directory, minecraft.version),
-          expectedSha1: minecraft.manifest.downloads.client.sha1,
-          expectedSize: minecraft.manifest.downloads.client.size,
-          url: minecraft.manifest.downloads.client.url,
-          category: VerifyFileCategories.CLIENT_JAR,
-        }),
-      );
-
-      // Vanilla version JSON (a missing JSON triggers WRITE_VERSION_JSON during repair).
-      record(
-        await verifyExistence({
-          path: targetPaths.versionJson(directory, minecraft.version),
-          category: VerifyFileCategories.CLIENT_JAR,
-        }),
-      );
-
-      // Logging config.
-      if (minecraft.manifest.logging?.client) {
-        const logging = minecraft.manifest.logging.client;
-        record(
-          await verifyHashedFile({
-            path: targetPaths.loggingConfig(directory, logging.file.id),
-            expectedSha1: logging.file.sha1,
-            expectedSize: logging.file.size,
-            url: logging.file.url,
-            category: VerifyFileCategories.LOGGING_CONFIG,
-          }),
-        );
-      }
-
-      // Libraries (incl. native jars).
-      const libraryPlan = planLibraryDownloads({
-        libraries: minecraft.manifest.libraries,
-        directory,
-        system: runtime.system,
-        versionId: minecraft.version,
-        category: DownloadCategories.LIBRARY,
-      });
-      for (const action of libraryPlan.downloads) {
-        record(
-          await verifyHashedFile({
-            path: action.target,
-            ...(action.expectedSha1 !== undefined ? { expectedSha1: action.expectedSha1 } : {}),
-            ...(action.expectedSize !== undefined ? { expectedSize: action.expectedSize } : {}),
-            url: action.url,
-            category: VerifyFileCategories.LIBRARY,
-          }),
-        );
-      }
-
-      // Asset index + objects.
-      const indexUrl = minecraft.manifest.assetIndex.url;
-      const indexPath = targetPaths.assetIndex(directory, minecraft.manifest.assetIndex.id);
-      record(
-        await verifyHashedFile({
-          path: indexPath,
-          expectedSha1: minecraft.manifest.assetIndex.sha1,
-          expectedSize: minecraft.manifest.assetIndex.size,
-          url: indexUrl,
-          category: VerifyFileCategories.ASSET_INDEX,
-        }),
-      );
-      const indexDocument = await fetchJson<AssetIndexDocument>(input.http, input.cache, {
-        url: indexUrl,
-        cacheKey: `asset-index:${minecraft.manifest.assetIndex.id}:${minecraft.manifest.assetIndex.sha1}`,
-        ...(input.signal !== undefined ? { signal: input.signal } : {}),
-      });
-      // Same hash may be referenced by multiple virtual paths; verify each physical file
-      // at most once.
-      const seenAssetHashes = new Set<string>();
-      for (const entry of Object.values(indexDocument.objects)) {
-        if (seenAssetHashes.has(entry.hash)) continue;
-        seenAssetHashes.add(entry.hash);
-        record(
-          await verifyHashedFile({
-            path: targetPaths.assetObject(directory, entry.hash),
-            expectedSha1: entry.hash,
-            expectedSize: entry.size,
-            category: VerifyFileCategories.ASSET,
-          }),
-        );
-      }
-
-      // Natives directory presence. When it's gone, every native JAR needs to be
-      // re-extracted: emit one NATIVE issue per source JAR so the count of issues matches
-      // the count of EXTRACT_NATIVE actions repair will produce.
-      const nativesDir = targetPaths.nativesDir(directory, minecraft.version);
-      if (!(await fileExists(nativesDir))) {
-        for (const extraction of libraryPlan.nativeExtractions) {
-          record({
-            path: extraction.source,
-            category: VerifyFileCategories.NATIVE,
-            status: VerifyFileStatuses.MISSING,
-          });
-        }
-      }
+      await recordClientJarAndVersionJson(record, input.target);
+      await recordLoggingConfig(record, input.target);
+      const libraryPlan = await recordLibrariesAndReturnPlan(record, input.target);
+      await recordAssetIndexAndObjects(record, input);
+      await recordNativesIssuesWhenDirectoryMissing(record, input.target, libraryPlan);
     },
   );
+};
+
+const recordClientJarAndVersionJson = async (
+  record: VerificationRecorder,
+  target: Target,
+): Promise<void> => {
+  const { directory, minecraft } = target;
+  record(
+    await verifyHashedFile({
+      path: targetPaths.versionJar(directory, minecraft.version),
+      expectedSha1: minecraft.manifest.downloads.client.sha1,
+      expectedSize: minecraft.manifest.downloads.client.size,
+      url: minecraft.manifest.downloads.client.url,
+      category: VerifyFileCategories.CLIENT_JAR,
+    }),
+  );
+  record(
+    await verifyExistence({
+      path: targetPaths.versionJson(directory, minecraft.version),
+      category: VerifyFileCategories.CLIENT_JAR,
+    }),
+  );
+};
+
+const recordLoggingConfig = async (record: VerificationRecorder, target: Target): Promise<void> => {
+  const logging = target.minecraft.manifest.logging?.client;
+  if (!logging) return;
+  record(
+    await verifyHashedFile({
+      path: targetPaths.loggingConfig(target.directory, logging.file.id),
+      expectedSha1: logging.file.sha1,
+      expectedSize: logging.file.size,
+      url: logging.file.url,
+      category: VerifyFileCategories.LOGGING_CONFIG,
+    }),
+  );
+};
+
+const recordLibrariesAndReturnPlan = async (
+  record: VerificationRecorder,
+  target: Target,
+): Promise<ReturnType<typeof planLibraryDownloads>> => {
+  const libraryPlan = planLibraryDownloads({
+    libraries: target.minecraft.manifest.libraries,
+    directory: target.directory,
+    system: target.runtime.system,
+    versionId: target.minecraft.version,
+    category: DownloadCategories.LIBRARY,
+  });
+  for (const action of libraryPlan.downloads) {
+    record(
+      await verifyHashedFile({
+        path: action.target,
+        ...(action.expectedSha1 !== undefined ? { expectedSha1: action.expectedSha1 } : {}),
+        ...(action.expectedSize !== undefined ? { expectedSize: action.expectedSize } : {}),
+        url: action.url,
+        category: VerifyFileCategories.LIBRARY,
+      }),
+    );
+  }
+  return libraryPlan;
+};
+
+const recordAssetIndexAndObjects = async (
+  record: VerificationRecorder,
+  input: VerifyMinecraftInput,
+): Promise<void> => {
+  const { directory, minecraft } = input.target;
+  const indexUrl = minecraft.manifest.assetIndex.url;
+  const indexPath = targetPaths.assetIndex(directory, minecraft.manifest.assetIndex.id);
+  record(
+    await verifyHashedFile({
+      path: indexPath,
+      expectedSha1: minecraft.manifest.assetIndex.sha1,
+      expectedSize: minecraft.manifest.assetIndex.size,
+      url: indexUrl,
+      category: VerifyFileCategories.ASSET_INDEX,
+    }),
+  );
+  const indexDocument = await fetchJson<AssetIndexDocument>(input.http, input.cache, {
+    url: indexUrl,
+    cacheKey: `asset-index:${minecraft.manifest.assetIndex.id}:${minecraft.manifest.assetIndex.sha1}`,
+    ...(input.signal !== undefined ? { signal: input.signal } : {}),
+  });
+  const seenAssetHashes = new Set<string>();
+  for (const entry of Object.values(indexDocument.objects)) {
+    if (seenAssetHashes.has(entry.hash)) continue;
+    seenAssetHashes.add(entry.hash);
+    record(
+      await verifyHashedFile({
+        path: targetPaths.assetObject(directory, entry.hash),
+        expectedSha1: entry.hash,
+        expectedSize: entry.size,
+        category: VerifyFileCategories.ASSET,
+      }),
+    );
+  }
+};
+
+/**
+ * When the natives directory is gone, every native JAR needs to be re-extracted: emit one
+ * `NATIVE` issue per source JAR so the count of issues matches the count of
+ * `EXTRACT_NATIVE` actions that repair will produce.
+ */
+const recordNativesIssuesWhenDirectoryMissing = async (
+  record: VerificationRecorder,
+  target: Target,
+  libraryPlan: ReturnType<typeof planLibraryDownloads>,
+): Promise<void> => {
+  const nativesDir = targetPaths.nativesDir(target.directory, target.minecraft.version);
+  if (await fileExists(nativesDir)) return;
+  for (const extraction of libraryPlan.nativeExtractions) {
+    record({
+      path: extraction.source,
+      category: VerifyFileCategories.NATIVE,
+      status: VerifyFileStatuses.MISSING,
+    });
+  }
 };

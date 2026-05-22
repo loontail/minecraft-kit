@@ -161,9 +161,12 @@ export const findForgeVersionJsonPath = async (
   return null;
 };
 
+/**
+ * Read `inheritsFrom` from a Forge version JSON file. Returns `undefined` when the file is
+ * malformed; callers treat that as a non-match — the next verify pass will surface the file
+ * through the regular file-check path.
+ */
 const tryParseInheritsFrom = async (jsonPath: string): Promise<string | undefined> => {
-  // Malformed JSON cannot match by inheritsFrom; treated as a non-match. The next
-  // verify pass over this file will surface it through the regular file check path.
   const parsed = parseJsonOrUndefined<{ inheritsFrom?: string }>(await readText(jsonPath));
   return parsed?.inheritsFrom;
 };
