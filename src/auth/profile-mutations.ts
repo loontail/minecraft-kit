@@ -3,7 +3,7 @@ import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { withOptionalSignal } from "../core/optional";
 import { isHttpOk } from "../http/status";
 import type { MinecraftProfile, MojangSkinVariant } from "../types/auth";
-import type { HttpClient } from "../types/http";
+import type { HttpClient, HttpResponse } from "../types/http";
 import {
   MINECRAFT_KIT_USER_AGENT,
   type RawProfileResponse,
@@ -32,32 +32,46 @@ const authHeaders = (
   ...(extra ?? {}),
 });
 
+/** Max chars of Mojang's response body to embed in the error message. */
+const ERROR_BODY_MAX_CHARS = 400;
+
 /**
  * Surface every profile-mutation maps an unexpected non-2xx onto. `404` is
  * specifically called out because Mojang returns it when the access token
  * is valid but the account doesn't own Java Edition — the message should
  * tell the user that, not "HTTP 404".
+ *
+ * Reads the response body once (best-effort — if it fails or is empty, we
+ * just omit it) and embeds it in both the error message and the context so
+ * callers can show Mojang's actual rejection reason instead of a generic
+ * "HTTP 400". Mojang typically returns a JSON `{path, errorType, error,
+ * errorMessage, developerMessage}` for skin/profile rejections.
  */
-const throwOnNonOk = (status: number): void => {
+const throwOnNonOk = async (response: HttpResponse): Promise<void> => {
+  const status = response.status;
   if (isHttpOk(status)) return;
+  const body = await response.text().catch(() => "");
+  const trimmed = body.trim();
+  const detail = trimmed.length > 0 ? `: ${trimmed.slice(0, ERROR_BODY_MAX_CHARS)}` : "";
+  const context = { httpStatus: status, ...(trimmed.length > 0 ? { responseBody: trimmed } : {}) };
   if (status === 401 || status === 403) {
     throw new MinecraftKitError(
       MinecraftKitErrorCodes.AUTH_MINECRAFT_FAILED,
-      `Mojang rejected the profile mutation (HTTP ${status}). The access token may have expired — refresh the session and retry.`,
-      { context: { httpStatus: status } },
+      `Mojang rejected the profile mutation (HTTP ${status}). The access token may have expired — refresh the session and retry${detail}`,
+      { context },
     );
   }
   if (status === 404) {
     throw new MinecraftKitError(
       MinecraftKitErrorCodes.AUTH_NO_GAME_OWNERSHIP,
-      "This Microsoft account does not own Minecraft: Java Edition.",
-      { context: { httpStatus: 404 } },
+      `This Microsoft account does not own Minecraft: Java Edition${detail}`,
+      { context },
     );
   }
   throw new MinecraftKitError(
     MinecraftKitErrorCodes.AUTH_MINECRAFT_FAILED,
-    `Profile mutation failed (HTTP ${status}).`,
-    { context: { httpStatus: status } },
+    `Profile mutation failed (HTTP ${status})${detail}`,
+    { context },
   );
 };
 
@@ -119,7 +133,7 @@ export const setSkinFromUrl = async (
     acceptNonOk: true,
     ...withOptionalSignal(input.signal),
   });
-  throwOnNonOk(response.status);
+  await throwOnNonOk(response);
   return parseProfileResponse((await response.json()) as RawProfileResponse);
 };
 
@@ -192,7 +206,7 @@ export const uploadSkin = async (
     acceptNonOk: true,
     ...withOptionalSignal(input.signal),
   });
-  throwOnNonOk(response.status);
+  await throwOnNonOk(response);
   return parseProfileResponse((await response.json()) as RawProfileResponse);
 };
 
@@ -240,7 +254,7 @@ export const resetSkin = async (
     acceptNonOk: true,
     ...withOptionalSignal(input.signal),
   });
-  throwOnNonOk(response.status);
+  await throwOnNonOk(response);
   return parseProfileResponse((await response.json()) as RawProfileResponse);
 };
 

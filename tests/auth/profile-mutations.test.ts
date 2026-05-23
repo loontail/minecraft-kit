@@ -94,6 +94,29 @@ describe("setSkinFromUrl", () => {
       expect(isErrorCode(error, "AUTH_NO_GAME_OWNERSHIP")).toBe(true);
     }
   });
+
+  it("embeds Mojang's response body in the error message and context", async () => {
+    const body = JSON.stringify({
+      path: "/minecraft/profile/skins",
+      errorMessage: "Not a valid skin",
+    });
+    const http = new FakeHttpClient().on(SKIN_URL, { status: 400, body });
+    try {
+      await setSkinFromUrl(http, {
+        accessToken: TOKEN,
+        url: "https://textures.minecraft.net/texture/abc",
+        variant: "CLASSIC",
+      });
+      expect.fail("expected throw");
+    } catch (error) {
+      expect(isErrorCode(error, "AUTH_MINECRAFT_FAILED")).toBe(true);
+      const err = error as { message: string; context: Record<string, unknown> };
+      expect(err.message).toContain("Profile mutation failed (HTTP 400)");
+      expect(err.message).toContain("Not a valid skin");
+      expect(err.context.httpStatus).toBe(400);
+      expect(err.context.responseBody).toBe(body);
+    }
+  });
 });
 
 describe("uploadSkin", () => {
