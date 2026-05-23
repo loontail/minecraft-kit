@@ -13,6 +13,10 @@ export type {
   UploadSkinInput,
 } from "./auth/profile-mutations";
 export type { ReadProfileInput } from "./auth/profile-read";
+export {
+  detectMojangSkinVariant,
+  type MojangSkinVariantInput,
+} from "./auth/skin-variant-detect";
 export { assertNever } from "./core/assert-never";
 export {
   isErrorCode,

@@ -9,6 +9,7 @@ import {
   type RawProfileResponse,
   parseProfileResponse,
 } from "./minecraft";
+import { type MojangSkinVariantInput, detectMojangSkinVariant } from "./skin-variant-detect";
 
 const PROFILE_URL = "https://api.minecraftservices.com/minecraft/profile";
 const SKIN_URL = `${PROFILE_URL}/skins`;
@@ -142,8 +143,12 @@ export type UploadSkinInput = {
   readonly accessToken: string;
   /** Raw PNG bytes of the skin (64×64 or 64×32 pixels per Mojang's rules). */
   readonly skin: Uint8Array;
-  /** Skin model variant — `"CLASSIC"` for standard arms, `"SLIM"` for Alex. */
-  readonly variant: MojangSkinVariant;
+  /**
+   * Skin model variant — `"CLASSIC"` for standard arms, `"SLIM"` for Alex,
+   * or `"AUTO"` to pick the variant by inspecting the PNG pixels (see
+   * {@link detectMojangSkinVariant}).
+   */
+  readonly variant: MojangSkinVariantInput;
   /** Optional `filename` part of the multipart entry. Defaults to `"skin.png"`. */
   readonly fileName?: string;
   readonly signal?: AbortSignal;
@@ -173,8 +178,10 @@ export const uploadSkin = async (
   http: HttpClient,
   input: UploadSkinInput,
 ): Promise<MinecraftProfile> => {
+  const variant: MojangSkinVariant =
+    input.variant === "AUTO" ? detectMojangSkinVariant(input.skin) : input.variant;
   const { body, contentType } = buildSkinMultipart(
-    input.variant.toLowerCase(),
+    variant.toLowerCase(),
     input.skin,
     input.fileName ?? "skin.png",
   );
