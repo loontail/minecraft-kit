@@ -27,6 +27,7 @@ import {
   setSkinFromUrl,
   uploadSkin,
 } from "./profile-mutations";
+import { type ReadProfileInput, readProfile } from "./profile-read";
 import { authenticateXbl, authenticateXsts } from "./xbox";
 
 /**
@@ -204,9 +205,11 @@ export class MojangAuthApi {
    * does not need to think about.
    */
   /**
-   * Skin mutations against `api.minecraftservices.com/minecraft/profile`.
-   * Every method returns the updated {@link MinecraftProfile} snapshot so a
-   * launcher can refresh its UI without an extra GET round-trip.
+   * Player profile against `api.minecraftservices.com/minecraft/profile`.
+   * `read` GETs the current snapshot (cheap access-token validation); the
+   * remaining methods mutate the active skin. Every method returns the
+   * (post-mutation) {@link MinecraftProfile} snapshot so a launcher can
+   * refresh its UI without an extra GET round-trip.
    *
    * @example
    * ```ts
@@ -222,6 +225,7 @@ export class MojangAuthApi {
    * ```
    */
   readonly profile = {
+    read: (input: ReadProfileInput): Promise<MinecraftProfile> => readProfile(this.http, input),
     setSkinFromUrl: (input: SetSkinFromUrlInput): Promise<MinecraftProfile> =>
       setSkinFromUrl(this.http, input),
     uploadSkin: (input: UploadSkinInput): Promise<MinecraftProfile> => uploadSkin(this.http, input),

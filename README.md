@@ -104,6 +104,21 @@ const composition = await kit.launch.compose(target, {
 });
 ```
 
+### Validate a cached access token
+
+`kit.auth.profile.read({ accessToken })` GETs `/minecraft/profile` and returns the player
+profile — use it to confirm a cached Minecraft access token is still usable without
+spending a Microsoft refresh token. A 2xx confirms; a 401/403 surfaces as
+`AUTH_MINECRAFT_FAILED` (call `kit.auth.refresh` and retry with the new
+`session.minecraft.accessToken`); a 404 surfaces as `AUTH_NO_GAME_OWNERSHIP`.
+
+```ts
+const profile = await kit.auth.profile.read({
+  accessToken: session.minecraft.accessToken,
+});
+console.log(profile.username, profile.uuid);
+```
+
 ### Skins
 
 Every method on `kit.auth.profile.*` takes the Mojang bearer

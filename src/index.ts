@@ -12,6 +12,7 @@ export type {
   SetSkinFromUrlInput,
   UploadSkinInput,
 } from "./auth/profile-mutations";
+export type { ReadProfileInput } from "./auth/profile-read";
 export { assertNever } from "./core/assert-never";
 export {
   isErrorCode,

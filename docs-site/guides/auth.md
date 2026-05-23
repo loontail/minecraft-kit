@@ -90,6 +90,21 @@ const minecraft = kit.launch.run(composition);
 `mode: AuthModes.ONLINE`, the player's uuid + username, the Mojang access token, the
 client id, and the XUID extracted from the JWT.
 
+## Validate a cached access token
+
+`kit.auth.profile.read({ accessToken })` GETs `/minecraft/profile` and returns the same
+`MinecraftProfile` shape sign-in produces. Use it to confirm a cached Minecraft access
+token is still good without spending a Microsoft refresh token: a 2xx confirms the token
+is usable; 401/403 surfaces as `AUTH_MINECRAFT_FAILED` (call `kit.auth.refresh` and retry
+with the new `session.minecraft.accessToken`); 404 surfaces as `AUTH_NO_GAME_OWNERSHIP`.
+
+```ts
+const profile = await kit.auth.profile.read({
+  accessToken: session.minecraft.accessToken,
+});
+console.log(profile.username, profile.uuid);
+```
+
 ## Skins
 
 `kit.auth.profile.*` lives next to auth because it reuses the Minecraft bearer, but it's
