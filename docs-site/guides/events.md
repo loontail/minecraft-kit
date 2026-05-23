@@ -43,32 +43,44 @@ function handle(e: ProgressEvent) {
 
 The full payload of each event is in the [API reference](../api/).
 
-## Throttling
+## Aggregating events for a UI
 
-`download:progress` fires once per chunk. For UI binding, wrap your listener with
-`throttleProgress` to cap emission at 10 Hz per file:
+`download:progress` fires once per chunk and per file — far too noisy to bind directly
+to a progress bar. `createInstallProgressTracker` is the supported way to fold raw events
+into coarse stages (`prepare`, `runtime`, `minecraft`, `loader`, `finalize`) with
+throttled snapshots:
 
 ```ts
-import { throttleProgress, PROGRESS_EVENT_INTERVAL_MS } from "@loontail/minecraft-kit";
+import { createInstallProgressTracker } from "@loontail/minecraft-kit";
 
-const throttled = throttleProgress(listener, PROGRESS_EVENT_INTERVAL_MS);
+const tracker = createInstallProgressTracker(plan, { throttleMs: 100 });
+
+const unsubscribe = tracker.subscribe((snapshot) => {
+  ui.render(snapshot.stage, snapshot.overallPercent, snapshot.currentFile);
+});
+
+await kit.install.run(plan, { onEvent: tracker.onEvent });
+tracker.finish();
+unsubscribe();
 ```
+
+The snapshot carries `stage`, `stagePercent`, `overallPercent`, `bytesDownloaded`,
+`totalBytes`, and `currentFile`. See the [API reference](../api/) for the full type.
 
 ## What the event stream does *not* carry
 
-- **No ETA.** `download:completed` exposes `durationMs` for the file's elapsed wall-clock
-  time, and `forge:processor-completed` does the same for processors — both real elapsed
-  durations, not predictions. ETA prediction is intentionally absent from the core; build it
-  in the renderer if you need it.
+- **No ETA.** `download:completed` exposes `durationMs` (real elapsed wall-clock time)
+  and `forge:processor-completed` does the same for processors. ETA prediction is
+  intentionally absent from the core; build it in the renderer if you need it.
 - **No total-size guess when unknown.** When neither the manifest nor the HTTP response
   declares a content length, `download:started.expectedSize` and
-  `download:progress.totalBytes` are `0`. Renderers should treat zero as "unknown" and fall
-  back to byte count + speed.
+  `download:progress.totalBytes` are `0`. Renderers should treat zero as "unknown" and
+  fall back to byte count + speed.
 
 ## Errors vs events
 
 Recoverable per-file issues (`download:failed` with `willRetry: true`,
 `integrity:mismatch`) are emitted through the listener. Fatal failures throw —
-`install.run` / `repair.run` / `launch.compose` / `launch.run` reject with an
+`install.run` / `repair.run` / `launch.compose` / `launch.run` reject with a
 `MinecraftKitError`. This keeps the happy path linear and prevents accidental
 swallowing of fatal errors when a listener is missing.

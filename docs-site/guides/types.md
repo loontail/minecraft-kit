@@ -21,6 +21,16 @@ package's `index.ts` re-exports the barrel.
 | `AuthModes` | `OFFLINE` `ONLINE` |
 | `LogLevels` | `DEBUG` `INFO` `WARN` `ERROR` |
 
+## Profile literal types
+
+These are plain string-literal unions (not `as const` maps), used by the
+[skins API](./skins):
+
+| Type | Values |
+|---|---|
+| `MojangSkinVariant` | `"CLASSIC"` `"SLIM"` |
+| `MojangAssetState` | `"ACTIVE"` `"INACTIVE"` |
+
 ```ts
 import { Loaders, EventTypes, VerificationKinds } from "@loontail/minecraft-kit";
 

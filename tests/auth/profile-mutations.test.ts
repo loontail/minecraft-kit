@@ -1,20 +1,13 @@
 import { describe, expect, it } from "vitest";
-import {
-  equipCape,
-  resetSkin,
-  setSkinFromUrl,
-  unequipCape,
-  uploadSkin,
-} from "../../src/auth/profile-mutations";
+import { resetSkin, setSkinFromUrl, uploadSkin } from "../../src/auth/profile-mutations";
 import { isErrorCode } from "../../src/core/errors";
 import { FakeHttpClient } from "../helpers/fake-http";
 
 const TOKEN = "MC-AT-1";
 const SKIN_URL = "https://api.minecraftservices.com/minecraft/profile/skins";
 const ACTIVE_SKIN_URL = "https://api.minecraftservices.com/minecraft/profile/skins/active";
-const ACTIVE_CAPE_URL = "https://api.minecraftservices.com/minecraft/profile/capes/active";
 
-const profileBody = (overrides: { activeSkin?: string; activeCape?: string | null } = {}): string =>
+const profileBody = (overrides: { activeSkin?: string } = {}): string =>
   JSON.stringify({
     id: "12345678123412341234123456789012",
     name: "Steve",
@@ -29,17 +22,6 @@ const profileBody = (overrides: { activeSkin?: string; activeCape?: string | nul
         variant: "CLASSIC",
       },
     ],
-    capes:
-      overrides.activeCape === null
-        ? []
-        : [
-            {
-              id: "cape-migrator",
-              state: overrides.activeCape === "cape-migrator" ? "ACTIVE" : "INACTIVE",
-              url: "https://textures.minecraft.net/texture/cape-1",
-              alias: "Migrator",
-            },
-          ],
   });
 
 const lastRequest = (http: FakeHttpClient): { url: string; options?: Record<string, unknown> } => {
@@ -170,40 +152,5 @@ describe("resetSkin", () => {
     };
     expect(opts.method).toBe("DELETE");
     expect(opts.headers.authorization).toBe(`Bearer ${TOKEN}`);
-  });
-});
-
-describe("equipCape", () => {
-  it("PUTs /capes/active with the cape id and returns the updated profile", async () => {
-    const http = new FakeHttpClient().on(ACTIVE_CAPE_URL, {
-      status: 200,
-      body: profileBody({ activeCape: "cape-migrator" }),
-    });
-    const profile = await equipCape(http, {
-      accessToken: TOKEN,
-      capeId: "cape-migrator",
-    });
-    expect(profile.capes.find((c) => c.state === "ACTIVE")?.alias).toBe("Migrator");
-    const opts = lastRequest(http).options as {
-      method: string;
-      headers: Record<string, string>;
-      body: string;
-    };
-    expect(opts.method).toBe("PUT");
-    expect(opts.headers["content-type"]).toBe("application/json");
-    expect(JSON.parse(opts.body)).toEqual({ capeId: "cape-migrator" });
-  });
-});
-
-describe("unequipCape", () => {
-  it("DELETEs /capes/active and returns the updated profile", async () => {
-    const http = new FakeHttpClient().on(ACTIVE_CAPE_URL, {
-      status: 200,
-      body: profileBody(),
-    });
-    const profile = await unequipCape(http, { accessToken: TOKEN });
-    expect(profile.capes.filter((c) => c.state === "ACTIVE")).toEqual([]);
-    const opts = lastRequest(http).options as { method: string };
-    expect(opts.method).toBe("DELETE");
   });
 });

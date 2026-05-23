@@ -14,10 +14,10 @@ console.log(`${plan.totalActions} actions, ${plan.totalBytes} bytes`);
 logging config + runtime files + (for Fabric/Forge) loader profile JSON and libraries + (for
 Forge) processor invocations.
 
-**Disk during planning.** The only file written during `plan()` is the Forge installer JAR.
-Forge planning needs to read `install_profile.json` from inside that JAR before it can emit
-the rest of the plan, so the JAR is downloaded into `versions/forge-installers/`. Vanilla,
-Fabric, and runtime planning are pure metadata.
+**Disk during planning.** The only file written during `plan()` is the Forge installer
+JAR. Forge planning needs to read `install_profile.json` from inside that JAR before it
+can emit the rest of the plan, so the JAR is downloaded into `<directory>/forge-installers/`.
+Vanilla, Fabric, and runtime planning are pure metadata.
 
 ## Run
 

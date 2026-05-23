@@ -10,7 +10,8 @@
 │  verify:   { minecraft, fabric, forge, runtime }                         │
 │  repair:   { minecraft, fabric, forge, runtime, all }                    │
 │  launch:   { compose, run }                                              │
-│  auth:     { refresh, authorizationCode: { run } }                       │
+│  auth:     { refresh, authorizationCode: { run }, profile: { skins } }   │
+│  cache:    MetadataCache  (clear/get/set/delete)                         │
 └──────────────────────────────────────────────────────────────────────────┘
         │                              │
         ▼                              ▼
@@ -22,6 +23,10 @@
         ▼
    MetadataCache (LRU, in-memory, 5-minute default TTL)
 ```
+
+`auth.profile` covers skin mutations (`setSkinFromUrl`, `uploadSkin`, `resetSkin`). It
+lives under `auth` because it shares the Minecraft bearer token; see
+[skins](./skins) for the surface.
 
 ## Layered modules
 
@@ -36,11 +41,12 @@ src/http/          Transport — HttpClient, in-memory cache, streaming download
 src/versions/      Version resolvers (Mojang / Fabric / Forge / runtime).
 src/targets/       Target factory + filesystem scanner.
 src/install/       Install planner + runner (split into stage functions) +
-                   Forge processor execution.
+                   Forge processor execution + UI progress tracker.
 src/verify/        On-disk verification per aspect.
 src/repair/        Aspect repair = install plan ∩ verification issues.
 src/launch/        Argument composition + child-process lifecycle.
-src/auth/          Microsoft OAuth → Xbox → Minecraft sign-in pipeline.
+src/auth/          Microsoft OAuth → Xbox → Minecraft sign-in pipeline +
+                   profile mutations (skins).
 src/cli/           Interactive `mckit`; imports only the public facade.
 src/kit.ts         `MinecraftKit` facade.
 src/index.ts       Public barrel.

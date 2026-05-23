@@ -13,7 +13,6 @@ import {
 const PROFILE_URL = "https://api.minecraftservices.com/minecraft/profile";
 const SKIN_URL = `${PROFILE_URL}/skins`;
 const ACTIVE_SKIN_URL = `${PROFILE_URL}/skins/active`;
-const ACTIVE_CAPE_URL = `${PROFILE_URL}/capes/active`;
 
 /**
  * Common headers for every profile-mutation call. Mojang silently 403s
@@ -229,112 +228,6 @@ export const resetSkin = async (
   input: ResetSkinInput,
 ): Promise<MinecraftProfile> => {
   const response = await http.request(ACTIVE_SKIN_URL, {
-    method: "DELETE",
-    headers: authHeaders(input.accessToken),
-    acceptNonOk: true,
-    ...withOptionalSignal(input.signal),
-  });
-  throwOnNonOk(response.status);
-  return parseProfileResponse((await response.json()) as RawProfileResponse);
-};
-
-/**
- * Inputs to {@link equipCape}.
- *
- * @example
- * ```ts
- * import type { EquipCapeInput } from "@loontail/minecraft-kit";
- *
- * const input: EquipCapeInput = {
- *   accessToken: session.minecraft.accessToken,
- *   capeId: session.minecraft.capes[0]!.id,
- * };
- * ```
- */
-export type EquipCapeInput = {
-  /** Minecraft bearer (`session.minecraft.accessToken`). */
-  readonly accessToken: string;
-  /** Cape id from {@link MinecraftProfile.capes}. */
-  readonly capeId: string;
-  readonly signal?: AbortSignal;
-};
-
-/**
- * PUT `/minecraft/profile/capes/active` with `{capeId}` — equips one of the
- * user's owned capes.
- *
- * Returns the updated {@link MinecraftProfile} snapshot with the chosen
- * cape's `state` flipped to `"ACTIVE"`.
- *
- * @example
- * ```ts
- * import { MinecraftKit } from "@loontail/minecraft-kit";
- *
- * const kit = new MinecraftKit();
- * const migrator = session.minecraft.capes.find((c) => c.alias === "Migrator");
- * if (migrator) {
- *   const profile = await kit.auth.profile.equipCape({
- *     accessToken: session.minecraft.accessToken,
- *     capeId: migrator.id,
- *   });
- *   console.log(profile.capes.find((c) => c.state === "ACTIVE")?.alias);
- * }
- * ```
- */
-export const equipCape = async (
-  http: HttpClient,
-  input: EquipCapeInput,
-): Promise<MinecraftProfile> => {
-  const response = await http.request(ACTIVE_CAPE_URL, {
-    method: "PUT",
-    headers: authHeaders(input.accessToken, { "content-type": "application/json" }),
-    body: JSON.stringify({ capeId: input.capeId }),
-    acceptNonOk: true,
-    ...withOptionalSignal(input.signal),
-  });
-  throwOnNonOk(response.status);
-  return parseProfileResponse((await response.json()) as RawProfileResponse);
-};
-
-/**
- * Inputs to {@link unequipCape}.
- *
- * @example
- * ```ts
- * import type { UnequipCapeInput } from "@loontail/minecraft-kit";
- *
- * const input: UnequipCapeInput = { accessToken: session.minecraft.accessToken };
- * ```
- */
-export type UnequipCapeInput = {
-  /** Minecraft bearer (`session.minecraft.accessToken`). */
-  readonly accessToken: string;
-  readonly signal?: AbortSignal;
-};
-
-/**
- * DELETE `/minecraft/profile/capes/active` — unequips the currently-active
- * cape. The cape itself stays in the user's inventory; only the active flag
- * flips.
- *
- * Returns the updated {@link MinecraftProfile} snapshot.
- *
- * @example
- * ```ts
- * import { MinecraftKit } from "@loontail/minecraft-kit";
- *
- * const kit = new MinecraftKit();
- * const profile = await kit.auth.profile.unequipCape({
- *   accessToken: session.minecraft.accessToken,
- * });
- * console.log(profile.capes.filter((c) => c.state === "ACTIVE")); // → []
- * ```
- */
-export const unequipCape = async (
-  http: HttpClient,
-  input: UnequipCapeInput,
-): Promise<MinecraftProfile> => {
-  const response = await http.request(ACTIVE_CAPE_URL, {
     method: "DELETE",
     headers: authHeaders(input.accessToken),
     acceptNonOk: true,

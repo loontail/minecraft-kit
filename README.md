@@ -16,8 +16,8 @@ and modern Forge.
   with a loopback redirect returns a `MojangSession` ready for online launches.
   Refresh, switch account, sign out — all without persisting tokens; that stays in your
   launcher's hands.
-- **Skin and cape management.** `kit.auth.profile.*` — set a skin from URL or PNG bytes,
-  reset to default, equip / unequip capes. Every mutation returns the updated
+- **Skin management.** `kit.auth.profile.*` — set a skin from URL or PNG bytes, or
+  reset to the default Steve / Alex. Every mutation returns the updated
   `MinecraftProfile` so launcher UIs refresh without an extra read.
 - **Typed events.** Discriminated-union `onEvent` callbacks cover every download, integrity
   check, archive extraction, processor invocation, and launch transition.
@@ -104,7 +104,7 @@ const composition = await kit.launch.compose(target, {
 });
 ```
 
-### Skins and capes
+### Skins
 
 Every method on `kit.auth.profile.*` takes the Mojang bearer
 (`session.minecraft.accessToken`) and returns the updated `MinecraftProfile` snapshot —
@@ -129,17 +129,13 @@ await kit.auth.profile.uploadSkin({
 
 // Drop back to Steve / Alex.
 await kit.auth.profile.resetSkin({ accessToken: session.minecraft.accessToken });
-
-// Equip / unequip a cape by id (read ids from session.minecraft.capes).
-await kit.auth.profile.equipCape({
-  accessToken: session.minecraft.accessToken,
-  capeId: session.minecraft.capes[0].id,
-});
-await kit.auth.profile.unequipCape({ accessToken: session.minecraft.accessToken });
 ```
 
-See [docs/guides/auth](https://loontail.github.io/minecraft-kit/guides/auth) for Azure AD
-registration steps, the skin / cape error taxonomy, and the full sign-in walkthrough.
+Capes are not exposed — Mojang's API doesn't allow launchers to set custom capes
+(only Mojang-issued ones like Migrator / MineCon), so the kit ships no cape API.
+
+See [docs/guides/skins](https://loontail.github.io/minecraft-kit/guides/skins) for the
+full surface and error taxonomy.
 
 ## CLI
 

@@ -5,12 +5,7 @@
  * endpoint. Pair with `parseJsonAs` from `./json`.
  */
 
-import type {
-  MojangAssetState,
-  MojangProfileCape,
-  MojangProfileSkin,
-  MojangSkinVariant,
-} from "../types/auth";
+import type { MojangAssetState, MojangProfileSkin, MojangSkinVariant } from "../types/auth";
 
 const MOJANG_ASSET_STATES: ReadonlySet<MojangAssetState> = new Set(["ACTIVE", "INACTIVE"]);
 const MOJANG_SKIN_VARIANTS: ReadonlySet<MojangSkinVariant> = new Set(["CLASSIC", "SLIM"]);
@@ -103,27 +98,6 @@ export const isMojangProfileSkin = (value: unknown): value is MojangProfileSkin 
     typeof value.variant === "string" &&
     MOJANG_SKIN_VARIANTS.has(value.variant as MojangSkinVariant)
   );
-};
-
-/**
- * True when `value` matches the shape of a single cape slot from
- * `/minecraft/profile`. Same rejection policy as {@link isMojangProfileSkin}.
- * Capes carry an optional `alias`; we accept its absence but reject a
- * non-string when present.
- *
- * @internal
- */
-export const isMojangProfileCape = (value: unknown): value is MojangProfileCape => {
-  if (!isPlainObject(value)) return false;
-  if (!isNonEmptyString(value.id)) return false;
-  if (!isNonEmptyString(value.url)) return false;
-  if (
-    typeof value.state !== "string" ||
-    !MOJANG_ASSET_STATES.has(value.state as MojangAssetState)
-  ) {
-    return false;
-  }
-  return value.alias === undefined || typeof value.alias === "string";
 };
 
 /**

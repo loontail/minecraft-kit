@@ -77,7 +77,13 @@ export default defineConfig({
             { text: "Install", link: "/guides/install" },
             { text: "Verify & repair", link: "/guides/verify-repair" },
             { text: "Launch", link: "/guides/launch" },
+          ],
+        },
+        {
+          text: "Account",
+          items: [
             { text: "Authentication", link: "/guides/auth" },
+            { text: "Skins", link: "/guides/skins" },
           ],
         },
         {

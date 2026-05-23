@@ -1,5 +1,5 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
-import { isMojangProfileCape, isMojangProfileSkin } from "../core/guards";
+import { isMojangProfileSkin } from "../core/guards";
 import { parseJsonOrUndefined } from "../core/json";
 import { withOptionalSignal } from "../core/optional";
 import { addUuidDashes, asPlayerUuid } from "../core/uuid";
@@ -32,7 +32,6 @@ export type RawProfileResponse = {
   readonly name: string;
   readonly errorMessage?: string;
   readonly skins?: ReadonlyArray<unknown>;
-  readonly capes?: ReadonlyArray<unknown>;
 };
 
 /**
@@ -53,7 +52,6 @@ export const parseProfileResponse = (parsed: RawProfileResponse): MinecraftProfi
     uuid: asPlayerUuid(addUuidDashes(parsed.id)),
     username: parsed.name,
     skins: (parsed.skins ?? []).filter(isMojangProfileSkin),
-    capes: (parsed.capes ?? []).filter(isMojangProfileCape),
   };
 };
 

@@ -21,30 +21,25 @@ await downloadFile(http, { url: "file:///etc/passwd", target });
 ### Host allow-list (optional)
 
 For launchers shipping in a hostile environment (corporate proxies, captured DNS, etc.),
-pass `hostAllowList` to pin downloads to a known set of hosts. Entries support exact host
-or a leading wildcard label:
+the internal `downloadFile` accepts a `hostAllowList` that pins downloads to a known set
+of hosts. Entries support an exact host or a leading wildcard label:
 
 ```ts
-await kit.install.run(plan, {
-  // ...passed through to downloadFile internally on a future API; for now:
-});
+import { FetchHttpClient } from "@loontail/minecraft-kit";
 
-// At the lower-level API:
-await downloadFile(http, {
-  url: action.url,
-  target: action.target,
-  hostAllowList: [
-    "*.minecraft.net",
-    "*.minecraftservices.com",
-    "*.mojang.com",
-    "maven.minecraftforge.net",
-    "libraries.minecraft.net",
-  ],
-});
+const hostAllowList = [
+  "*.minecraft.net",
+  "*.minecraftservices.com",
+  "*.mojang.com",
+  "maven.minecraftforge.net",
+  "libraries.minecraft.net",
+];
 ```
 
 When set, anything outside the list throws `INVALID_INPUT` before fetch, with
-`error.context.host` carrying the rejected hostname.
+`error.context.host` carrying the rejected hostname. The list is not yet plumbed through
+the high-level `kit.install.run` options; if you need host pinning today, wrap your
+`HttpClient` to reject non-allowlisted hosts and pass it via `new MinecraftKit({ httpClient })`.
 
 ## Manifests
 

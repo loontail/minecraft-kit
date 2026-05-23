@@ -8,10 +8,8 @@ export {
   toOnlineAuth,
 } from "./auth/index";
 export type {
-  EquipCapeInput,
   ResetSkinInput,
   SetSkinFromUrlInput,
-  UnequipCapeInput,
   UploadSkinInput,
 } from "./auth/profile-mutations";
 export { assertNever } from "./core/assert-never";
@@ -78,7 +76,6 @@ export {
   type MicrosoftRefreshToken,
   type MinecraftProfile,
   type MojangAssetState,
-  type MojangProfileCape,
   type MojangProfileSkin,
   type MojangSession,
   type MojangSkinVariant,

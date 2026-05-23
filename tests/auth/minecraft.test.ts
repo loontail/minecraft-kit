@@ -101,16 +101,15 @@ describe("fetchMinecraftProfile", () => {
     }
   });
 
-  it("defaults skins/capes to empty arrays when Mojang omits them", async () => {
+  it("defaults skins to an empty array when Mojang omits them", async () => {
     const http = new FakeHttpClient().on(PROFILE_URL, {
       body: JSON.stringify({ id: "12345678123412341234123456789012", name: "Steve" }),
     });
     const profile = await fetchMinecraftProfile({ http, accessToken: "AT" });
     expect(profile.skins).toEqual([]);
-    expect(profile.capes).toEqual([]);
   });
 
-  it("plumbs skin + cape slots through, dropping malformed rows", async () => {
+  it("plumbs skin slots through, dropping malformed rows", async () => {
     const http = new FakeHttpClient().on(PROFILE_URL, {
       body: JSON.stringify({
         id: "12345678123412341234123456789012",
@@ -130,15 +129,6 @@ describe("fetchMinecraftProfile", () => {
           },
           { id: "skin-c-missing-url-dropped", state: "INACTIVE", variant: "SLIM" },
         ],
-        capes: [
-          {
-            id: "cape-1",
-            state: "ACTIVE",
-            url: "http://textures/cape.png",
-            alias: "Migrator",
-          },
-          { id: "cape-2", state: "INACTIVE", url: "http://textures/cape2.png" },
-        ],
       }),
     });
     const profile = await fetchMinecraftProfile({ http, accessToken: "AT" });
@@ -149,15 +139,6 @@ describe("fetchMinecraftProfile", () => {
         url: "http://textures/skin-a.png",
         variant: "CLASSIC",
       },
-    ]);
-    expect(profile.capes).toEqual([
-      {
-        id: "cape-1",
-        state: "ACTIVE",
-        url: "http://textures/cape.png",
-        alias: "Migrator",
-      },
-      { id: "cape-2", state: "INACTIVE", url: "http://textures/cape2.png" },
     ]);
   });
 });

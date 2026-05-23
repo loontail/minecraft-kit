@@ -18,6 +18,10 @@ features:
     details: Symmetric list/resolve for Minecraft, Fabric, Forge, and Mojang Java runtimes.
   - title: Modern Forge
     details: Downloads the installer, runs processors with the installed Mojang JDK, verifies every output hash.
+  - title: Microsoft sign-in
+    details: Built-in OAuth 2.0 Authorization Code + PKCE over a loopback redirect. Refresh, switch, sign out — no tokens persisted by the kit.
+  - title: Skin management
+    details: kit.auth.profile.* sets, uploads, or resets the player's skin and returns a fresh MinecraftProfile snapshot every time.
   - title: Typed events
     details: Discriminated-union onEvent covers every download, integrity check, processor, and launch transition.
   - title: Verify and repair

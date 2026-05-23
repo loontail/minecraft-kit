@@ -145,7 +145,7 @@ export type OnlineAuth = {
 export type LaunchAuth = OfflineAuth | OnlineAuth;
 
 /**
- * Lifecycle state of a Mojang-issued skin or cape.
+ * Lifecycle state of a Mojang-issued skin slot.
  *
  * @example
  * ```ts
@@ -189,44 +189,24 @@ export type MojangProfileSkin = {
 };
 
 /**
- * A cape slot returned by `/minecraft/profile`.
- *
- * @example
- * ```ts
- * import type { MojangProfileCape } from "@loontail/minecraft-kit";
- *
- * const equipped = (capes: readonly MojangProfileCape[]) =>
- *   capes.find((c) => c.state === "ACTIVE");
- * console.log(equipped(session.minecraft.capes)?.alias);
- * ```
- */
-export type MojangProfileCape = {
-  readonly id: string;
-  readonly state: MojangAssetState;
-  readonly url: string;
-  readonly alias?: string;
-};
-
-/**
- * Snapshot of `/minecraft/profile` — uuid + display name + every skin/cape
- * slot Mojang has issued. Returned by every `kit.auth.profile.*` mutation so
+ * Snapshot of `/minecraft/profile` — uuid + display name + every skin slot
+ * Mojang has issued. Returned by every `kit.auth.profile.*` mutation so
  * callers can refresh their UI without an extra round-trip.
  *
  * @example
  * ```ts
  * import type { MinecraftProfile } from "@loontail/minecraft-kit";
  *
- * const next: MinecraftProfile = await kit.auth.profile.unequipCape({
+ * const next: MinecraftProfile = await kit.auth.profile.resetSkin({
  *   accessToken: session.minecraft.accessToken,
  * });
- * console.log(next.capes.filter((c) => c.state === "ACTIVE")); // → []
+ * console.log(next.skins.filter((s) => s.state === "ACTIVE")); // → []
  * ```
  */
 export type MinecraftProfile = {
   readonly uuid: PlayerUuid;
   readonly username: string;
   readonly skins: ReadonlyArray<MojangProfileSkin>;
-  readonly capes: ReadonlyArray<MojangProfileCape>;
 };
 
 /**
@@ -261,8 +241,6 @@ export type MojangSession = {
     readonly xuid: string;
     /** Every skin slot Mojang has issued for the user (active + inactive). */
     readonly skins: ReadonlyArray<MojangProfileSkin>;
-    /** Every cape slot Mojang has issued for the user. Empty when the user owns no capes. */
-    readonly capes: ReadonlyArray<MojangProfileCape>;
   };
   readonly microsoft: {
     /** Microsoft refresh token; used to obtain a fresh session without re-prompting. */

@@ -149,7 +149,6 @@ describe("toOnlineAuth", () => {
         expiresAt: 0,
         xuid: "xuid",
         skins: [],
-        capes: [],
       },
       microsoft: { refreshToken: RT_TO_ONLINE, clientId: CLIENT_ID_TO_ONLINE },
     };

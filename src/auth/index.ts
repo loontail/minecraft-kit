@@ -20,15 +20,11 @@ import {
 import { extractXuid, fetchMinecraftProfile, loginWithXbox } from "./minecraft";
 import { buildAuthorizeUrl, generateOAuthState, generatePkcePair } from "./oauth";
 import {
-  type EquipCapeInput,
   type ResetSkinInput,
   type SetSkinFromUrlInput,
-  type UnequipCapeInput,
   type UploadSkinInput,
-  equipCape,
   resetSkin,
   setSkinFromUrl,
-  unequipCape,
   uploadSkin,
 } from "./profile-mutations";
 import { authenticateXbl, authenticateXsts } from "./xbox";
@@ -208,7 +204,7 @@ export class MojangAuthApi {
    * does not need to think about.
    */
   /**
-   * Skin / cape mutations against `api.minecraftservices.com/minecraft/profile`.
+   * Skin mutations against `api.minecraftservices.com/minecraft/profile`.
    * Every method returns the updated {@link MinecraftProfile} snapshot so a
    * launcher can refresh its UI without an extra GET round-trip.
    *
@@ -230,9 +226,6 @@ export class MojangAuthApi {
       setSkinFromUrl(this.http, input),
     uploadSkin: (input: UploadSkinInput): Promise<MinecraftProfile> => uploadSkin(this.http, input),
     resetSkin: (input: ResetSkinInput): Promise<MinecraftProfile> => resetSkin(this.http, input),
-    equipCape: (input: EquipCapeInput): Promise<MinecraftProfile> => equipCape(this.http, input),
-    unequipCape: (input: UnequipCapeInput): Promise<MinecraftProfile> =>
-      unequipCape(this.http, input),
   };
 
   readonly authorizationCode = {
@@ -317,7 +310,6 @@ const runPostMsTokenPipeline = async (
       expiresAt: Date.now() + mc.expiresIn * 1000,
       xuid: extractXuid(mc.accessToken),
       skins: profile.skins,
-      capes: profile.capes,
     },
     microsoft: {
       refreshToken: msToken.refreshToken,

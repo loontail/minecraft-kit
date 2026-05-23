@@ -1,8 +1,10 @@
 # Quickstart
 
-The kit covers two launch modes: **offline** (no Microsoft account needed, can't connect to
-online servers) and **online** (full Microsoft / Mojang sign-in via OAuth 2.0
-Authorization-Code + PKCE).
+Two launch modes are supported:
+
+- **Offline** — no Microsoft account needed; can't connect to online servers.
+- **Online** — full Microsoft sign-in via OAuth 2.0 Authorization Code + PKCE; returns a
+  Mojang session that the launch composer plugs straight in.
 
 ## Offline launch
 
@@ -24,7 +26,7 @@ const target = await kit.targets.resolve({
 const plan = await kit.install.plan(target);
 console.log(`${plan.totalActions} actions, ${plan.totalBytes} bytes`);
 
-// 3. Execute the plan. Downloads run in parallel, files already on disk are skipped.
+// 3. Execute the plan. Downloads run in parallel; files already on disk are skipped.
 await kit.install.run(plan, {
   onEvent: (e) => {
     if (e.type === EventTypes.INSTALL_PHASE_CHANGED) console.log("phase:", e.phase);
@@ -40,11 +42,11 @@ const session = kit.launch.run(composition);
 await session.exited;
 ```
 
-## Online launch with Microsoft / Mojang sign-in
+## Online launch with Microsoft sign-in
 
-The kit ships a complete OAuth 2.0 Authorization-Code + PKCE flow over a loopback redirect
-that returns a `MojangSession` ready for `kit.launch.compose`. Tokens never touch disk
-inside the kit — persisting the refresh token is your launcher's job.
+The kit ships a complete OAuth 2.0 Authorization-Code + PKCE flow over a loopback
+redirect and returns a `MojangSession` ready for `kit.launch.compose`. Tokens never
+touch disk inside the kit — **persisting the refresh token is your launcher's job**.
 
 ```ts
 import { MinecraftKit, Loaders, toOnlineAuth } from "@loontail/minecraft-kit";
@@ -52,22 +54,24 @@ import fs from "node:fs/promises";
 
 const kit = new MinecraftKit();
 
-// 1. Sign in. Reuse a saved refresh token if you have one, otherwise prompt the user.
+// 1. Sign in. Reuse a saved refresh token if available, otherwise prompt.
 const saved = await readSavedSession();
 const session = saved
   ? await kit.auth.refresh(saved.refreshToken, { clientId: saved.clientId })
   : await kit.auth.authorizationCode.run({
       clientId: process.env.MINECRAFT_KIT_MSA_CLIENT_ID,
       onOpenBrowser: async (url) => {
-        // Open `url` in the user's system browser (shell.openExternal in Electron,
-        // `open` in a Node CLI). The kit waits for Microsoft to redirect back to its
-        // loopback listener — no codes for the user to type.
+        // Open `url` in the user's system browser:
+        //   Electron: shell.openExternal(url)
+        //   CLI:      await import("open").then((o) => o.default(url))
+        // The kit waits for Microsoft to redirect back to its loopback listener —
+        // no codes for the user to type.
         console.log(`Open ${url} in your browser to sign in.`);
       },
     });
 
-// 2. Persist the refresh token + client id for next start. The access token in
-//    `session.minecraft.accessToken` is short-lived and should NOT be cached.
+// 2. Persist the refresh token + client id for next start.
+//    `session.minecraft.accessToken` is short-lived — do NOT cache it.
 await saveSession({
   refreshToken: session.microsoft.refreshToken,
   clientId: session.microsoft.clientId,
@@ -75,17 +79,16 @@ await saveSession({
 
 console.log(`Signed in as ${session.minecraft.username}`);
 
-// 3. Resolve the same Fabric target as the offline example.
+// 3. Resolve the same target as the offline example.
 const target = await kit.targets.resolve({
   id: "fabric-client",
   directory: "./minecrafts/fabric-client",
   minecraft: { version: "1.20.1" },
   loader: { type: Loaders.FABRIC },
 });
-
 await kit.install.run(await kit.install.plan(target));
 
-// 4. Launch with the online session projected into the `OnlineAuth` shape.
+// 4. Launch with the online session projected into the OnlineAuth shape.
 const composition = await kit.launch.compose(target, {
   auth: toOnlineAuth(session),
   memory: { minMb: 1024, maxMb: 4096 },
@@ -110,31 +113,32 @@ async function saveSession(data: { refreshToken: string; clientId: string }) {
 
 `kit.auth.authorizationCode.run` requires an Azure AD application id:
 
-1. Register an app at [https://portal.azure.com](https://portal.azure.com) →
-   **App registrations**.
+1. Register an app at [portal.azure.com](https://portal.azure.com) → **App registrations**.
 2. Set **Supported account types** to "Personal Microsoft accounts only" (or the variant
    that includes them).
 3. Authentication → **Allow public client flows: Yes**.
 4. Authentication → **Platform configurations → Mobile and desktop applications → Add a
-   platform:** add `http://localhost` as a redirect URI (no port, no path — the kit binds
-   a random port at runtime).
-5. Request Minecraft API access at [https://aka.ms/mce-reviewappid](https://aka.ms/mce-reviewappid).
-   Without this, `login_with_xbox` rejects the token.
+   platform:** add `http://localhost` as a redirect URI (no port, no path — the kit
+   binds a random port at runtime).
+5. Request Minecraft API access at
+   [aka.ms/mce-reviewappid](https://aka.ms/mce-reviewappid). Without this,
+   `login_with_xbox` rejects the token.
 
 Pass the Application (client) ID via `MINECRAFT_KIT_MSA_CLIENT_ID` or the `clientId`
 option. The kit refuses to ship a default — `AUTH_MISSING_CLIENT_ID` is thrown when
 neither is set.
 
-See the [authentication guide](../guides/auth) for the full surface and the auth error
-taxonomy.
+The full surface (refresh, error taxonomy, tracing) is in the
+[authentication guide](../guides/auth). Skin mutations are documented separately in
+[skins](../guides/skins).
 
 ## Statelessness
 
-If you want to remember `target` across runs, serialise the value you got back from
-`kit.targets.resolve` and pass it back in next time — the kit holds no state of its own
+If you want to remember `target` across runs, serialise the value returned by
+`kit.targets.resolve` and pass it back next time — the kit holds no state of its own
 between calls. The same applies to authentication: store the refresh token however your
 launcher already stores user data; the kit will not write it for you.
 
 See the [library usage guide](../guides/library-usage) for the full facade surface, the
-[CLI guide](../guides/cli) for the interactive flow, and the [API reference](../api/) for
-generated types.
+[CLI guide](../guides/cli) for the interactive flow, and the [API reference](../api/)
+for generated types.
