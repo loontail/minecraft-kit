@@ -4,6 +4,7 @@ import { AuthModes } from "../types/auth";
 import type {
   AzureClientId,
   MicrosoftRefreshToken,
+  MinecraftProfile,
   MojangSession,
   OnlineAuth,
 } from "../types/auth";
@@ -18,6 +19,18 @@ import {
 } from "./microsoftToken";
 import { extractXuid, fetchMinecraftProfile, loginWithXbox } from "./minecraft";
 import { buildAuthorizeUrl, generateOAuthState, generatePkcePair } from "./oauth";
+import {
+  type EquipCapeInput,
+  type ResetSkinInput,
+  type SetSkinFromUrlInput,
+  type UnequipCapeInput,
+  type UploadSkinInput,
+  equipCape,
+  resetSkin,
+  setSkinFromUrl,
+  unequipCape,
+  uploadSkin,
+} from "./profile-mutations";
 import { authenticateXbl, authenticateXsts } from "./xbox";
 
 /**
@@ -194,6 +207,34 @@ export class MojangAuthApi {
    * `onOpenBrowser` is the only required callback — everything else is plumbing the caller
    * does not need to think about.
    */
+  /**
+   * Skin / cape mutations against `api.minecraftservices.com/minecraft/profile`.
+   * Every method returns the updated {@link MinecraftProfile} snapshot so a
+   * launcher can refresh its UI without an extra GET round-trip.
+   *
+   * @example
+   * ```ts
+   * import { MinecraftKit } from "@loontail/minecraft-kit";
+   *
+   * const kit = new MinecraftKit();
+   * const session = await kit.auth.authorizationCode.run({ onOpenBrowser });
+   * await kit.auth.profile.setSkinFromUrl({
+   *   accessToken: session.minecraft.accessToken,
+   *   url: "https://textures.minecraft.net/texture/abc...",
+   *   variant: "CLASSIC",
+   * });
+   * ```
+   */
+  readonly profile = {
+    setSkinFromUrl: (input: SetSkinFromUrlInput): Promise<MinecraftProfile> =>
+      setSkinFromUrl(this.http, input),
+    uploadSkin: (input: UploadSkinInput): Promise<MinecraftProfile> => uploadSkin(this.http, input),
+    resetSkin: (input: ResetSkinInput): Promise<MinecraftProfile> => resetSkin(this.http, input),
+    equipCape: (input: EquipCapeInput): Promise<MinecraftProfile> => equipCape(this.http, input),
+    unequipCape: (input: UnequipCapeInput): Promise<MinecraftProfile> =>
+      unequipCape(this.http, input),
+  };
+
   readonly authorizationCode = {
     run: async (options: AuthorizationCodeRunOptions): Promise<MojangSession> => {
       const clientId = resolveClientId(options.clientId);

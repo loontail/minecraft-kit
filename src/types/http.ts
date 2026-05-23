@@ -46,7 +46,7 @@ export type HttpResponse = {
  *   http.request(url, { method });
  * ```
  */
-export type HttpMethod = "GET" | "POST";
+export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
 /**
  * Body payload accepted on POST requests.

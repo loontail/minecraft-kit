@@ -7,6 +7,41 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Skin and cape mutations** via `kit.auth.profile.*`. Five methods, all
+  taking the Mojang bearer (`session.minecraft.accessToken`) and returning
+  the updated `MinecraftProfile` snapshot:
+
+  - `setSkinFromUrl({ accessToken, url, variant })` — POST a JSON body
+    asking Mojang to fetch the skin from `url`.
+  - `uploadSkin({ accessToken, skin, variant, fileName? })` — POST the PNG
+    bytes directly as `multipart/form-data` (for local files).
+  - `resetSkin({ accessToken })` — DELETE the active skin (reverts to the
+    default Steve / Alex picked from the UUID).
+  - `equipCape({ accessToken, capeId })` — PUT the chosen cape as active.
+  - `unequipCape({ accessToken })` — DELETE the active cape.
+
+  Every method returns the full updated `MinecraftProfile` (uuid, username,
+  every skin / cape slot with new `state`), so a launcher can refresh its
+  skin / cape UI without an extra `GET /minecraft/profile` round-trip.
+  `MinecraftProfile` is now part of the public API surface.
+
+  Wiring lives in `src/auth/profile-mutations.ts`; full guide in
+  [docs-site/guides/auth.md#skins-and-capes](docs-site/guides/auth.md).
+  Errors surface as `AUTH_MINECRAFT_FAILED` (401/403/5xx) or
+  `AUTH_NO_GAME_OWNERSHIP` (404).
+
+### Fixed
+
+- **Windows browser-open dropped OAuth scope.** `cmd.exe /c start "" <url>`
+  parses `&` in the URL as a command-chain separator, silently truncating
+  the URL at the first `&`. The Microsoft authorize page then errored
+  with `AADSTS900144: 'scope' is missing` because everything after
+  `?client_id=…` was lost. Switched the Windows path in
+  `src/cli/open-browser.ts` to `rundll32.exe url.dll,FileProtocolHandler
+  <url>` — the native Win32 URL handler keeps the URL intact.
+
 ### BREAKING CHANGES
 
 - **Branded `PlayerUuid` and `MinecraftVersionId` types.** The two most

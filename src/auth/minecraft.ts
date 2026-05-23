@@ -4,7 +4,7 @@ import { parseJsonOrUndefined } from "../core/json";
 import { withOptionalSignal } from "../core/optional";
 import { addUuidDashes, asPlayerUuid } from "../core/uuid";
 import { isHttpOk } from "../http/status";
-import type { MojangProfileCape, MojangProfileSkin, PlayerUuid } from "../types/auth";
+import type { MinecraftProfile } from "../types/auth";
 import type { HttpClient } from "../types/http";
 import type { Logger } from "../types/logger";
 
@@ -18,7 +18,44 @@ const MC_PROFILE_URL = "https://api.minecraftservices.com/minecraft/profile";
  *
  * @internal
  */
-const MINECRAFT_KIT_USER_AGENT = "Minecraft Launcher/2.0 (minecraft-kit)";
+export const MINECRAFT_KIT_USER_AGENT = "Minecraft Launcher/2.0 (minecraft-kit)";
+
+/**
+ * Shape of every successful `/minecraft/profile` response (`GET` plus every
+ * mutation endpoint). Exported so {@link parseProfileResponse} can be reused
+ * outside this module.
+ *
+ * @internal
+ */
+export type RawProfileResponse = {
+  readonly id: string;
+  readonly name: string;
+  readonly errorMessage?: string;
+  readonly skins?: ReadonlyArray<unknown>;
+  readonly capes?: ReadonlyArray<unknown>;
+};
+
+/**
+ * Parse a `/minecraft/profile` JSON body into {@link MinecraftProfile}. Throws
+ * `AUTH_MINECRAFT_FAILED` when Mojang returns `{errorMessage}` or when the
+ * required fields (`id`, `name`) are missing.
+ *
+ * @internal
+ */
+export const parseProfileResponse = (parsed: RawProfileResponse): MinecraftProfile => {
+  if (parsed.errorMessage || !parsed.id || !parsed.name) {
+    throw new MinecraftKitError(
+      MinecraftKitErrorCodes.AUTH_MINECRAFT_FAILED,
+      parsed.errorMessage ?? "Minecraft profile response was malformed.",
+    );
+  }
+  return {
+    uuid: asPlayerUuid(addUuidDashes(parsed.id)),
+    username: parsed.name,
+    skins: (parsed.skins ?? []).filter(isMojangProfileSkin),
+    capes: (parsed.capes ?? []).filter(isMojangProfileCape),
+  };
+};
 
 /**
  * Result of `login_with_xbox` — Minecraft bearer token + lifetime.
@@ -35,26 +72,6 @@ type LoginResponse = {
   readonly expires_in: number;
   /** Claims JWT carrying the XUID (`xuid`) — opaque to us; we extract via `parseXuid`. */
   readonly username?: string;
-};
-
-type ProfileResponse = {
-  readonly id: string;
-  readonly name: string;
-  readonly errorMessage?: string;
-  readonly skins?: ReadonlyArray<unknown>;
-  readonly capes?: ReadonlyArray<unknown>;
-};
-
-/**
- * Rich `/minecraft/profile` payload — UUID + display name + all skin/cape slots.
- *
- * @internal
- */
-export type MinecraftProfile = {
-  readonly uuid: PlayerUuid;
-  readonly username: string;
-  readonly skins: ReadonlyArray<MojangProfileSkin>;
-  readonly capes: ReadonlyArray<MojangProfileCape>;
 };
 
 /**
@@ -166,19 +183,8 @@ export const fetchMinecraftProfile = async (input: {
       { context: { httpStatus: response.status } },
     );
   }
-  const parsed = (await response.json()) as ProfileResponse;
-  if (parsed.errorMessage || !parsed.id || !parsed.name) {
-    throw new MinecraftKitError(
-      MinecraftKitErrorCodes.AUTH_MINECRAFT_FAILED,
-      parsed.errorMessage ?? "Minecraft profile response was malformed.",
-    );
-  }
-  return {
-    uuid: asPlayerUuid(addUuidDashes(parsed.id)),
-    username: parsed.name,
-    skins: (parsed.skins ?? []).filter(isMojangProfileSkin),
-    capes: (parsed.capes ?? []).filter(isMojangProfileCape),
-  };
+  const parsed = (await response.json()) as RawProfileResponse;
+  return parseProfileResponse(parsed);
 };
 
 /**

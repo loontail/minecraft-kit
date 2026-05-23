@@ -88,6 +88,64 @@ const minecraft = kit.launch.run(composition);
 `mode: AuthModes.ONLINE`, the player's uuid + username, the Mojang access token, the
 client id, and the XUID extracted from the JWT.
 
+## Skins and capes
+
+`kit.auth.profile.*` calls `api.minecraftservices.com/minecraft/profile/{skins,capes}`
+against the Mojang bearer in `session.minecraft.accessToken`. Every mutation returns
+a fresh `MinecraftProfile` snapshot (uuid + username + every skin/cape slot with the
+new `state`), so a launcher can refresh its skin/cape UI without an extra read.
+
+```ts
+import { MinecraftKit, type MinecraftProfile } from "@loontail/minecraft-kit";
+
+const kit = new MinecraftKit();
+const session = await kit.auth.authorizationCode.run({ onOpenBrowser });
+
+// Apply a skin from a remote URL Mojang's servers can reach.
+const a: MinecraftProfile = await kit.auth.profile.setSkinFromUrl({
+  accessToken: session.minecraft.accessToken,
+  url: "https://textures.minecraft.net/texture/abc...",
+  variant: "CLASSIC", // or "SLIM" for the Alex model
+});
+
+// Upload a skin from a local PNG file.
+import { readFile } from "node:fs/promises";
+const b: MinecraftProfile = await kit.auth.profile.uploadSkin({
+  accessToken: session.minecraft.accessToken,
+  skin: await readFile("./my-skin.png"),
+  variant: "SLIM",
+});
+
+// Drop back to the default Steve / Alex skin.
+const c: MinecraftProfile = await kit.auth.profile.resetSkin({
+  accessToken: session.minecraft.accessToken,
+});
+
+// Equip an owned cape by id (read ids from session.minecraft.capes).
+const d: MinecraftProfile = await kit.auth.profile.equipCape({
+  accessToken: session.minecraft.accessToken,
+  capeId: session.minecraft.capes[0]!.id,
+});
+
+// Unequip the active cape (keeps it in the inventory).
+const e: MinecraftProfile = await kit.auth.profile.unequipCape({
+  accessToken: session.minecraft.accessToken,
+});
+```
+
+All mutations are stateless — the kit never holds the access token between calls.
+Pass the same `accessToken` you stored on the session. If the token has expired,
+refresh it first with `kit.auth.refresh(session.microsoft.refreshToken)` and re-read
+`session.minecraft.accessToken` from the returned session.
+
+Errors:
+
+- `AUTH_MINECRAFT_FAILED` on HTTP 401/403 — the access token expired or Mojang declined
+  the request; refresh and retry.
+- `AUTH_NO_GAME_OWNERSHIP` on HTTP 404 — the account does not own Java Edition.
+- The PNG payload must be a 64×64 (or legacy 64×32) skin file. Mojang validates dimensions
+  and returns a non-2xx that surfaces as `AUTH_MINECRAFT_FAILED`.
+
 ## Tracing
 
 Pass a `Logger` to the kit constructor and the auth modules will emit `debug`-level

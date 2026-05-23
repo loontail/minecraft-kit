@@ -208,6 +208,28 @@ export type MojangProfileCape = {
 };
 
 /**
+ * Snapshot of `/minecraft/profile` — uuid + display name + every skin/cape
+ * slot Mojang has issued. Returned by every `kit.auth.profile.*` mutation so
+ * callers can refresh their UI without an extra round-trip.
+ *
+ * @example
+ * ```ts
+ * import type { MinecraftProfile } from "@loontail/minecraft-kit";
+ *
+ * const next: MinecraftProfile = await kit.auth.profile.unequipCape({
+ *   accessToken: session.minecraft.accessToken,
+ * });
+ * console.log(next.capes.filter((c) => c.state === "ACTIVE")); // → []
+ * ```
+ */
+export type MinecraftProfile = {
+  readonly uuid: PlayerUuid;
+  readonly username: string;
+  readonly skins: ReadonlyArray<MojangProfileSkin>;
+  readonly capes: ReadonlyArray<MojangProfileCape>;
+};
+
+/**
  * Combined Microsoft + Minecraft session returned by
  * `kit.auth.authorizationCode.run` and `kit.auth.refresh`.
  *
