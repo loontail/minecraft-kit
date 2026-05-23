@@ -26,7 +26,7 @@ export type { MinecraftKitErrorCode };
 export class MinecraftKitError extends Error {
   override readonly name = "MinecraftKitError";
 
-  /** Stable discriminator. */
+  /** Stable discriminator — one of {@link MinecraftKitErrorCode}. */
   readonly code: MinecraftKitErrorCode;
 
   /** Structured context; safe to serialize. */
@@ -78,7 +78,7 @@ export const isMinecraftKitError = (e: unknown): e is MinecraftKitError => {
 };
 
 /**
- * True when `e` is an {@link MinecraftKitError} carrying the given code.
+ * True when `e` is an {@link MinecraftKitError} carrying the given {@link MinecraftKitErrorCode}.
  *
  * @example
  * ```ts

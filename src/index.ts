@@ -18,6 +18,7 @@ export {
   isErrorCode,
   isMinecraftKitError,
   MinecraftKitError,
+  type MinecraftKitErrorCode,
   MinecraftKitErrorCodes,
 } from "./core/errors";
 export { consoleLogger, scopedLogger, silentLogger } from "./core/logger";

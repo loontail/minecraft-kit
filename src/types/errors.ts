@@ -52,9 +52,22 @@ export const MinecraftKitErrorCodes = {
 } as const;
 
 /**
- * Union of all kit error codes.
+ * Union of every value in {@link MinecraftKitErrorCodes}. Use as the key type when building
+ * exhaustive lookup tables that translate kit codes to a consumer-facing taxonomy.
  *
- * @internal
+ * @example
+ * ```ts
+ * import { type MinecraftKitErrorCode, MinecraftKitErrorCodes } from "@loontail/minecraft-kit";
+ *
+ * type LauncherErrorCode = "NETWORK" | "INTEGRITY" | "RUNTIME";
+ *
+ * const KIT_TO_LAUNCHER: Partial<Record<MinecraftKitErrorCode, LauncherErrorCode>> = {
+ *   [MinecraftKitErrorCodes.NETWORK_TIMEOUT]: "NETWORK",
+ *   [MinecraftKitErrorCodes.NETWORK_HTTP_ERROR]: "NETWORK",
+ *   [MinecraftKitErrorCodes.INTEGRITY_HASH_MISMATCH]: "INTEGRITY",
+ *   [MinecraftKitErrorCodes.RUNTIME_NOT_FOUND]: "RUNTIME",
+ * };
+ * ```
  */
 export type MinecraftKitErrorCode =
   (typeof MinecraftKitErrorCodes)[keyof typeof MinecraftKitErrorCodes];
