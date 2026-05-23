@@ -86,19 +86,6 @@ mckit
 The CLI is fully interactive — no required arguments. Run inside the directory that should
 host your installations. Flags: `--help`, `--version`, `--debug`.
 
-## Security
-
-The kit goes through three defence layers on untrusted input. See
-[docs/guides/security](https://loontail.github.io/minecraft-kit/guides/security) for the
-full model. Highlights:
-
-- Downloads accept only `http(s)` URLs; opt-in `hostAllowList` pins to a known set of hosts.
-- Manifests pass through runtime shape guards before any code trusts them.
-- Zip extraction caps entry count, per-entry size, total size, and compression ratio;
-  rejects path traversal, null bytes, reserved Windows names, and drive letters.
-- Auth tokens never touch disk inside the kit. `kit.auth.authorizationCode.run()` returns
-  a session; the launcher decides how to persist the refresh token.
-
 ## License
 
 MIT
