@@ -211,7 +211,12 @@ export {
 } from "./types/verify";
 export { verifyFabric, verifyForge, verifyMinecraft, verifyRuntime } from "./verify/index";
 export { FabricVersionsApi } from "./versions/fabric";
-export type { FabricListInput, FabricResolveInput } from "./versions/fabric";
+export type {
+  FabricGameVersionEntry,
+  FabricGameVersionsInput,
+  FabricListInput,
+  FabricResolveInput,
+} from "./versions/fabric";
 export { ForgeVersionsApi } from "./versions/forge";
 export type { ForgeListInput, ForgeResolveInput } from "./versions/forge";
 export { MinecraftVersionsApi } from "./versions/minecraft";

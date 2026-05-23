@@ -15,6 +15,23 @@ const resolved = await kit.versions.fabric.resolve({
 `resolve` fetches the **profile JSON** (the same one the official Fabric installer uses) and
 returns a `ResolvedFabricLoader` ready to be plugged into `kit.targets.create`.
 
+## Supported Minecraft versions
+
+`gameVersions()` hits the upstream `meta.fabricmc.net/v2/versions/game` endpoint and
+returns the full set of Minecraft versions Fabric supports, independent of any
+specific loader. Each entry carries the upstream `stable` flag; the `version`
+field is branded as `MinecraftVersionId` so it plugs straight into the rest of
+the kit.
+
+```ts
+import type { FabricGameVersionEntry } from "@loontail/minecraft-kit";
+
+const games: readonly FabricGameVersionEntry[] = await kit.versions.fabric.gameVersions();
+const stable = games.filter((g) => g.stable).map((g) => g.version);
+```
+
+The response is cached via the shared metadata cache, so repeat calls are free.
+
 ## Targets
 
 ```ts

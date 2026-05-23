@@ -1,7 +1,9 @@
 import { ApiEndpoints } from "../constants/api";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { withOptionalSignal } from "../core/optional";
+import { asMinecraftVersionId } from "../core/version-id";
 import { fetchJson } from "../http/metadata";
+import type { OperationOptions } from "../types/events";
 import type {
   FabricCompatibilityEntry,
   FabricLoaderSummary,
@@ -9,6 +11,7 @@ import type {
   ResolvedFabricLoader,
 } from "../types/fabric";
 import { Loaders, VersionPreference, type VersionPreferenceKind } from "../types/loader";
+import type { MinecraftVersionId } from "../types/minecraft";
 import type { ResolverContext } from "./context";
 
 /**
@@ -49,6 +52,44 @@ export type FabricResolveInput = {
 };
 
 /**
+ * One entry from the upstream Fabric `gameVersions` listing — the set of
+ * Minecraft versions Fabric supports at all, independent of any specific
+ * loader version.
+ *
+ * @example
+ * ```ts
+ * import type { FabricGameVersionEntry } from "@loontail/minecraft-kit";
+ *
+ * const games: readonly FabricGameVersionEntry[] = await kit.versions.fabric.gameVersions();
+ * const stable = games.filter((g) => g.stable).map((g) => g.version);
+ * ```
+ */
+export type FabricGameVersionEntry = {
+  readonly version: MinecraftVersionId;
+  readonly stable: boolean;
+};
+
+/**
+ * Inputs to {@link FabricVersionsApi.gameVersions}.
+ *
+ * @example
+ * ```ts
+ * import type { FabricGameVersionsInput } from "@loontail/minecraft-kit";
+ *
+ * const controller = new AbortController();
+ * const input: FabricGameVersionsInput = { signal: controller.signal };
+ * const games = await kit.versions.fabric.gameVersions(input);
+ * ```
+ */
+export type FabricGameVersionsInput = OperationOptions;
+
+/** Raw shape of one entry returned by `meta.fabricmc.net/v2/versions/game`. */
+type FabricGameVersionRaw = {
+  readonly version: string;
+  readonly stable: boolean;
+};
+
+/**
  * Public Fabric versions API surface.
  *
  * Available off a kit instance as `kit.versions.fabric`; construct manually only when
@@ -65,6 +106,26 @@ export type FabricResolveInput = {
  */
 export class FabricVersionsApi {
   constructor(private readonly ctx: ResolverContext) {}
+
+  /**
+   * List the Minecraft versions Fabric supports at all, independent of any
+   * specific loader. Each entry carries the upstream `stable` flag.
+   */
+  async gameVersions(
+    input: FabricGameVersionsInput = {},
+  ): Promise<readonly FabricGameVersionEntry[]> {
+    const raw = await fetchJson<readonly FabricGameVersionRaw[]>(this.ctx.http, this.ctx.cache, {
+      url: ApiEndpoints.fabric.gameVersions(),
+      cacheKey: "fabric:game-versions:v1",
+      ...withOptionalSignal(input.signal),
+    });
+    return raw.map(
+      (entry): FabricGameVersionEntry => ({
+        version: asMinecraftVersionId(entry.version),
+        stable: entry.stable,
+      }),
+    );
+  }
 
   /** List Fabric loader versions, optionally constrained to a Minecraft version. */
   async list(input: FabricListInput = {}): Promise<readonly FabricLoaderSummary[]> {

@@ -25,6 +25,11 @@ const profile = {
   libraries: [],
 };
 
+const gameVersions = [
+  { version: "1.20.1", stable: true },
+  { version: "24w14a", stable: false },
+];
+
 const buildKit = (): { api: FabricVersionsApi; http: FakeHttpClient } => {
   const http = new FakeHttpClient()
     .on(ApiEndpoints.fabric.loaderForGame("1.20.1"), { body: JSON.stringify(compat) })
@@ -34,6 +39,9 @@ const buildKit = (): { api: FabricVersionsApi; http: FakeHttpClient } => {
     })
     .on(ApiEndpoints.fabric.loaderVersions(), {
       body: JSON.stringify(compat.map((c) => c.loader)),
+    })
+    .on(ApiEndpoints.fabric.gameVersions(), {
+      body: JSON.stringify(gameVersions),
     });
   const api = new FabricVersionsApi({ http, cache: createMemoryCache(), logger: silentLogger });
   return { api, http };
@@ -86,5 +94,21 @@ describe("FabricVersionsApi", () => {
     });
     const api = new FabricVersionsApi({ http, cache: createMemoryCache(), logger: silentLogger });
     await expect(api.resolve({ minecraftVersion: "nope" })).rejects.toBeTruthy();
+  });
+
+  it("lists game versions with branded ids", async () => {
+    const { api } = buildKit();
+    const entries = await api.gameVersions();
+    expect(entries.length).toBe(2);
+    expect(entries[0]).toEqual({ version: "1.20.1", stable: true });
+    expect(entries[1]).toEqual({ version: "24w14a", stable: false });
+  });
+
+  it("caches game versions across calls", async () => {
+    const { api, http } = buildKit();
+    await api.gameVersions();
+    await api.gameVersions();
+    const hits = http.requests.filter((r) => r.url === ApiEndpoints.fabric.gameVersions());
+    expect(hits.length).toBe(1);
   });
 });
