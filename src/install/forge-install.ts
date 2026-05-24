@@ -205,29 +205,78 @@ const resolveProfileData = async (input: {
   return { tokens };
 };
 
+/**
+ * Decoded shape of one `install_profile.json#data[key].client` entry: which of Forge's
+ * four prefix conventions it matched, plus the substituted payload. The four shapes are
+ * fully separable from filesystem I/O so we can test the routing pure-functionally;
+ * {@link resolveDataValue} then performs the actual maven path join / installer extract.
+ *
+ * @internal
+ */
+export type ForgeDataValueDecoded =
+  /** `[g:a:v[:c]@ext]` — resolves to a path under `libraries/`. */
+  | { readonly kind: "maven"; readonly coord: string }
+  /** `'literal'` — both quotes stripped (matches Forge `Util.replaceTokens`). */
+  | { readonly kind: "literal"; readonly value: string }
+  /** `/path/inside/installer.ext` — entry to extract from the installer JAR. */
+  | { readonly kind: "extract"; readonly entryName: string }
+  /** Bare value — passed through verbatim. */
+  | { readonly kind: "raw"; readonly value: string };
+
+/**
+ * Pure prefix-decoder for a Forge `install_profile.json` data value. The four prefix
+ * conventions come from Forge's own `Util.replaceTokens` (see
+ * `MinecraftForge/Installer src/main/java/net/minecraftforge/installer/json/Util.java`):
+ * single-quote wrapping marks a literal, `[g:a:v]` a Maven coord, `/…` an entry inside
+ * the installer JAR, and anything else is verbatim.
+ *
+ * Crucially, `'val'` strips BOTH quotes — not just the leading one. The trailing quote
+ * matters because the data token can flow into processor `args` via `{KEY}` substitution
+ * (not just into the `outputs` map, which gets a second pass of {@link stripLiteralPrefix}).
+ *
+ * @internal
+ */
+export const decodeForgeDataValue = (raw: string): ForgeDataValueDecoded => {
+  if (raw.startsWith("[") && raw.endsWith("]")) {
+    return { kind: "maven", coord: raw.slice(1, -1) };
+  }
+  if (raw.startsWith("'")) {
+    return { kind: "literal", value: stripLiteralPrefix(raw) };
+  }
+  if (raw.startsWith("/")) {
+    return { kind: "extract", entryName: raw.slice(1) };
+  }
+  return { kind: "raw", value: raw };
+};
+
 const resolveDataValue = async (
   raw: string,
   installerPath: string,
   directory: string,
 ): Promise<ResolvedTokenValue> => {
-  if (raw.startsWith("[") && raw.endsWith("]")) {
-    const coord = raw.slice(1, -1);
-    const relativePath = mavenRelativePathFor(coord);
-    return {
-      value: path.join(targetPaths.librariesDir(directory), relativePath),
-      isPath: true,
-    };
+  const decoded = decodeForgeDataValue(raw);
+  switch (decoded.kind) {
+    case "maven": {
+      const relativePath = mavenRelativePathFor(decoded.coord);
+      return {
+        value: path.join(targetPaths.librariesDir(directory), relativePath),
+        isPath: true,
+      };
+    }
+    case "literal":
+      return { value: decoded.value, isPath: false };
+    case "extract": {
+      const destination = path.join(
+        targetPaths.librariesDir(directory),
+        "forge-data",
+        decoded.entryName,
+      );
+      await extractSingleEntry(installerPath, decoded.entryName, destination);
+      return { value: destination, isPath: true };
+    }
+    case "raw":
+      return { value: decoded.value, isPath: false };
   }
-  if (raw.startsWith("'")) {
-    return { value: raw.slice(1), isPath: false };
-  }
-  if (raw.startsWith("/")) {
-    const entryName = raw.slice(1);
-    const destination = path.join(targetPaths.librariesDir(directory), "forge-data", entryName);
-    await extractSingleEntry(installerPath, entryName, destination);
-    return { value: destination, isPath: true };
-  }
-  return { value: raw, isPath: false };
 };
 
 const buildProcessorActions = async (input: {
@@ -321,7 +370,21 @@ const substituteToken = (
   tokens: Readonly<Record<string, ResolvedTokenValue>>,
 ): string => {
   if (raw.startsWith("[") && raw.endsWith("]")) {
-    return path.join(...mavenRelativePathFor(raw.slice(1, -1)).split("/"));
+    // Resolve `[g:a:v[:classifier][@ext]]` to an absolute path under the
+    // libraries directory. The reference Forge installer (PostProcessors.
+    // replaceTokens / Util.getPath) does the same: maven coords in processor
+    // args are always library paths, not bare maven-style relative paths.
+    // Returning a relative path here makes Java resolve it against the
+    // launcher's cwd at spawn time — which is process.cwd(), not the client
+    // folder — so installertools can't find e.g. mcp_config-<v>.zip and the
+    // first processor that takes a `[maven]` input dies with
+    // "Input does not exist: de\oceanlabs\...".
+    const relative = mavenRelativePathFor(raw.slice(1, -1));
+    const librariesToken = tokens.LIBRARY_DIR;
+    if (librariesToken !== undefined) {
+      return path.join(librariesToken.value, relative);
+    }
+    return path.join(...relative.split("/"));
   }
   return raw.replaceAll(/\{([A-Z0-9_]+)\}/g, (match, key: string) => {
     const token = tokens[key];
