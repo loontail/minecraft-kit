@@ -111,4 +111,16 @@ describe("FabricVersionsApi", () => {
     const hits = http.requests.filter((r) => r.url === ApiEndpoints.fabric.gameVersions());
     expect(hits.length).toBe(1);
   });
+
+  it("rejects a profile JSON that does not match the expected shape", async () => {
+    const http = new FakeHttpClient()
+      .on(ApiEndpoints.fabric.loaderForGame("1.20.1"), { body: JSON.stringify(compat) })
+      .on(ApiEndpoints.fabric.profile("1.20.1", "0.14.21"), {
+        body: '{"id":"x","inheritsFrom":"1.20.1"}',
+      });
+    const api = new FabricVersionsApi({ http, cache: createMemoryCache(), logger: silentLogger });
+    await expect(
+      api.resolve({ minecraftVersion: "1.20.1", loaderVersion: "0.14.21" }),
+    ).rejects.toMatchObject({ code: "MANIFEST_INVALID" });
+  });
 });

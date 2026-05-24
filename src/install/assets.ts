@@ -1,4 +1,6 @@
 import { ApiEndpoints } from "../constants/api";
+import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
+import { isAssetIndexShape } from "../core/guards";
 import { withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
 import { fetchJson } from "../http/metadata";
@@ -25,11 +27,19 @@ export const planAssetDownloads = async (input: {
 }> => {
   const indexUrl = input.assetIndex.url;
   const indexPath = targetPaths.assetIndex(input.directory, input.assetIndex.id);
-  const indexDocument = await fetchJson<AssetIndexDocument>(input.http, input.cache, {
+  const indexRaw = await fetchJson<unknown>(input.http, input.cache, {
     url: indexUrl,
     cacheKey: `asset-index:${input.assetIndex.id}:${input.assetIndex.sha1}`,
     ...withOptionalSignal(input.signal),
   });
+  if (!isAssetIndexShape(indexRaw)) {
+    throw new MinecraftKitError(
+      MinecraftKitErrorCodes.MANIFEST_INVALID,
+      `Asset index does not match the expected shape: ${input.assetIndex.id}`,
+      { context: { url: indexUrl } },
+    );
+  }
+  const indexDocument: AssetIndexDocument = indexRaw;
   const actions: DownloadAction[] = [
     {
       kind: InstallActionKinds.DOWNLOAD_FILE,

@@ -27,7 +27,12 @@ import {
 } from "../types/install";
 import type { ResolvedMinecraft } from "../types/minecraft";
 import type { RuntimeSystem } from "../types/system";
-import { extractInstallerMavenEntries, readJsonEntry } from "./forge-installer-archive";
+import {
+  extractInstallerMavenEntries,
+  isForgeInstallProfileShape,
+  isForgeVersionJsonShape,
+  readJsonEntry,
+} from "./forge-installer-archive";
 import { buildProcessorActions, resolveProfileData } from "./forge-processor-plan";
 import { planLibraryDownloads } from "./libraries";
 
@@ -89,9 +94,17 @@ export const planForgeInstall = async (input: PlanForgeInstallInput): Promise<Fo
     category: DownloadCategories.FORGE_INSTALLER,
   };
 
-  const profile = await readJsonEntry<ForgeInstallProfile>(installerPath, "install_profile.json");
+  const profile = await readJsonEntry<ForgeInstallProfile>(
+    installerPath,
+    "install_profile.json",
+    isForgeInstallProfileShape,
+  );
   const versionRelative = profile.json.startsWith("/") ? profile.json.slice(1) : profile.json;
-  const version = await readJsonEntry<ForgeVersionJson>(installerPath, versionRelative);
+  const version = await readJsonEntry<ForgeVersionJson>(
+    installerPath,
+    versionRelative,
+    isForgeVersionJsonShape,
+  );
 
   await extractInstallerMavenEntries(installerPath, input.directory);
 

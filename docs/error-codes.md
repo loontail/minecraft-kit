@@ -55,7 +55,7 @@ typo on either side surfaces at compile time.
 | Code | Thrown when | Context fields |
 |---|---|---|
 | `MANIFEST_NOT_FOUND` | Version / loader / runtime metadata was not found upstream, or the on-disk version JSON used for launch could not be located. | `version`, `targetId`, `loaderType` |
-| `MANIFEST_INVALID` | The manifest parsed but is missing required fields (`id` or `mainClass`), or a Maven coordinate was malformed. | `version`, `url`, `input` |
+| `MANIFEST_INVALID` | A network-fetched manifest parsed but failed a shape guard from `src/core/guards.ts`. Sources guarded today: Mojang `version_manifest_v2.json` root, per-version manifest, asset index, Java runtimes index, per-component runtime files manifest, Fabric profile JSON. Also raised when a Maven coordinate is malformed. | `version`, `url`, `platform`, `input` |
 | `METADATA_PARSE_ERROR` | A metadata document failed to JSON-parse outside the Forge installer (Forge JSON-parse failures throw `FORGE_INSTALLER_INVALID`). | `url` |
 
 ## Runtime
@@ -69,7 +69,7 @@ typo on either side surfaces at compile time.
 
 | Code | Thrown when | Context fields |
 |---|---|---|
-| `FORGE_INSTALLER_INVALID` | Installer JAR is missing required entries, the entries are not valid JSON, or a processor JAR has no `Main-Class`. | `filePath`, `entryName`, `token` |
+| `FORGE_INSTALLER_INVALID` | Installer JAR is missing required entries, the entries are not valid JSON, the parsed JSON fails a shape guard (`isForgeInstallProfileShape` / `isForgeVersionJsonShape` in `src/install/forge-installer-archive.ts`), or a processor JAR has no `Main-Class`. | `filePath`, `entryName`, `token` |
 | `FORGE_PROCESSOR_FAILED` | A processor exited non-zero, or its declared output sha1 mismatched. | `exitCode`, `mainClass`, `stderr`, `expectedHash`, `actualHash` |
 
 ## Launch

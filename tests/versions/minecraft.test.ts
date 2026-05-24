@@ -97,4 +97,16 @@ describe("MinecraftVersionsApi", () => {
     });
     await expect(api.resolve({ version: MC_1_20_1 })).rejects.toBeTruthy();
   });
+
+  it("rejects a manifest root that does not match the expected shape", async () => {
+    const http = new FakeHttpClient().on(ApiEndpoints.mojang.versionManifest(), {
+      body: '{"latest":{"release":""},"versions":[]}',
+    });
+    const api = new MinecraftVersionsApi({
+      http,
+      cache: createMemoryCache(),
+      logger: silentLogger,
+    });
+    await expect(api.list()).rejects.toMatchObject({ code: "MANIFEST_INVALID" });
+  });
 });

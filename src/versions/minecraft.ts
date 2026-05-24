@@ -1,6 +1,6 @@
 import { ApiEndpoints } from "../constants/api";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
-import { isMinecraftVersionManifestShape } from "../core/guards";
+import { isMinecraftVersionManifestShape, isVersionManifestRootShape } from "../core/guards";
 import { withOptionalSignal } from "../core/optional";
 import { fetchJson } from "../http/metadata";
 import type {
@@ -8,14 +8,9 @@ import type {
   MinecraftVersionId,
   MinecraftVersionSummary,
   ResolvedMinecraft,
+  VersionManifestRoot,
 } from "../types/minecraft";
 import type { ResolverContext } from "./context";
-
-/** Top-level shape returned by `version_manifest_v2.json`. */
-type VersionManifestRoot = {
-  readonly latest: { readonly release: string; readonly snapshot: string };
-  readonly versions: readonly MinecraftVersionSummary[];
-};
 
 /**
  * Inputs to {@link MinecraftVersionsApi.list}.
@@ -142,10 +137,19 @@ export class MinecraftVersionsApi {
   }
 
   private async fetchManifestRoot(signal: AbortSignal | undefined): Promise<VersionManifestRoot> {
-    return fetchJson<VersionManifestRoot>(this.ctx.http, this.ctx.cache, {
-      url: ApiEndpoints.mojang.versionManifest(),
+    const url = ApiEndpoints.mojang.versionManifest();
+    const raw = await fetchJson<unknown>(this.ctx.http, this.ctx.cache, {
+      url,
       cacheKey: "minecraft-version-manifest-v2",
       ...withOptionalSignal(signal),
     });
+    if (!isVersionManifestRootShape(raw)) {
+      throw new MinecraftKitError(
+        MinecraftKitErrorCodes.MANIFEST_INVALID,
+        "Mojang version manifest root does not match the expected shape",
+        { context: { url } },
+      );
+    }
+    return raw;
   }
 }

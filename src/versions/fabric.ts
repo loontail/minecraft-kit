@@ -1,5 +1,6 @@
 import { ApiEndpoints } from "../constants/api";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
+import { isFabricProfileShape } from "../core/guards";
 import { withOptionalSignal } from "../core/optional";
 import { asMinecraftVersionId } from "../core/version-id";
 import { fetchJson } from "../http/metadata";
@@ -7,7 +8,6 @@ import type { OperationOptions } from "../types/events";
 import type {
   FabricCompatibilityEntry,
   FabricLoaderSummary,
-  FabricProfile,
   ResolvedFabricLoader,
 } from "../types/fabric";
 import { Loaders, VersionPreference, type VersionPreferenceKind } from "../types/loader";
@@ -171,16 +171,24 @@ export class FabricVersionsApi {
         },
       );
     }
-    const profile = await fetchJson<FabricProfile>(this.ctx.http, this.ctx.cache, {
-      url: ApiEndpoints.fabric.profile(input.minecraftVersion, chosen.version),
+    const profileUrl = ApiEndpoints.fabric.profile(input.minecraftVersion, chosen.version);
+    const profileRaw = await fetchJson<unknown>(this.ctx.http, this.ctx.cache, {
+      url: profileUrl,
       cacheKey: `fabric-profile:${input.minecraftVersion}:${chosen.version}`,
       ...withOptionalSignal(input.signal),
     });
+    if (!isFabricProfileShape(profileRaw)) {
+      throw new MinecraftKitError(
+        MinecraftKitErrorCodes.MANIFEST_INVALID,
+        `Fabric profile does not match the expected shape: ${input.minecraftVersion}/${chosen.version}`,
+        { context: { url: profileUrl, version: input.minecraftVersion } },
+      );
+    }
     return {
       type: Loaders.FABRIC,
       minecraftVersion: input.minecraftVersion,
       loaderVersion: chosen.version,
-      profile,
+      profile: profileRaw,
     };
   }
 }

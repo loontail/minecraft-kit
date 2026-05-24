@@ -56,9 +56,13 @@ Cross-cutting utilities. Bottom of the dependency graph.
 - `fs.ts` — `ensureDir`, `fileExists`, `dirExists`, `fileSize`, `atomicWrite` (temp + rename),
   `readText`, `readBytes`, `listChildDirectories`, `chmodExecutable`, `assertWithinRoot`
   (zip-slip defence).
-- `guards.ts` — lightweight runtime predicates for network JSON (`isPlainObject`,
-  `isNonEmptyString`, `isNonNegativeInteger`, `isArrayOf`, `isSha1Hex`, `isArtifactDownload`,
-  `isMinecraftVersionManifestShape`). Pairs with `parseJsonAs`.
+- `guards.ts` — lightweight runtime predicates for network JSON. Primitives:
+  `isPlainObject`, `isNonEmptyString`, `isNonNegativeInteger`, `isArrayOf`, `isSha1Hex`,
+  `isArtifactDownload`. Mojang/Fabric manifest shapes: `isMinecraftVersionManifestShape`,
+  `isVersionManifestRootShape`, `isAssetIndexShape`, `isMojangJavaRuntimesShape`,
+  `isJavaRuntimeManifestShape`, `isFabricProfileShape`. Forge-specific guards live next to
+  their consumer in `src/install/forge-installer-archive.ts` (`isForgeInstallProfileShape`,
+  `isForgeVersionJsonShape`). Pairs with `parseJsonAs`.
 - `hash.ts` — `sha1OfFile` (streaming; wraps the read stream in `try/finally` and destroys
   it on error).
 - `json.ts` — `parseJsonStrict<T>` (wraps parse failures into `MinecraftKitError`),

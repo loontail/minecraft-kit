@@ -333,6 +333,16 @@ export type ResolvedMinecraft = {
 };
 
 /**
+ * Top-level shape returned by `version_manifest_v2.json`.
+ *
+ * @internal
+ */
+export type VersionManifestRoot = {
+  readonly latest: { readonly release: string; readonly snapshot: string };
+  readonly versions: readonly MinecraftVersionSummary[];
+};
+
+/**
  * Asset index document body.
  *
  * @internal

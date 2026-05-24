@@ -79,4 +79,12 @@ describe("RuntimeVersionsApi", () => {
       api.resolve({ system: { os: "linux", arch: "arm64", osVersion: "5.0" } }),
     ).rejects.toBeTruthy();
   });
+
+  it("rejects a runtime index that does not match the expected shape", async () => {
+    const http = new FakeHttpClient().on(ApiEndpoints.mojang.runtimeIndex(), {
+      body: '{"windows-x64":{"java-runtime-gamma":[{"manifest":{"sha1":"x"}}]}}',
+    });
+    const api = new RuntimeVersionsApi({ http, cache: createMemoryCache(), logger: silentLogger });
+    await expect(api.list({ system })).rejects.toMatchObject({ code: "MANIFEST_INVALID" });
+  });
 });

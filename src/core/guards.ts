@@ -6,7 +6,13 @@
  */
 
 import type { MojangAssetState, MojangProfileSkin, MojangSkinVariant } from "../types/auth";
-import type { MinecraftVersionManifest } from "../types/minecraft";
+import type { FabricProfile } from "../types/fabric";
+import type {
+  AssetIndexDocument,
+  MinecraftVersionManifest,
+  VersionManifestRoot,
+} from "../types/minecraft";
+import type { RuntimeFilesManifest, RuntimeIndex } from "../types/runtime";
 
 const MOJANG_ASSET_STATES: ReadonlySet<MojangAssetState> = new Set(["ACTIVE", "INACTIVE"]);
 const MOJANG_SKIN_VARIANTS: ReadonlySet<MojangSkinVariant> = new Set(["CLASSIC", "SLIM"]);
@@ -132,4 +138,122 @@ export const isMinecraftVersionManifestShape = (
   }
   if (!isPlainObject(value.downloads)) return false;
   return isArtifactDownload((value.downloads as Record<string, unknown>).client);
+};
+
+/**
+ * Light-touch guard for `version_manifest_v2.json`. Checks `latest.release`,
+ * `latest.snapshot`, and every entry of `versions[]` for the four fields the
+ * resolver actually reads (`id`, `type`, `url`, `sha1`).
+ *
+ * @internal
+ */
+export const isVersionManifestRootShape = (value: unknown): value is VersionManifestRoot => {
+  if (!isPlainObject(value)) return false;
+  if (!isPlainObject(value.latest)) return false;
+  if (!isNonEmptyString(value.latest.release) || !isNonEmptyString(value.latest.snapshot)) {
+    return false;
+  }
+  if (!Array.isArray(value.versions)) return false;
+  for (const summary of value.versions) {
+    if (!isPlainObject(summary)) return false;
+    if (
+      !isNonEmptyString(summary.id) ||
+      !isNonEmptyString(summary.type) ||
+      !isNonEmptyString(summary.url) ||
+      typeof summary.sha1 !== "string"
+    ) {
+      return false;
+    }
+  }
+  return true;
+};
+
+/**
+ * Light-touch guard for Mojang asset index documents. Requires `objects` and
+ * that every entry carries `{ hash: string, size: number }`.
+ *
+ * @internal
+ */
+export const isAssetIndexShape = (value: unknown): value is AssetIndexDocument => {
+  if (!isPlainObject(value)) return false;
+  if (!isPlainObject(value.objects)) return false;
+  for (const entry of Object.values(value.objects)) {
+    if (!isPlainObject(entry)) return false;
+    if (typeof entry.hash !== "string" || typeof entry.size !== "number") return false;
+  }
+  return true;
+};
+
+/**
+ * Light-touch guard for `https://launchermeta.mojang.com/.../all.json`. The
+ * top level is a map of platform key → component map → array of release
+ * entries; an empty platform or empty component is legal. Each entry needs
+ * `manifest.url` (used to fetch the per-component file manifest) and
+ * `version.released` (used to pick the newest under `LATEST` preference).
+ *
+ * @internal
+ */
+export const isMojangJavaRuntimesShape = (value: unknown): value is RuntimeIndex => {
+  if (!isPlainObject(value)) return false;
+  for (const platform of Object.values(value)) {
+    if (!isPlainObject(platform)) return false;
+    for (const items of Object.values(platform)) {
+      if (!Array.isArray(items)) return false;
+      for (const entry of items) {
+        if (!isRuntimeIndexEntryShape(entry)) return false;
+      }
+    }
+  }
+  return true;
+};
+
+const isRuntimeIndexEntryShape = (value: unknown): boolean => {
+  if (!isPlainObject(value)) return false;
+  if (!isPlainObject(value.manifest)) return false;
+  if (!isNonEmptyString(value.manifest.url)) return false;
+  if (typeof value.manifest.sha1 !== "string") return false;
+  if (!isPlainObject(value.version)) return false;
+  return isNonEmptyString(value.version.name) && typeof value.version.released === "string";
+};
+
+/**
+ * Light-touch guard for the per-component runtime files manifest. Requires
+ * `files` to be an object whose values each carry a string `type` discriminator
+ * (`"file" | "directory" | "link"`); the discriminant value itself is checked
+ * by consumers that switch on it.
+ *
+ * @internal
+ */
+export const isJavaRuntimeManifestShape = (value: unknown): value is RuntimeFilesManifest => {
+  if (!isPlainObject(value)) return false;
+  if (!isPlainObject(value.files)) return false;
+  for (const entry of Object.values(value.files)) {
+    if (!isPlainObject(entry)) return false;
+    if (typeof entry.type !== "string") return false;
+  }
+  return true;
+};
+
+/**
+ * Light-touch guard for Fabric profile JSON
+ * (`/v2/versions/loader/{mc}/{loader}/profile/json`). Checks the four fields
+ * the install planner reads (`id`, `inheritsFrom`, `mainClass`, `libraries[]`)
+ * and that every library carries a `name` string.
+ *
+ * @internal
+ */
+export const isFabricProfileShape = (value: unknown): value is FabricProfile => {
+  if (!isPlainObject(value)) return false;
+  if (
+    !isNonEmptyString(value.id) ||
+    !isNonEmptyString(value.inheritsFrom) ||
+    !isNonEmptyString(value.mainClass)
+  ) {
+    return false;
+  }
+  if (!Array.isArray(value.libraries)) return false;
+  for (const lib of value.libraries) {
+    if (!isPlainObject(lib) || !isNonEmptyString(lib.name)) return false;
+  }
+  return true;
 };

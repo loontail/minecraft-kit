@@ -2,6 +2,7 @@ import { ApiEndpoints } from "../constants/api";
 import { RUNTIME_PLATFORM_KEYS } from "../constants/platform";
 import { FALLBACK_COMPONENT } from "../constants/runtime";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
+import { isMojangJavaRuntimesShape } from "../core/guards";
 import { withOptionalSignal } from "../core/optional";
 import { fetchJson } from "../http/metadata";
 import { RuntimePreference, type RuntimePreferenceKind } from "../types/runtime";
@@ -146,11 +147,20 @@ export class RuntimeVersionsApi {
   }
 
   private async fetchIndex(signal: AbortSignal | undefined): Promise<RuntimeIndex> {
-    return fetchJson<RuntimeIndex>(this.ctx.http, this.ctx.cache, {
-      url: ApiEndpoints.mojang.runtimeIndex(),
+    const url = ApiEndpoints.mojang.runtimeIndex();
+    const raw = await fetchJson<unknown>(this.ctx.http, this.ctx.cache, {
+      url,
       cacheKey: "mojang-runtime-index",
       ...withOptionalSignal(signal),
     });
+    if (!isMojangJavaRuntimesShape(raw)) {
+      throw new MinecraftKitError(
+        MinecraftKitErrorCodes.MANIFEST_INVALID,
+        "Mojang Java runtimes index does not match the expected shape",
+        { context: { url } },
+      );
+    }
+    return raw;
   }
 }
 

@@ -22,4 +22,18 @@ describe("planAssetDownloads", () => {
     expect(result.actions.length).toBe(3);
     expect(result.indexDocument.objects["minecraft/sounds/x"]?.hash).toBe("abcdef0123456789");
   });
+
+  it("rejects an asset index that does not match the expected shape", async () => {
+    const http = new FakeHttpClient().on("https://idx/", {
+      body: '{"objects":{"x":{"hash":1,"size":2}}}',
+    });
+    await expect(
+      planAssetDownloads({
+        directory: "/r",
+        assetIndex: { id: "5", sha1: "x", size: 1, totalSize: 1, url: "https://idx/" },
+        http,
+        cache: createMemoryCache(),
+      }),
+    ).rejects.toMatchObject({ code: "MANIFEST_INVALID" });
+  });
 });

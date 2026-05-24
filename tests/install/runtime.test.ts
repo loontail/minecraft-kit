@@ -37,4 +37,18 @@ describe("planRuntimeDownloads", () => {
     expect(result.actions.length).toBe(1);
     expect(result.actions[0]?.expectedSha1).toBe("abc");
   });
+
+  it("rejects a runtime files manifest that does not match the expected shape", async () => {
+    const http = new FakeHttpClient().on("https://m/", {
+      body: '{"files":{"x":{"executable":true}}}',
+    });
+    await expect(
+      planRuntimeDownloads({
+        runtime,
+        directory: "/r",
+        http,
+        cache: createMemoryCache(),
+      }),
+    ).rejects.toMatchObject({ code: "MANIFEST_INVALID" });
+  });
 });

@@ -11,16 +11,23 @@ import path from "node:path";
 import { openZip, readEntryBuffer } from "../core/archive";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { atomicWrite } from "../core/fs";
-import { parseJsonStrict } from "../core/json";
+import { isNonEmptyString, isPlainObject } from "../core/guards";
+import { parseJsonAs } from "../core/json";
 import { targetPaths } from "../core/paths";
+import type { ForgeInstallProfile, ForgeVersionJson } from "../types/forge";
 
 /**
  * Read a single JSON entry from the installer JAR. Throws `FORGE_INSTALLER_INVALID`
- * with the entry name in context when the entry is missing or not valid JSON.
+ * with the entry name in context when the entry is missing, not valid JSON, or
+ * fails the `guard` shape check.
  *
  * @internal
  */
-export const readJsonEntry = async <T>(zipPath: string, entryName: string): Promise<T> => {
+export const readJsonEntry = async <T>(
+  zipPath: string,
+  entryName: string,
+  guard: (value: unknown) => value is T,
+): Promise<T> => {
   const buffer = await readEntryBuffer(zipPath, entryName);
   if (!buffer) {
     throw new MinecraftKitError(
@@ -29,11 +36,57 @@ export const readJsonEntry = async <T>(zipPath: string, entryName: string): Prom
       { context: { filePath: zipPath, entryName } },
     );
   }
-  return parseJsonStrict<T>(buffer.toString("utf8"), {
+  return parseJsonAs<T>(buffer.toString("utf8"), guard, {
     code: MinecraftKitErrorCodes.FORGE_INSTALLER_INVALID,
-    message: `Forge installer entry is not valid JSON: ${entryName}`,
+    message: `Forge installer entry has an unexpected shape: ${entryName}`,
     context: { filePath: zipPath, entryName },
   });
+};
+
+/**
+ * Light-touch guard for the Forge `install_profile.json` (spec 1) shape. Checks
+ * the fields the planner reads (`spec`, `json`, `data`, `libraries`,
+ * `processors`) and minimal per-processor shape (`jar`, `args`, `classpath`).
+ *
+ * @internal
+ */
+export const isForgeInstallProfileShape = (value: unknown): value is ForgeInstallProfile => {
+  if (!isPlainObject(value)) return false;
+  if (typeof value.spec !== "number") return false;
+  if (!isNonEmptyString(value.json)) return false;
+  if (!isPlainObject(value.data)) return false;
+  if (!Array.isArray(value.libraries)) return false;
+  if (!Array.isArray(value.processors)) return false;
+  for (const processor of value.processors) {
+    if (!isPlainObject(processor)) return false;
+    if (!isNonEmptyString(processor.jar)) return false;
+    if (!Array.isArray(processor.args)) return false;
+    if (!Array.isArray(processor.classpath)) return false;
+  }
+  return true;
+};
+
+/**
+ * Light-touch guard for the `version.json` entry shipped inside the Forge
+ * installer JAR. Checks `id`, `mainClass`, `inheritsFrom` (all strings) and
+ * `libraries[]` is an array of `{ name: string }`.
+ *
+ * @internal
+ */
+export const isForgeVersionJsonShape = (value: unknown): value is ForgeVersionJson => {
+  if (!isPlainObject(value)) return false;
+  if (
+    !isNonEmptyString(value.id) ||
+    !isNonEmptyString(value.mainClass) ||
+    !isNonEmptyString(value.inheritsFrom)
+  ) {
+    return false;
+  }
+  if (!Array.isArray(value.libraries)) return false;
+  for (const lib of value.libraries) {
+    if (!isPlainObject(lib) || !isNonEmptyString(lib.name)) return false;
+  }
+  return true;
 };
 
 /**
