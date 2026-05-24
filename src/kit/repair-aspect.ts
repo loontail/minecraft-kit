@@ -12,6 +12,7 @@ import { planFabricRepair } from "../repair/fabric";
 import { planForgeRepair } from "../repair/forge";
 import { planRepairFromError } from "../repair/from-error";
 import { planMinecraftRepair } from "../repair/minecraft";
+import { runVerifyAndRepair } from "../repair/run-with-diagnose";
 import { runRepair } from "../repair/runner";
 import { planRuntimeRepair } from "../repair/runtime";
 import type { MetadataCache } from "../types/cache";
@@ -22,6 +23,8 @@ import type {
   RepairFromErrorInput,
   RepairPlan,
   RepairPlanOptions,
+  VerifyAndRepairInput,
+  VerifyAndRepairResult,
 } from "../types/repair";
 import type { Spawner } from "../types/spawner";
 import type { Target } from "../types/target";
@@ -40,6 +43,7 @@ export type RepairSurface = {
   readonly runtime: RepairAspect;
   all(target: Target, options?: OperationOptions): Promise<RepairAllReport>;
   fromError(input: RepairFromErrorInput): Promise<RepairPlan>;
+  runVerifyAndRepair(input: VerifyAndRepairInput): Promise<VerifyAndRepairResult>;
 };
 
 /**
@@ -110,5 +114,6 @@ export const buildRepairAspect = (deps: RepairAspectDeps): RepairSurface => {
         cache,
         ...withOptionalSignal(input.signal),
       }),
+    runVerifyAndRepair: (input) => runVerifyAndRepair({ http, cache, spawner }, input),
   };
 };

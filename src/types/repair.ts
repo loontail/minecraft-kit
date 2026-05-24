@@ -1,10 +1,10 @@
 import type { MetadataCache } from "./cache";
 import type { MinecraftKitErrorCode, MinecraftKitErrorContext } from "./errors";
-import type { OperationOptions } from "./events";
+import type { OperationOptions, ProgressListener } from "./events";
 import type { HttpClient } from "./http";
 import type { InstallAction } from "./install";
 import type { Target } from "./target";
-import type { VerificationResult } from "./verify";
+import type { VerificationKind, VerificationResult } from "./verify";
 
 /**
  * Coarse-grained repair phases used for `repair:phase-changed` events.
@@ -150,6 +150,86 @@ export type RepairAspect = {
 export type RepairableErrorLike = {
   readonly code: MinecraftKitErrorCode;
   readonly context: Readonly<MinecraftKitErrorContext>;
+};
+
+/**
+ * Modes accepted by `kit.repair.runVerifyAndRepair`.
+ *
+ * `'fix'` (default) — when verification surfaces issues, plan and execute the repair, then
+ * return both the verification and the resulting repair report.
+ *
+ * `'report'` — only run verification; never touch disk. The returned `repair` is always
+ * `null`. Useful for UIs that show the diagnosis first and ask the user before fixing.
+ *
+ * @example
+ * ```ts
+ * import { RepairModes } from "@loontail/minecraft-kit";
+ *
+ * const { verified, repair } = await kit.repair.runVerifyAndRepair({
+ *   aspect: "minecraft",
+ *   target,
+ *   mode: RepairModes.REPORT,
+ * });
+ * if (!verified.isValid) askUserBeforeFixing(verified.issues);
+ * ```
+ */
+export const RepairModes = {
+  FIX: "fix",
+  REPORT: "report",
+} as const;
+
+/**
+ * Repair-mode literal accepted by `kit.repair.runVerifyAndRepair`.
+ *
+ * @example
+ * ```ts
+ * import { RepairModes, type RepairMode } from "@loontail/minecraft-kit";
+ *
+ * const isReadOnly = (mode: RepairMode) => mode === RepairModes.REPORT;
+ * ```
+ */
+export type RepairMode = (typeof RepairModes)[keyof typeof RepairModes];
+
+/**
+ * Inputs to `kit.repair.runVerifyAndRepair({ aspect, target, mode? })`. Runs a single
+ * aspect's verifier and, in `'fix'` mode, plans + executes the repair for any issues it
+ * finds. In `'report'` mode the function never writes to disk.
+ *
+ * @example
+ * ```ts
+ * import type { VerifyAndRepairInput } from "@loontail/minecraft-kit";
+ *
+ * const input: VerifyAndRepairInput = { aspect: "minecraft", target };
+ * const { verified, repair } = await kit.repair.runVerifyAndRepair(input);
+ * ```
+ */
+export type VerifyAndRepairInput = {
+  readonly aspect: VerificationKind;
+  readonly target: Target;
+  readonly mode?: RepairMode;
+  readonly signal?: AbortSignal;
+  readonly onEvent?: ProgressListener;
+};
+
+/**
+ * Result of `kit.repair.runVerifyAndRepair`. `verified` is always the verification result;
+ * `repair` is the repair report when a fix ran, or `null` when nothing needed fixing or
+ * `mode === RepairModes.REPORT`.
+ *
+ * @example
+ * ```ts
+ * import type { VerifyAndRepairResult } from "@loontail/minecraft-kit";
+ *
+ * const result: VerifyAndRepairResult = await kit.repair.runVerifyAndRepair({
+ *   aspect: "runtime",
+ *   target,
+ * });
+ * if (result.repair !== null) console.log(`fixed ${result.repair.actionsCompleted} files`);
+ * ```
+ */
+export type VerifyAndRepairResult = {
+  readonly verified: VerificationResult;
+  readonly repair: RepairReport | null;
 };
 
 /**

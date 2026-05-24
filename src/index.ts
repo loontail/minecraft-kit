@@ -63,6 +63,8 @@ export {
   RepairFromErrorSupportedCodes,
   repairAll,
   runRepair,
+  runVerifyAndRepair,
+  type RunVerifyAndRepairDeps,
 } from "./repair/index";
 export { TargetsApi } from "./targets/index";
 export type {
@@ -170,11 +172,15 @@ export {
   type RepairableErrorLike,
   type RepairAspect,
   type RepairFromErrorInput,
+  type RepairMode,
+  RepairModes,
   type RepairPhase,
   RepairPhases,
   type RepairPlan,
   type RepairPlanOptions,
   type RepairReport,
+  type VerifyAndRepairInput,
+  type VerifyAndRepairResult,
 } from "./types/repair";
 export {
   type ResolvedRuntime,

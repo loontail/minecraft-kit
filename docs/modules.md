@@ -159,6 +159,10 @@ Cross-cutting utilities. Bottom of the dependency graph.
   previous install. Wired onto the kit facade as `kit.repair.fromError({ error, target })`.
   Supported codes live in `RepairFromErrorSupportedCodes`; unsupported codes throw
   `INVALID_INPUT` so the caller falls back to the regular `verify → plan → run` path.
+- `run-with-diagnose.ts` — `runVerifyAndRepair(deps, { aspect, target, mode? })`. Wraps the
+  `verify → plan → run` cycle for a single aspect into one call. `RepairModes.FIX`
+  (default) repairs on detection; `RepairModes.REPORT` runs verify only and never touches
+  disk. Wired onto the facade as `kit.repair.runVerifyAndRepair(input)`.
 - `runner.ts` — `runRepair` is a thin wrapper that calls `runInstall` on the repair plan.
 
 ## `src/auth/`

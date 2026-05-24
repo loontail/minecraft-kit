@@ -253,6 +253,7 @@ export const buildFakeKit = (input: FakeKitInput = {}): MinecraftKit => {
         bytesDownloaded: 0,
         durationMs: 1,
       }),
+      runVerifyAndRepair: async () => ({ verified: verification, repair: null }),
     },
     launch: {
       compose: async () => composition,

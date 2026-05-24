@@ -62,6 +62,39 @@ const plan = await kit.repair.minecraft.plan(target, {
 });
 ```
 
+## One-call verify + repair
+
+`kit.repair.runVerifyAndRepair` wraps the three-step `verify → plan → run` flow for a
+single aspect into one call. It returns the verification result and, when a repair ran,
+the repair report. In `RepairModes.REPORT` it never writes to disk:
+
+```ts
+import { RepairModes } from "@loontail/minecraft-kit";
+
+// fix-on-find (default)
+const { verified, repair } = await kit.repair.runVerifyAndRepair({
+  aspect: "runtime",
+  target,
+});
+if (repair !== null) console.log(`repaired ${repair.actionsCompleted} files`);
+
+// diagnose only — show issues, ask the user, then call again with the default mode
+const diagnosis = await kit.repair.runVerifyAndRepair({
+  aspect: "minecraft",
+  target,
+  mode: RepairModes.REPORT,
+});
+if (!diagnosis.verified.isValid) askUserBeforeFixing(diagnosis.verified.issues);
+```
+
+`repair` is `null` whenever nothing was written: the target was already valid, the planner
+produced an empty plan, or the mode was `RepairModes.REPORT`. Pass `onEvent` to receive
+both `verify:file-checked` and the repair-time `install:phase-changed` / `download:*`
+events.
+
+The standalone surfaces (`kit.verify.<aspect>.run`, `kit.repair.<aspect>.plan/run`) stay —
+this helper is only the convenience case for "find and fix this one aspect now".
+
 ## Repair semantics
 
 - **`DOWNLOAD_FILE` actions** are included when the target path has *any* non-`native` issue

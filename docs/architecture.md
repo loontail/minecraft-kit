@@ -98,6 +98,14 @@ for `FORGE_PROCESSOR_FAILED`, etc.). Supported codes are listed in
 `RepairFromErrorSupportedCodes`; anything else throws `INVALID_INPUT` so the caller falls
 back to the regular `verify → plan → run` flow.
 
+For the common "find and fix this aspect now" case there is also
+`kit.repair.runVerifyAndRepair({ aspect, target, mode? })` (implemented in
+`src/repair/run-with-diagnose.ts`). It runs the matching `verify.<aspect>.run`, and in the
+default `RepairModes.FIX` mode follows up with `repair.<aspect>.plan` + `runRepair` for
+any issues found. In `RepairModes.REPORT` mode it returns the verification only and never
+writes to disk. The four per-aspect surfaces and `repair.all` stay — `runVerifyAndRepair`
+is a thin orchestrator on top of them, not a replacement.
+
 ### Launch
 1. `composeLaunch` resolves the on-disk version JSON chain (walking `inheritsFrom`), builds
    the classpath, computes every `${placeholder}` value, and folds the JVM/game args together.

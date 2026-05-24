@@ -10,3 +10,4 @@ export {
   type RepairFromErrorSupportedCode,
   RepairFromErrorSupportedCodes,
 } from "./from-error";
+export { runVerifyAndRepair, type RunVerifyAndRepairDeps } from "./run-with-diagnose";
