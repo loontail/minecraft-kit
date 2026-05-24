@@ -25,9 +25,9 @@ const profileBody = (overrides: { activeSkin?: string } = {}): string =>
   });
 
 const lastRequest = (http: FakeHttpClient): { url: string; options?: Record<string, unknown> } => {
-  const r = http.requests[http.requests.length - 1];
-  if (!r) throw new Error("no requests recorded");
-  return r as { url: string; options?: Record<string, unknown> };
+  const last = http.requests[http.requests.length - 1];
+  if (!last) throw new Error("no requests recorded");
+  return last as { url: string; options?: Record<string, unknown> };
 };
 
 describe("setSkinFromUrl", () => {

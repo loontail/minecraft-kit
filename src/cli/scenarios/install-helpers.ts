@@ -68,7 +68,7 @@ export const runInstallFromSelection = async (
   ctx: ScenarioContext,
   sel: InstallSelection,
 ): Promise<InstallRunResult> => {
-  const v = sel.version as MinecraftVersionSummary;
+  const version = sel.version as MinecraftVersionSummary;
   const dir = sel.directory as string;
   const loaderInput = buildLoaderInput(sel);
   const runtimeInput =
@@ -78,7 +78,7 @@ export const runInstallFromSelection = async (
     target = await ctx.kit.targets.resolve({
       id: path.basename(dir),
       directory: dir,
-      minecraft: { version: v.id },
+      minecraft: { version: version.id },
       loader: loaderInput,
       ...runtimeInput,
     });
@@ -150,17 +150,17 @@ export const buildLoaderInput = (
 
 /** @internal */
 export const describeLoader = (sel: InstallSelection): string => {
-  const v = (sel.version as MinecraftVersionSummary).id;
-  if (sel.installType === Loaders.VANILLA) return `Vanilla ${v}`;
-  if (sel.installType === Loaders.FABRIC) return `Fabric ${sel.fabricLoader} on ${v}`;
-  return `Forge ${sel.forgeLabel ?? sel.forgeBuild} on ${v}`;
+  const versionId = (sel.version as MinecraftVersionSummary).id;
+  if (sel.installType === Loaders.VANILLA) return `Vanilla ${versionId}`;
+  if (sel.installType === Loaders.FABRIC) return `Fabric ${sel.fabricLoader} on ${versionId}`;
+  return `Forge ${sel.forgeLabel ?? sel.forgeBuild} on ${versionId}`;
 };
 
 /** @internal */
 export const summaryRows = (sel: InstallSelection): readonly (readonly [string, string])[] => {
-  const v = sel.version as MinecraftVersionSummary;
+  const version = sel.version as MinecraftVersionSummary;
   const rows: [string, string][] = [
-    ["Minecraft", v.id],
+    ["Minecraft", version.id],
     ["Type", labelForType(sel.installType)],
   ];
   if (sel.installType === Loaders.FABRIC && sel.fabricLoader) {
@@ -189,14 +189,14 @@ export const previousFromDirectory = (sel: InstallSelection): InstallWizardStep 
 
 /** @internal */
 export const defaultIdFromSelection = (sel: InstallSelection): string => {
-  const v = (sel.version as MinecraftVersionSummary).id;
+  const versionId = (sel.version as MinecraftVersionSummary).id;
   if (sel.installType === Loaders.FABRIC) {
-    return defaultIdFor("fabric", `${v}-${sel.fabricLoader ?? ""}`);
+    return defaultIdFor("fabric", `${versionId}-${sel.fabricLoader ?? ""}`);
   }
   if (sel.installType === Loaders.FORGE) {
-    return defaultIdFor("forge", `${v}-${sel.forgeBuild ?? ""}`);
+    return defaultIdFor("forge", `${versionId}-${sel.forgeBuild ?? ""}`);
   }
-  return defaultIdFor("vanilla", v);
+  return defaultIdFor("vanilla", versionId);
 };
 
 /** @internal */

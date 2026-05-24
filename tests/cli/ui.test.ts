@@ -4,16 +4,16 @@ import { createStubUi } from "../../src/cli/ui";
 describe("createStubUi", () => {
   it("returns an ok outcome by default", async () => {
     const ui = createStubUi(["hello"]);
-    const r = await ui.text({ message: "name?" });
-    expect(r).toEqual({ kind: "ok", value: "hello" });
+    const outcome = await ui.text({ message: "name?" });
+    expect(outcome).toEqual({ kind: "ok", value: "hello" });
   });
 
   it("supports back / cancel shorthands", async () => {
     const ui = createStubUi(["back", "cancel"]);
-    const r1 = await ui.select({ message: "?", options: [{ label: "a", value: 1 }] });
-    expect(r1.kind).toBe("back");
-    const r2 = await ui.confirm({ message: "?" });
-    expect(r2.kind).toBe("cancel");
+    const selectOutcome = await ui.select({ message: "?", options: [{ label: "a", value: 1 }] });
+    expect(selectOutcome.kind).toBe("back");
+    const confirmOutcome = await ui.confirm({ message: "?" });
+    expect(confirmOutcome.kind).toBe("cancel");
   });
 
   it("supports raw outcome objects", async () => {

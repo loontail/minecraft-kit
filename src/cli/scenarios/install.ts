@@ -64,70 +64,70 @@ const advanceInstallWizard = async (
 ): Promise<InstallWizardStep | ScenarioOutcome> => {
   switch (step) {
     case InstallWizardSteps.CHANNEL: {
-      const r = await pickChannel(ctx.ui);
-      if (r.kind !== "ok") return "cancelled";
-      sel.channel = r.value;
+      const pick = await pickChannel(ctx.ui);
+      if (pick.kind !== "ok") return "cancelled";
+      sel.channel = pick.value;
       return InstallWizardSteps.VERSION;
     }
     case InstallWizardSteps.VERSION: {
-      const r = await pickMinecraftVersion(ctx, sel.channel as MinecraftChannel | "old" | "all");
-      if (r.kind === "cancel") return "cancelled";
-      if (r.kind === "back") return InstallWizardSteps.CHANNEL;
-      sel.version = r.value;
+      const pick = await pickMinecraftVersion(ctx, sel.channel as MinecraftChannel | "old" | "all");
+      if (pick.kind === "cancel") return "cancelled";
+      if (pick.kind === "back") return InstallWizardSteps.CHANNEL;
+      sel.version = pick.value;
       return InstallWizardSteps.RUNTIME;
     }
     case InstallWizardSteps.RUNTIME: {
-      const r = await pickRuntime(ctx);
-      if (r.kind === "cancel") return "cancelled";
-      if (r.kind === "back") return InstallWizardSteps.VERSION;
-      sel.runtimeOverride = r.value;
+      const pick = await pickRuntime(ctx);
+      if (pick.kind === "cancel") return "cancelled";
+      if (pick.kind === "back") return InstallWizardSteps.VERSION;
+      sel.runtimeOverride = pick.value;
       return InstallWizardSteps.INSTALL_TYPE;
     }
     case InstallWizardSteps.INSTALL_TYPE: {
-      const r = await pickInstallType(ctx.ui);
-      if (r.kind === "cancel") return "cancelled";
-      if (r.kind === "back") return InstallWizardSteps.RUNTIME;
-      sel.installType = r.value;
-      if (r.value === Loaders.VANILLA) return InstallWizardSteps.DIRECTORY;
-      if (r.value === Loaders.FABRIC) return InstallWizardSteps.FABRIC_LOADER;
+      const pick = await pickInstallType(ctx.ui);
+      if (pick.kind === "cancel") return "cancelled";
+      if (pick.kind === "back") return InstallWizardSteps.RUNTIME;
+      sel.installType = pick.value;
+      if (pick.value === Loaders.VANILLA) return InstallWizardSteps.DIRECTORY;
+      if (pick.value === Loaders.FABRIC) return InstallWizardSteps.FABRIC_LOADER;
       return InstallWizardSteps.FORGE_BUILD;
     }
     case InstallWizardSteps.FABRIC_LOADER: {
       const version = (sel.version as MinecraftVersionSummary).id;
-      const r = await pickFabricLoader(ctx, version);
-      if (r.kind === "cancel") return "cancelled";
-      if (r.kind === "back") return InstallWizardSteps.INSTALL_TYPE;
-      if (r.kind === "incompatible") {
+      const pick = await pickFabricLoader(ctx, version);
+      if (pick.kind === "cancel") return "cancelled";
+      if (pick.kind === "back") return InstallWizardSteps.INSTALL_TYPE;
+      if (pick.kind === "incompatible") {
         ctx.ui.log(
           "warn",
           `Fabric is not available for Minecraft ${version}. Pick another version or install type.`,
         );
         return InstallWizardSteps.INSTALL_TYPE;
       }
-      sel.fabricLoader = r.value;
+      sel.fabricLoader = pick.value;
       return InstallWizardSteps.DIRECTORY;
     }
     case InstallWizardSteps.FORGE_BUILD: {
       const version = (sel.version as MinecraftVersionSummary).id;
-      const r = await pickForgeBuild(ctx, version);
-      if (r.kind === "cancel") return "cancelled";
-      if (r.kind === "back") return InstallWizardSteps.INSTALL_TYPE;
-      if (r.kind === "incompatible") {
+      const pick = await pickForgeBuild(ctx, version);
+      if (pick.kind === "cancel") return "cancelled";
+      if (pick.kind === "back") return InstallWizardSteps.INSTALL_TYPE;
+      if (pick.kind === "incompatible") {
         ctx.ui.log(
           "warn",
           `Forge is not available for Minecraft ${version}. Pick another version or install type.`,
         );
         return InstallWizardSteps.INSTALL_TYPE;
       }
-      sel.forgeBuild = r.value;
-      sel.forgeLabel = r.label;
+      sel.forgeBuild = pick.value;
+      sel.forgeLabel = pick.label;
       return InstallWizardSteps.DIRECTORY;
     }
     case InstallWizardSteps.DIRECTORY: {
-      const r = await pickDirectory(ctx, defaultIdFromSelection(sel));
-      if (r.kind === "cancel") return "cancelled";
-      if (r.kind === "back") return previousFromDirectory(sel);
-      sel.directory = r.value;
+      const pick = await pickDirectory(ctx, defaultIdFromSelection(sel));
+      if (pick.kind === "cancel") return "cancelled";
+      if (pick.kind === "back") return previousFromDirectory(sel);
+      sel.directory = pick.value;
       return InstallWizardSteps.SUMMARY;
     }
     case InstallWizardSteps.SUMMARY: {
@@ -190,32 +190,32 @@ const advanceRuntimeWizard = async (
 ): Promise<RuntimeWizardStep | ScenarioOutcome> => {
   switch (step) {
     case RuntimeWizardSteps.COMPONENT: {
-      const r = await pickRuntimeComponent(ctx);
-      if (r.kind !== "ok") return "cancelled";
-      sel.component = r.value.component;
-      sel.versionLabel = r.value.versionName;
+      const pick = await pickRuntimeComponent(ctx);
+      if (pick.kind !== "ok") return "cancelled";
+      sel.component = pick.value.component;
+      sel.versionLabel = pick.value.versionName;
       return RuntimeWizardSteps.DIRECTORY;
     }
     case RuntimeWizardSteps.DIRECTORY: {
-      const r = await pickDirectory(ctx, defaultIdFor("runtime", sel.component ?? "java"));
-      if (r.kind === "cancel") return "cancelled";
-      if (r.kind === "back") return RuntimeWizardSteps.COMPONENT;
-      sel.directory = r.value;
+      const pick = await pickDirectory(ctx, defaultIdFor("runtime", sel.component ?? "java"));
+      if (pick.kind === "cancel") return "cancelled";
+      if (pick.kind === "back") return RuntimeWizardSteps.COMPONENT;
+      sel.directory = pick.value;
       return RuntimeWizardSteps.INSTALL_ROOT;
     }
     case RuntimeWizardSteps.INSTALL_ROOT: {
-      const r = await pickRuntimeInstallRoot(ctx);
-      if (r.kind === "cancel") return "cancelled";
-      if (r.kind === "back") return RuntimeWizardSteps.DIRECTORY;
-      sel.installRoot = r.value;
+      const pick = await pickRuntimeInstallRoot(ctx);
+      if (pick.kind === "cancel") return "cancelled";
+      if (pick.kind === "back") return RuntimeWizardSteps.DIRECTORY;
+      sel.installRoot = pick.value;
       return RuntimeWizardSteps.SUMMARY;
     }
     case RuntimeWizardSteps.SUMMARY: {
       const dir = sel.directory as string;
-      const comp = sel.component as string;
+      const component = sel.component as string;
       const ok = await confirmInstall(ctx, [
         ["Goal", "Install Mojang Java runtime"],
-        ["Component", `${comp}${sel.versionLabel ? ` (${sel.versionLabel})` : ""}`],
+        ["Component", `${component}${sel.versionLabel ? ` (${sel.versionLabel})` : ""}`],
         ["Directory", dir],
         ["Install root", sel.installRoot ?? `${dir}/runtime (per-target)`],
       ]);
@@ -225,7 +225,7 @@ const advanceRuntimeWizard = async (
       try {
         const runtime = await ctx.kit.versions.runtime.resolve({
           system: ctx.kit.targets.system,
-          component: comp,
+          component,
         });
         const finalRuntime: typeof runtime =
           sel.installRoot !== null ? { ...runtime, installRoot: sel.installRoot } : runtime;

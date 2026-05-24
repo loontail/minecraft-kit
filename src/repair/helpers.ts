@@ -132,7 +132,7 @@ export type AspectFilter = (action: InstallAction) => boolean;
 export const planAspectRepair = async (
   input: AspectRepairInput,
   aspectFilter: AspectFilter,
-  postprocess?: (context: {
+  postprocess?: (selection: {
     actions: InstallAction[];
     installPlan: InstallPlan;
     issues: IssueIndex;

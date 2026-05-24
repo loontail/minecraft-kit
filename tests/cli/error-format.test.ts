@@ -51,17 +51,17 @@ describe("formatUserError", () => {
   );
 
   it("translates HTTP 400 to a friendly message", () => {
-    const e = new MinecraftKitError("NETWORK_HTTP_ERROR", "HTTP 400", {
+    const error = new MinecraftKitError("NETWORK_HTTP_ERROR", "HTTP 400", {
       context: { httpStatus: 400 },
     });
-    expect(formatUserError(e)).toContain("No matching data");
+    expect(formatUserError(error)).toContain("No matching data");
   });
 
   it("translates HTTP 404 to the same friendly message", () => {
-    const e = new MinecraftKitError("NETWORK_HTTP_ERROR", "HTTP 404", {
+    const error = new MinecraftKitError("NETWORK_HTTP_ERROR", "HTTP 404", {
       context: { httpStatus: 404 },
     });
-    expect(formatUserError(e)).toContain("No matching data");
+    expect(formatUserError(error)).toContain("No matching data");
   });
 
   it("translates 408 / 429 / 5xx to dedicated messages", () => {

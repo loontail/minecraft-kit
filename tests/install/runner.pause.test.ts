@@ -174,9 +174,9 @@ describe("install runner — pause controller", () => {
     const totalChunks = 6;
     const totalSize = chunkBody.byteLength * totalChunks;
     const sha1 = (() => {
-      const h = require("node:crypto").createHash("sha1");
-      for (let i = 0; i < totalChunks; i++) h.update(chunkBody);
-      return h.digest("hex");
+      const hash = require("node:crypto").createHash("sha1");
+      for (let i = 0; i < totalChunks; i++) hash.update(chunkBody);
+      return hash.digest("hex");
     })();
 
     const slowHttp: HttpClient = {

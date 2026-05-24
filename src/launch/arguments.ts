@@ -1,6 +1,5 @@
-import { evaluateRules } from "../core/rules";
+import { type RuleEvaluationContext, evaluateRules } from "../core/rules";
 import type { ArgumentEntry, MinecraftArguments } from "../types/minecraft";
-import type { RuntimeSystem } from "../types/system";
 
 /**
  * Flatten a modern `arguments.{game|jvm}` array, evaluating rules.
@@ -9,10 +8,7 @@ import type { RuntimeSystem } from "../types/system";
  */
 export const flattenArguments = (
   entries: readonly ArgumentEntry[],
-  context: {
-    readonly system: RuntimeSystem;
-    readonly features?: Readonly<Record<string, boolean>>;
-  },
+  context: RuleEvaluationContext,
 ): readonly string[] => {
   const result: string[] = [];
   for (const entry of entries) {
@@ -46,10 +42,7 @@ export const splitLegacyArguments = (raw: string): readonly string[] => {
  */
 export const pickArguments = (
   args: MinecraftArguments | undefined,
-  context: {
-    readonly system: RuntimeSystem;
-    readonly features?: Readonly<Record<string, boolean>>;
-  },
+  context: RuleEvaluationContext,
 ): { readonly game: readonly string[]; readonly jvm: readonly string[] } => {
   return {
     game: flattenArguments(args?.game ?? [], context),

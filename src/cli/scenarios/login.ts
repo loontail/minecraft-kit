@@ -217,10 +217,12 @@ const resolveClientId = async (
   const entered = await ctx.ui.text({
     message: "Paste Azure AD client id (or press Enter to cancel)",
     placeholder: "00000000-0000-0000-0000-000000000000",
-    validate: (s) => {
-      const v = s.trim();
-      if (v.length === 0) return undefined;
-      return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(v)
+    validate: (raw) => {
+      const trimmed = raw.trim();
+      if (trimmed.length === 0) return undefined;
+      return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
+        trimmed,
+      )
         ? undefined
         : "Expected the 8-4-4-4-12 GUID format";
     },

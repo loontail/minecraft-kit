@@ -18,10 +18,10 @@ describe("generatePkcePair", () => {
   });
 
   it("emits a different pair on every call", () => {
-    const a = generatePkcePair();
-    const b = generatePkcePair();
-    expect(a.codeVerifier).not.toBe(b.codeVerifier);
-    expect(a.codeChallenge).not.toBe(b.codeChallenge);
+    const first = generatePkcePair();
+    const second = generatePkcePair();
+    expect(first.codeVerifier).not.toBe(second.codeVerifier);
+    expect(first.codeChallenge).not.toBe(second.codeChallenge);
   });
 
   it("uses unpadded base64url alphabet (RFC 7636)", () => {
@@ -33,11 +33,11 @@ describe("generatePkcePair", () => {
 
 describe("generateOAuthState", () => {
   it("emits non-empty base64url strings, never repeating", () => {
-    const a = generateOAuthState();
-    const b = generateOAuthState();
-    expect(a).toMatch(/^[A-Za-z0-9_-]+$/);
-    expect(a.length).toBeGreaterThan(0);
-    expect(a).not.toBe(b);
+    const first = generateOAuthState();
+    const second = generateOAuthState();
+    expect(first).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(first.length).toBeGreaterThan(0);
+    expect(first).not.toBe(second);
   });
 });
 
