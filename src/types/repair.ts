@@ -1,4 +1,5 @@
 import type { MetadataCache } from "./cache";
+import type { OperationOptions } from "./events";
 import type { HttpClient } from "./http";
 import type { InstallAction } from "./install";
 import type { Target } from "./target";
@@ -98,4 +99,42 @@ export type AspectRepairInput = {
   readonly http: HttpClient;
   readonly cache: MetadataCache;
   readonly signal?: AbortSignal;
+};
+
+/**
+ * Options for any `repair.<aspect>.plan` call. Accepts one or many verification results.
+ *
+ * @example
+ * ```ts
+ * import type { RepairPlanOptions } from "@loontail/minecraft-kit";
+ *
+ * const mcResult = await kit.verify.minecraft.run(target);
+ * const runtimeResult = await kit.verify.runtime.run(target);
+ * const options: RepairPlanOptions = { from: [mcResult, runtimeResult] };
+ * const plan = await kit.repair.minecraft.plan(target, options);
+ * ```
+ */
+export type RepairPlanOptions = {
+  readonly from: VerificationResult | readonly VerificationResult[];
+  readonly signal?: AbortSignal;
+};
+
+/**
+ * Shared shape of every aspect-specific repair surface (`repair.minecraft`, `.fabric`, …).
+ *
+ * @example
+ * ```ts
+ * import type { RepairAspect } from "@loontail/minecraft-kit";
+ *
+ * const runAll = async (aspect: RepairAspect) => {
+ *   const verification = await kit.verify.minecraft.run(target);
+ *   const plan = await aspect.plan(target, { from: verification });
+ *   return aspect.run(plan);
+ * };
+ * await runAll(kit.repair.minecraft);
+ * ```
+ */
+export type RepairAspect = {
+  plan(target: Target, options: RepairPlanOptions): Promise<RepairPlan>;
+  run(plan: RepairPlan, options?: OperationOptions): Promise<RepairReport>;
 };

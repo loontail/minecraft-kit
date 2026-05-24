@@ -1,3 +1,5 @@
+import type { ProgressListener } from "./events";
+
 /**
  * Aspect of an installation a verification result describes.
  *
@@ -137,4 +139,25 @@ export type VerificationResult = {
   readonly issues: readonly VerificationFileResult[];
   readonly checkedFiles: number;
   readonly durationMs: number;
+};
+
+/**
+ * Options accepted by every `verify.<kind>.run`.
+ *
+ * @example
+ * ```ts
+ * import { EventTypes, type VerifyOperationOptions } from "@loontail/minecraft-kit";
+ *
+ * const options: VerifyOperationOptions = {
+ *   signal: AbortSignal.timeout(60_000),
+ *   onEvent: (e) => {
+ *     if (e.type === EventTypes.VERIFY_FILE_CHECKED) reportProgress(e.file.path);
+ *   },
+ * };
+ * const result = await kit.verify.minecraft.run(target, options);
+ * ```
+ */
+export type VerifyOperationOptions = {
+  readonly signal?: AbortSignal;
+  readonly onEvent?: ProgressListener;
 };

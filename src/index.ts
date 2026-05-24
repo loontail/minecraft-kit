@@ -49,13 +49,7 @@ export {
   type PlanStandaloneRuntimeInstallInput,
 } from "./install/runtime-install";
 export { MinecraftKit } from "./kit";
-export type {
-  InstallRunOptions,
-  MinecraftKitOptions,
-  RepairAspect,
-  RepairPlanOptions,
-  VerifyOperationOptions,
-} from "./kit";
+export type { InstallRunOptions, MinecraftKitOptions } from "./kit";
 export { ChildProcessSpawner } from "./launch/spawner";
 export { resolveLaunchVersion, type ResolvedLaunchVersion } from "./launch/version-resolution";
 export {
@@ -170,9 +164,11 @@ export {
 } from "./types/minecraft";
 export {
   type AspectRepairInput,
+  type RepairAspect,
   type RepairPhase,
   RepairPhases,
   type RepairPlan,
+  type RepairPlanOptions,
   type RepairReport,
 } from "./types/repair";
 export {
@@ -212,6 +208,7 @@ export {
   type VerifyFileCategory,
   type VerifyFileStatus,
   VerifyFileStatuses,
+  type VerifyOperationOptions,
 } from "./types/verify";
 export { verifyFabric, verifyForge, verifyMinecraft, verifyRuntime } from "./verify/index";
 export { FabricVersionsApi } from "./versions/fabric";
