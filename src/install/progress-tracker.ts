@@ -13,18 +13,18 @@ import {
  *
  * @example
  * ```ts
- * import { InstallStages, type InstallStage } from "@loontail/minecraft-kit";
+ * import { ProgressStages, type ProgressStage } from "@loontail/minecraft-kit";
  *
- * const labels: Record<InstallStage, string> = {
- *   [InstallStages.PREPARE]: "Preparing…",
- *   [InstallStages.RUNTIME]: "Installing Java",
- *   [InstallStages.MINECRAFT]: "Downloading game",
- *   [InstallStages.LOADER]: "Installing mod loader",
- *   [InstallStages.FINALIZE]: "Done",
+ * const labels: Record<ProgressStage, string> = {
+ *   [ProgressStages.PREPARE]: "Preparing…",
+ *   [ProgressStages.RUNTIME]: "Installing Java",
+ *   [ProgressStages.MINECRAFT]: "Downloading game",
+ *   [ProgressStages.LOADER]: "Installing mod loader",
+ *   [ProgressStages.FINALIZE]: "Done",
  * };
  * ```
  */
-export const InstallStages = {
+export const ProgressStages = {
   PREPARE: "prepare",
   RUNTIME: "runtime",
   MINECRAFT: "minecraft",
@@ -33,18 +33,18 @@ export const InstallStages = {
 } as const;
 
 /**
- * Literal type of {@link InstallStages}. Use for exhaustive switches in UI code.
+ * Literal type of {@link ProgressStages}. Use for exhaustive switches in UI code.
  *
  * @example
  * ```ts
- * import { InstallStages, type InstallStage } from "@loontail/minecraft-kit";
+ * import { ProgressStages, type ProgressStage } from "@loontail/minecraft-kit";
  *
- * function color(stage: InstallStage): string {
- *   return stage === InstallStages.FINALIZE ? "green" : "blue";
+ * function color(stage: ProgressStage): string {
+ *   return stage === ProgressStages.FINALIZE ? "green" : "blue";
  * }
  * ```
  */
-export type InstallStage = (typeof InstallStages)[keyof typeof InstallStages];
+export type ProgressStage = (typeof ProgressStages)[keyof typeof ProgressStages];
 
 /**
  * Snapshot pushed to {@link InstallProgressTracker} subscribers.
@@ -60,7 +60,7 @@ export type InstallStage = (typeof InstallStages)[keyof typeof InstallStages];
  * ```
  */
 export type ProgressSnapshot = {
-  readonly stage: InstallStage;
+  readonly stage: ProgressStage;
   readonly stagePercent: number;
   readonly overallPercent: number;
   readonly bytesDownloaded: number;
@@ -109,40 +109,40 @@ export type InstallProgressTracker = {
   finish(): void;
 };
 
-const STAGE_FOR_CATEGORY: Record<DownloadCategory, InstallStage> = {
-  [DownloadCategories.RUNTIME_FILE]: InstallStages.RUNTIME,
-  [DownloadCategories.CLIENT_JAR]: InstallStages.MINECRAFT,
-  [DownloadCategories.LIBRARY]: InstallStages.MINECRAFT,
-  [DownloadCategories.ASSET_INDEX]: InstallStages.MINECRAFT,
-  [DownloadCategories.ASSET]: InstallStages.MINECRAFT,
-  [DownloadCategories.LOGGING_CONFIG]: InstallStages.MINECRAFT,
-  [DownloadCategories.FABRIC_LIBRARY]: InstallStages.LOADER,
-  [DownloadCategories.FORGE_LIBRARY]: InstallStages.LOADER,
-  [DownloadCategories.FORGE_INSTALLER]: InstallStages.LOADER,
+const PROGRESS_STAGE_FOR_CATEGORY: Record<DownloadCategory, ProgressStage> = {
+  [DownloadCategories.RUNTIME_FILE]: ProgressStages.RUNTIME,
+  [DownloadCategories.CLIENT_JAR]: ProgressStages.MINECRAFT,
+  [DownloadCategories.LIBRARY]: ProgressStages.MINECRAFT,
+  [DownloadCategories.ASSET_INDEX]: ProgressStages.MINECRAFT,
+  [DownloadCategories.ASSET]: ProgressStages.MINECRAFT,
+  [DownloadCategories.LOGGING_CONFIG]: ProgressStages.MINECRAFT,
+  [DownloadCategories.FABRIC_LIBRARY]: ProgressStages.LOADER,
+  [DownloadCategories.FORGE_LIBRARY]: ProgressStages.LOADER,
+  [DownloadCategories.FORGE_INSTALLER]: ProgressStages.LOADER,
 };
 
-const STAGE_FOR_PHASE: Partial<Record<InstallPhase, InstallStage>> = {
-  [InstallPhases.PLANNING]: InstallStages.PREPARE,
-  [InstallPhases.DOWNLOADING_VERSION_MANIFEST]: InstallStages.PREPARE,
-  [InstallPhases.INSTALLING_RUNTIME]: InstallStages.RUNTIME,
-  [InstallPhases.DOWNLOADING_CLIENT_JAR]: InstallStages.MINECRAFT,
-  [InstallPhases.DOWNLOADING_LIBRARIES]: InstallStages.MINECRAFT,
-  [InstallPhases.DOWNLOADING_ASSET_INDEX]: InstallStages.MINECRAFT,
-  [InstallPhases.DOWNLOADING_ASSETS]: InstallStages.MINECRAFT,
-  [InstallPhases.EXTRACTING_NATIVES]: InstallStages.MINECRAFT,
-  [InstallPhases.WRITING_FILES]: InstallStages.MINECRAFT,
-  [InstallPhases.INSTALLING_FABRIC]: InstallStages.LOADER,
-  [InstallPhases.INSTALLING_FORGE]: InstallStages.LOADER,
-  [InstallPhases.RUNNING_FORGE_PROCESSORS]: InstallStages.LOADER,
-  [InstallPhases.COMPLETED]: InstallStages.FINALIZE,
+const PROGRESS_STAGE_FOR_PHASE: Partial<Record<InstallPhase, ProgressStage>> = {
+  [InstallPhases.PLANNING]: ProgressStages.PREPARE,
+  [InstallPhases.DOWNLOADING_VERSION_MANIFEST]: ProgressStages.PREPARE,
+  [InstallPhases.INSTALLING_RUNTIME]: ProgressStages.RUNTIME,
+  [InstallPhases.DOWNLOADING_CLIENT_JAR]: ProgressStages.MINECRAFT,
+  [InstallPhases.DOWNLOADING_LIBRARIES]: ProgressStages.MINECRAFT,
+  [InstallPhases.DOWNLOADING_ASSET_INDEX]: ProgressStages.MINECRAFT,
+  [InstallPhases.DOWNLOADING_ASSETS]: ProgressStages.MINECRAFT,
+  [InstallPhases.EXTRACTING_NATIVES]: ProgressStages.MINECRAFT,
+  [InstallPhases.WRITING_FILES]: ProgressStages.MINECRAFT,
+  [InstallPhases.INSTALLING_FABRIC]: ProgressStages.LOADER,
+  [InstallPhases.INSTALLING_FORGE]: ProgressStages.LOADER,
+  [InstallPhases.RUNNING_FORGE_PROCESSORS]: ProgressStages.LOADER,
+  [InstallPhases.COMPLETED]: ProgressStages.FINALIZE,
 };
 
-const ALL_STAGES: readonly InstallStage[] = [
-  InstallStages.PREPARE,
-  InstallStages.RUNTIME,
-  InstallStages.MINECRAFT,
-  InstallStages.LOADER,
-  InstallStages.FINALIZE,
+const ALL_STAGES: readonly ProgressStage[] = [
+  ProgressStages.PREPARE,
+  ProgressStages.RUNTIME,
+  ProgressStages.MINECRAFT,
+  ProgressStages.LOADER,
+  ProgressStages.FINALIZE,
 ];
 
 /**
@@ -164,9 +164,9 @@ export const createInstallProgressTracker = (
 ): InstallProgressTracker => {
   const throttleMs = options.throttleMs ?? 100;
 
-  const stageOfTarget = new Map<string, InstallStage>();
+  const stageOfTarget = new Map<string, ProgressStage>();
   const expectedSizeOf = new Map<string, number>();
-  const stageTotals: Record<InstallStage, number> = {
+  const stageTotals: Record<ProgressStage, number> = {
     prepare: 0,
     runtime: 0,
     minecraft: 0,
@@ -176,7 +176,7 @@ export const createInstallProgressTracker = (
   let overallTotal = 0;
   for (const action of plan.actions) {
     if (action.kind !== "download-file") continue;
-    const stage = STAGE_FOR_CATEGORY[action.category] ?? InstallStages.MINECRAFT;
+    const stage = PROGRESS_STAGE_FOR_CATEGORY[action.category] ?? ProgressStages.MINECRAFT;
     stageOfTarget.set(action.target, stage);
     const size = action.expectedSize ?? 0;
     expectedSizeOf.set(action.target, size);
@@ -184,14 +184,14 @@ export const createInstallProgressTracker = (
     overallTotal += size;
   }
 
-  const stageDone: Record<InstallStage, number> = {
+  const stageDone: Record<ProgressStage, number> = {
     prepare: 0,
     runtime: 0,
     minecraft: 0,
     loader: 0,
     finalize: 0,
   };
-  const stageInFlight: Record<InstallStage, number> = {
+  const stageInFlight: Record<ProgressStage, number> = {
     prepare: 0,
     runtime: 0,
     minecraft: 0,
@@ -200,8 +200,8 @@ export const createInstallProgressTracker = (
   };
   let totalDone = 0;
   let totalInFlight = 0;
-  const inFlightByTarget = new Map<string, { stage: InstallStage; bytes: number }>();
-  let currentStage: InstallStage = InstallStages.PREPARE;
+  const inFlightByTarget = new Map<string, { stage: ProgressStage; bytes: number }>();
+  let currentStage: ProgressStage = ProgressStages.PREPARE;
   let currentFile: string | undefined;
 
   const listeners = new Set<(snapshot: ProgressSnapshot) => void>();
@@ -265,7 +265,7 @@ export const createInstallProgressTracker = (
   const onEvent: ProgressListener = (event: ProgressEvent) => {
     switch (event.type) {
       case EventTypes.INSTALL_PHASE_CHANGED: {
-        const next = STAGE_FOR_PHASE[event.phase];
+        const next = PROGRESS_STAGE_FOR_PHASE[event.phase];
         if (next && next !== currentStage) {
           currentStage = next;
           currentFile = undefined;
@@ -335,7 +335,7 @@ export const createInstallProgressTracker = (
     finish() {
       finished = true;
       clearTimer();
-      currentStage = InstallStages.FINALIZE;
+      currentStage = ProgressStages.FINALIZE;
       currentFile = undefined;
       totalDone = overallTotal;
       totalInFlight = 0;

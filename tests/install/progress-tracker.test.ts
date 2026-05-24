@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   type InstallProgressTracker,
-  InstallStages,
+  ProgressStages,
   createInstallProgressTracker,
 } from "../../src/install/progress-tracker";
 import {
@@ -51,7 +51,7 @@ describe("createInstallProgressTracker", () => {
       phase: InstallPhases.DOWNLOADING_CLIENT_JAR,
       previous: null,
     });
-    expect(tracker.snapshot().stage).toBe(InstallStages.MINECRAFT);
+    expect(tracker.snapshot().stage).toBe(ProgressStages.MINECRAFT);
     expect(tracker.snapshot().totalBytes).toBe(300);
 
     tracker.onEvent({

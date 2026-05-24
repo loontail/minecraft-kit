@@ -37,10 +37,10 @@ export type { MemoryCacheOptions } from "./http/cache";
 export { FetchHttpClient } from "./http/client";
 export {
   createInstallProgressTracker,
-  InstallStages,
   type InstallProgressTracker,
-  type InstallStage,
   type ProgressSnapshot,
+  type ProgressStage,
+  ProgressStages,
   type ProgressTrackerOptions,
 } from "./install/progress-tracker";
 export {

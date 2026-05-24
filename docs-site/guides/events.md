@@ -47,16 +47,29 @@ The full payload of each event is in the [API reference](../api/).
 
 `download:progress` fires once per chunk and per file — far too noisy to bind directly
 to a progress bar. `createInstallProgressTracker` is the supported way to fold raw events
-into coarse stages (`prepare`, `runtime`, `minecraft`, `loader`, `finalize`) with
-throttled snapshots:
+into coarse UI-oriented progress stages with throttled snapshots. The five stages are
+exposed as the `ProgressStages` as-const map (literal type `ProgressStage`):
+`PREPARE`, `RUNTIME`, `MINECRAFT`, `LOADER`, `FINALIZE`.
 
 ```ts
-import { createInstallProgressTracker } from "@loontail/minecraft-kit";
+import {
+  createInstallProgressTracker,
+  ProgressStages,
+  type ProgressStage,
+} from "@loontail/minecraft-kit";
 
 const tracker = createInstallProgressTracker(plan, { throttleMs: 100 });
 
+const label: Record<ProgressStage, string> = {
+  [ProgressStages.PREPARE]: "Preparing…",
+  [ProgressStages.RUNTIME]: "Installing Java",
+  [ProgressStages.MINECRAFT]: "Downloading game",
+  [ProgressStages.LOADER]: "Installing mod loader",
+  [ProgressStages.FINALIZE]: "Done",
+};
+
 const unsubscribe = tracker.subscribe((snapshot) => {
-  ui.render(snapshot.stage, snapshot.overallPercent, snapshot.currentFile);
+  ui.render(label[snapshot.stage], snapshot.overallPercent, snapshot.currentFile);
 });
 
 await kit.install.run(plan, { onEvent: tracker.onEvent });
@@ -64,8 +77,15 @@ tracker.finish();
 unsubscribe();
 ```
 
-The snapshot carries `stage`, `stagePercent`, `overallPercent`, `bytesDownloaded`,
-`totalBytes`, and `currentFile`. See the [API reference](../api/) for the full type.
+The snapshot carries `stage` (a `ProgressStage`), `stagePercent`, `overallPercent`,
+`bytesDownloaded`, `totalBytes`, and `currentFile`. See the [API reference](../api/) for
+the full type.
+
+`ProgressStages` are deliberately separate from `InstallPhases`: the latter is the
+fine-grained sequence the install runner walks through (`PLANNING`,
+`DOWNLOADING_CLIENT_JAR`, `EXTRACTING_NATIVES`, `RUNNING_FORGE_PROCESSORS`, …) and the
+discriminator of `install:phase-changed`. `ProgressStages` is the coarser UI grouping the
+tracker folds those phases into; nothing else in the kit consumes it.
 
 ## What the event stream does *not* carry
 

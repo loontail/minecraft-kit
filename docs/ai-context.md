@@ -31,6 +31,11 @@ Skip the user-facing tree (`docs-site/`) unless you are editing public documenta
 
 - **`InstallPhases.WRITING_FILES`** (string `"writing-files"`) replaced
   `WRITING_LOGGING_CONFIG` in M11. If you find any external reference to the old name, fix it.
+- **`ProgressStages` / `ProgressStage`** replaced `InstallStages` / `InstallStage` (the
+  coarse UI grouping consumed only by `createInstallProgressTracker`). The fine-grained
+  `InstallPhases` (runner sequence + `install:phase-changed` discriminator) is unchanged.
+  Old imports should be renamed; string values (`prepare` / `runtime` / `minecraft` /
+  `loader` / `finalize`) are stable.
 - **`runtime-extras.ts`** symlink fallback throws on Windows when both `symlink` and
   `copyFile` fail. Earlier versions swallowed this, leading to cryptic launch failures —
   don't reintroduce the silent catch.
