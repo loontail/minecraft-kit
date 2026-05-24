@@ -24,7 +24,7 @@ typo on either side surfaces at compile time.
 | Code | Thrown when | Context fields |
 |---|---|---|
 | `NETWORK_TIMEOUT` | HTTP request exceeded `HTTP_TIMEOUT_MS`. | `url`, `timeoutMs` |
-| `NETWORK_HTTP_ERROR` | HTTP response status was not 2xx, or `fetch` rejected for a reason other than abort/timeout. | `url`, `httpStatus` (when known) |
+| `NETWORK_HTTP_ERROR` | HTTP response status was not 2xx, or `fetch` rejected for a reason other than abort/timeout. Also raised by `downloadFile` when every mirror URL is exhausted — `context.urls` then carries every attempted URL and `cause` is an `AggregateError` of the individual failures. | `url`, `httpStatus` (when known), `urls` (when mirror fallback exhausted) |
 | `NETWORK_ABORTED` | The caller's `AbortSignal` aborted the request. | `url`, `reason` |
 
 ## Filesystem

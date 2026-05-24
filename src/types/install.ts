@@ -126,6 +126,12 @@ export type DownloadCategory = (typeof DownloadCategories)[keyof typeof Download
 /**
  * A single download step.
  *
+ * `url` accepts either a single string or a `readonly string[]` of mirror URLs that the
+ * runner tries in order. Each URL gets a full retry budget; the next URL is only
+ * consulted when the previous one's retries are exhausted. Pass a single string for the
+ * common single-source case — the runner will treat it identically to a one-element
+ * array. Use {@link pickPrimaryDownloadUrl} when you need a single string for display.
+ *
  * @example
  * ```ts
  * import { InstallActionKinds, type DownloadAction } from "@loontail/minecraft-kit";
@@ -138,7 +144,7 @@ export type DownloadCategory = (typeof DownloadCategories)[keyof typeof Download
  */
 export type DownloadAction = {
   readonly kind: typeof InstallActionKinds.DOWNLOAD_FILE;
-  readonly url: string;
+  readonly url: string | readonly string[];
   readonly target: string;
   readonly expectedSha1?: string;
   readonly expectedSize?: number;

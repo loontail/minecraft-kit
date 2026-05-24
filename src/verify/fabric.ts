@@ -1,6 +1,7 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { withOptionalOnEvent } from "../core/optional";
 import { targetPaths } from "../core/paths";
+import { pickPrimaryDownloadUrl } from "../http/download";
 import { planLibraryDownloads } from "../install/libraries";
 import type { MetadataCache } from "../types/cache";
 import type { ProgressListener } from "../types/events";
@@ -77,7 +78,7 @@ export const verifyFabric = async (input: VerifyFabricInput): Promise<Verificati
             path: action.target,
             ...(action.expectedSha1 !== undefined ? { expectedSha1: action.expectedSha1 } : {}),
             ...(action.expectedSize !== undefined ? { expectedSize: action.expectedSize } : {}),
-            ...(action.url ? { url: action.url } : {}),
+            url: pickPrimaryDownloadUrl(action.url),
             category: VerifyFileCategories.LOADER_LIBRARY,
           }),
         );

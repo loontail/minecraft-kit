@@ -84,6 +84,21 @@ await kit.install.run(plan, {
 The available categories: `CLIENT_JAR`, `LIBRARY`, `ASSET_INDEX`, `ASSET`,
 `LOGGING_CONFIG`, `FABRIC_LIBRARY`, `FORGE_LIBRARY`, `RUNTIME_FILE`, `FORGE_INSTALLER`.
 
+### Mirror URLs
+
+`DownloadAction.url` accepts either a single string or a `readonly string[]` of mirror
+URLs. When an array is supplied, the runner tries each URL sequentially: each gets a full
+retry budget, and the next URL is only consulted when the previous one's retries are
+exhausted. Hash and size checks run per URL — a mirror serving a corrupted artifact is
+treated like any other failure and falls back to the next URL.
+
+`kit.install.plan(target)` currently generates single-URL actions; the array form is
+intended for consumers building or augmenting plans by hand (CDN failover, local cache
+mirrors, etc.). When every URL is exhausted, `downloadFile` throws `NETWORK_HTTP_ERROR`
+with `context.urls` listing every URL attempted and `cause` set to an `AggregateError`
+of the individual failures (or, for a single-URL action, the underlying failure
+directly).
+
 ## Runtime-only installs
 
 To install just a Java runtime — no Minecraft, no libraries, no assets — use the standalone

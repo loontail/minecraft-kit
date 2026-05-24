@@ -6,11 +6,16 @@ import type {
 } from "../../src/types/http";
 
 /** A scripted response for {@link FakeHttpClient}. */
-export type FakeResponseSpec = {
-  readonly status?: number;
-  readonly headers?: HttpHeaders;
-  readonly body: string | Uint8Array | (() => Uint8Array);
-};
+export type FakeResponseSpec =
+  | {
+      readonly status?: number;
+      readonly headers?: HttpHeaders;
+      readonly body: string | Uint8Array | (() => Uint8Array);
+    }
+  | {
+      /** Throw this error from `request()` instead of returning a response. */
+      readonly error: () => Error;
+    };
 
 /** Test-only HttpClient that returns scripted responses keyed by URL. */
 export class FakeHttpClient implements HttpClient {
@@ -27,6 +32,9 @@ export class FakeHttpClient implements HttpClient {
     const spec = this.responses.get(url);
     if (!spec) {
       throw new Error(`Unmocked URL: ${url}`);
+    }
+    if ("error" in spec) {
+      throw spec.error();
     }
     const status = spec.status ?? 200;
     const headers = spec.headers ?? {};
@@ -54,7 +62,9 @@ export class FakeHttpClient implements HttpClient {
   }
 }
 
-const toBytes = (body: FakeResponseSpec["body"]): Uint8Array => {
+type BodyOnlySpec = Extract<FakeResponseSpec, { body: unknown }>;
+
+const toBytes = (body: BodyOnlySpec["body"]): Uint8Array => {
   if (typeof body === "function") return body();
   if (typeof body === "string") return new TextEncoder().encode(body);
   return body;

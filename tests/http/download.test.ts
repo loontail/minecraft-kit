@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { MinecraftKitError } from "../../src/core/errors";
+import { MinecraftKitError, MinecraftKitErrorCodes } from "../../src/core/errors";
 import { downloadFile } from "../../src/http/download";
 import type { ProgressEvent } from "../../src/types/events";
 import { FakeHttpClient } from "../helpers/fake-http";
@@ -130,5 +130,102 @@ describe("downloadFile", () => {
       hostAllowList: ["*.minecraft.net"],
     });
     expect(result.bytesDownloaded).toBe(body.byteLength);
+  });
+
+  it("falls back to the next mirror URL when the first one fails", async () => {
+    const body = new TextEncoder().encode("mirror-ok");
+    const expectedSha1 = sha1OfBytes(body);
+    const http = new FakeHttpClient()
+      .on("https://primary/file", {
+        error: () =>
+          new MinecraftKitError(MinecraftKitErrorCodes.NETWORK_HTTP_ERROR, "primary 404", {
+            context: { url: "https://primary/file", httpStatus: 404 },
+          }),
+      })
+      .on("https://mirror/file", { body });
+    const target = path.join(tmpDir, "x");
+    const events: ProgressEvent[] = [];
+    const result = await downloadFile(http, {
+      url: ["https://primary/file", "https://mirror/file"],
+      target,
+      expectedSha1,
+      expectedSize: body.byteLength,
+      onEvent: (e) => events.push(e),
+    });
+    expect(result.bytesDownloaded).toBe(body.byteLength);
+    expect(result.skipped).toBe(false);
+    expect(await fs.readFile(target, "utf8")).toBe("mirror-ok");
+    const completed = events.find((e) => e.type === "download:completed");
+    expect(completed && "file" in completed ? completed.file.url : undefined).toBe(
+      "https://mirror/file",
+    );
+  });
+
+  it("aggregates errors when every mirror URL fails", async () => {
+    const http = new FakeHttpClient()
+      .on("https://a/file", {
+        error: () =>
+          new MinecraftKitError(MinecraftKitErrorCodes.NETWORK_HTTP_ERROR, "a 404", {
+            context: { url: "https://a/file", httpStatus: 404 },
+          }),
+      })
+      .on("https://b/file", {
+        error: () =>
+          new MinecraftKitError(MinecraftKitErrorCodes.NETWORK_HTTP_ERROR, "b 404", {
+            context: { url: "https://b/file", httpStatus: 404 },
+          }),
+      });
+    const target = path.join(tmpDir, "x");
+    let caught: unknown;
+    try {
+      await downloadFile(http, {
+        url: ["https://a/file", "https://b/file"],
+        target,
+      });
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(MinecraftKitError);
+    const error = caught as MinecraftKitError;
+    expect(error.code).toBe(MinecraftKitErrorCodes.NETWORK_HTTP_ERROR);
+    expect(error.context.urls).toEqual(["https://a/file", "https://b/file"]);
+    expect(error.cause).toBeInstanceOf(AggregateError);
+    const aggregate = error.cause as AggregateError;
+    expect(aggregate.errors.length).toBe(2);
+  });
+
+  it("rejects an empty URL array before issuing any request", async () => {
+    const http = new FakeHttpClient();
+    const target = path.join(tmpDir, "x");
+    let caught: unknown;
+    try {
+      await downloadFile(http, { url: [], target });
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(MinecraftKitError);
+    expect((caught as MinecraftKitError).code).toBe(MinecraftKitErrorCodes.INVALID_INPUT);
+    expect(http.requests.length).toBe(0);
+  });
+
+  it("stops mirror fallback when the caller aborts", async () => {
+    const http = new FakeHttpClient()
+      .on("https://a/file", {
+        error: () =>
+          new MinecraftKitError(MinecraftKitErrorCodes.NETWORK_ABORTED, "aborted", {
+            context: { url: "https://a/file" },
+          }),
+      })
+      .on("https://b/file", {
+        body: new TextEncoder().encode("never-reached"),
+      });
+    const target = path.join(tmpDir, "x");
+    await expect(
+      downloadFile(http, {
+        url: ["https://a/file", "https://b/file"],
+        target,
+      }),
+    ).rejects.toMatchObject({ code: MinecraftKitErrorCodes.NETWORK_ABORTED });
+    expect(http.requests.length).toBe(1);
   });
 });

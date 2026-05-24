@@ -1,6 +1,7 @@
 import { fileExists } from "../core/fs";
 import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
+import { pickPrimaryDownloadUrl } from "../http/download";
 import { fetchJson } from "../http/metadata";
 import { planLibraryDownloads } from "../install/libraries";
 import type { MetadataCache } from "../types/cache";
@@ -121,7 +122,7 @@ const recordLibrariesAndReturnPlan = async (
         path: action.target,
         ...(action.expectedSha1 !== undefined ? { expectedSha1: action.expectedSha1 } : {}),
         ...(action.expectedSize !== undefined ? { expectedSize: action.expectedSize } : {}),
-        url: action.url,
+        url: pickPrimaryDownloadUrl(action.url),
         category: VerifyFileCategories.LIBRARY,
       }),
     );

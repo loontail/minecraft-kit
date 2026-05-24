@@ -87,7 +87,11 @@ Cross-cutting utilities. Bottom of the dependency graph.
 - `download.ts` — `downloadFile`: streaming sha1, atomic temp + rename, skip-on-correct,
   retry-with-backoff, `download:*` events. Validates the URL scheme (`http(s)` only) and an
   optional caller-supplied `hostAllowList` before touching the network — closes the
-  manifest-injection attack class.
+  manifest-injection attack class. Accepts `url: string | readonly string[]`: mirror URLs
+  are tried sequentially, each with a full retry budget, and the next URL is only
+  consulted when the previous one's retries are exhausted; an empty array throws
+  `INVALID_INPUT`. Exports `normalizeDownloadUrls` and `pickPrimaryDownloadUrl` helpers so
+  the verify layer can record the primary URL of a multi-URL action.
 - `cache.ts` — `createMemoryCache` (LRU-backed `MetadataCache`).
 - `metadata.ts` — `fetchJson` and `fetchText` (cached GET helpers).
 
