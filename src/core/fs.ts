@@ -66,7 +66,8 @@ export const fileSize = async (filePath: string): Promise<number> => {
  * Atomically write `data` to `target`. Writes to a temp sibling and renames.
  *
  * Creates parent directories if missing. Throws {@link MinecraftKitError} with
- * code `FILESYSTEM_WRITE_ERROR` on failure.
+ * code `FILESYSTEM_WRITE_ERROR` on failure; the `.tmp` sibling is best-effort
+ * unlinked on the error path so a partial write does not linger.
  *
  * @internal
  */
@@ -83,7 +84,9 @@ export const atomicWrite = async (target: string, data: Uint8Array | string): Pr
   } catch (cause) {
     try {
       await fs.unlink(tmp);
-    } catch {}
+    } catch {
+      /* best-effort cleanup; the primary FILESYSTEM_WRITE_ERROR below carries the real cause */
+    }
     throw new MinecraftKitError(
       MinecraftKitErrorCodes.FILESYSTEM_WRITE_ERROR,
       `Failed to write file: ${target}`,
@@ -151,7 +154,11 @@ export const listChildDirectories = async (directory: string): Promise<readonly 
 };
 
 /**
- * Set the executable bit on a file (best-effort; no-op on Windows).
+ * Set the executable bit on a file. No-op on Windows (where NTFS does not honour
+ * POSIX modes); on POSIX the failure of `chmod` is also swallowed because Java's
+ * spawn path can still execute the file when the umask already grants execute
+ * (and surfacing a chmod error would mask the more interesting downstream spawn
+ * failure if one occurs).
  *
  * @internal
  */
@@ -161,7 +168,9 @@ export const chmodExecutable = async (filePath: string): Promise<void> => {
   }
   try {
     await fs.chmod(filePath, 0o755);
-  } catch {}
+  } catch {
+    /* best-effort; missing chmod doesn't prevent execution when umask already grants it */
+  }
 };
 
 /**
