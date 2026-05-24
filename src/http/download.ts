@@ -214,10 +214,24 @@ const checkExistingFile = async (
   return { matches: sha1 === expectedSha1, sha1 };
 };
 
+/**
+ * Best-effort removal of a partial download's `.download` temp file.
+ *
+ * Called from the error paths of {@link downloadFile} immediately before re-throwing
+ * the real `MinecraftKitError`. We deliberately swallow `fs.unlink` failures so the
+ * caller still sees the primary cause — e.g. the integrity mismatch or write error —
+ * rather than a misleading cleanup error. ENOENT is the expected case (the temp file
+ * was already renamed into place, or never created), but any other failure here is
+ * still less informative than the original error and would only mask it.
+ *
+ * @internal
+ */
 const safeUnlink = async (filePath: string): Promise<void> => {
   try {
     await fs.unlink(filePath);
-  } catch {}
+  } catch {
+    /* best-effort cleanup; preserve the primary error above */
+  }
 };
 
 async function* countingByteStream(
