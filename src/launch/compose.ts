@@ -49,7 +49,25 @@ export const composeLaunch = async (input: ComposeLaunchInput): Promise<LaunchCo
   });
 
   const features = buildFeatures(options);
-  const placeholderValues = buildPlaceholderValues({
+  // Forge 1.17+ JVM args include `-DignoreList=…,${version_name}.jar` so the
+  // bootstraplauncher knows which on-classpath jar represents vanilla MC and
+  // must not be promoted to a JPMS auto-module (otherwise it conflicts with
+  // the patched `minecraft` module assembled from client-srg.jar +
+  // client-extra.jar → boot fails with `ResolutionException: Modules minecraft
+  // and _1._18._2 export package com.mojang.blaze3d.systems`). Match Voxelum's
+  // launcher-core: substitute `${version_name}` to the vanilla MC version when
+  // it appears in JVM args, and to the top-level (loader) version id when it
+  // appears in game args. The launcher framework treats `version_name` the
+  // same in both contexts on vanilla/Fabric (the ids coincide), so the split
+  // only matters for Forge.
+  const jvmPlaceholderValues = buildPlaceholderValues({
+    target,
+    versionId: target.minecraft.version,
+    auth: options.auth,
+    classpath,
+    options,
+  });
+  const gamePlaceholderValues = buildPlaceholderValues({
     target,
     versionId: resolved.versionId,
     auth: options.auth,
@@ -60,7 +78,8 @@ export const composeLaunch = async (input: ComposeLaunchInput): Promise<LaunchCo
     target,
     merged: resolved.merged,
     options,
-    placeholderValues,
+    jvmPlaceholderValues,
+    gamePlaceholderValues,
     features,
     logger: input.logger ?? silentLogger,
   });

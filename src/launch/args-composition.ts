@@ -35,7 +35,12 @@ export const composeArgs = (input: {
   readonly target: Target;
   readonly merged: MinecraftVersionManifest;
   readonly options: LaunchOptions;
-  readonly placeholderValues: Readonly<Record<string, string>>;
+  // Forge 1.17+ requires `${version_name}` in JVM args to be the vanilla MC
+  // id (so `-DignoreList=…,${version_name}.jar` covers vanilla on classpath)
+  // while game args expect the top-level loader id. Callers pass separate
+  // maps; vanilla/Fabric/legacy paths just pass the same object twice.
+  readonly jvmPlaceholderValues: Readonly<Record<string, string>>;
+  readonly gamePlaceholderValues: Readonly<Record<string, string>>;
   readonly features: Readonly<Record<string, boolean>>;
   readonly logger?: Logger;
 }): ComposedArgs => {
@@ -60,8 +65,8 @@ export const composeArgs = (input: {
 
   const macosArgs = input.target.runtime.system.os === "osx" ? MACOS_JVM_ARGS : [];
   const baseJvm = [...memoryArgs, ...BASE_JVM_ARGS, ...macosArgs];
-  const substitutedJvm = substituteArgs(rawJvm, input.placeholderValues);
-  const substitutedGame = substituteArgs(rawGame, input.placeholderValues);
+  const substitutedJvm = substituteArgs(rawJvm, input.jvmPlaceholderValues);
+  const substitutedGame = substituteArgs(rawGame, input.gamePlaceholderValues);
   const javaMajor = input.target.runtime.majorVersion;
   const filteredManifestJvm =
     javaMajor !== undefined
@@ -76,7 +81,7 @@ export const composeArgs = (input: {
   if (input.merged.logging?.client?.argument) {
     const logging = input.merged.logging.client;
     const loggingArg = substituteArgs([logging.argument], {
-      ...input.placeholderValues,
+      ...input.jvmPlaceholderValues,
       path: targetPaths.loggingConfig(input.target.directory, logging.file.id),
     })[0];
     if (loggingArg !== undefined) jvmArgs.push(loggingArg);
