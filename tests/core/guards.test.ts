@@ -97,8 +97,28 @@ describe("isMinecraftVersionManifestShape", () => {
     expect(isMinecraftVersionManifestShape(validShape)).toBe(true);
   });
 
+  it("rejects non-object input", () => {
+    expect(isMinecraftVersionManifestShape(null)).toBe(false);
+    expect(isMinecraftVersionManifestShape([])).toBe(false);
+    expect(isMinecraftVersionManifestShape("manifest")).toBe(false);
+  });
+
+  it("rejects missing id", () => {
+    expect(isMinecraftVersionManifestShape({ ...validShape, id: "" })).toBe(false);
+    const { id: _id, ...withoutId } = validShape;
+    expect(isMinecraftVersionManifestShape(withoutId)).toBe(false);
+  });
+
   it("rejects missing mainClass", () => {
     expect(isMinecraftVersionManifestShape({ ...validShape, mainClass: "" })).toBe(false);
+    const { mainClass: _mc, ...withoutMainClass } = validShape;
+    expect(isMinecraftVersionManifestShape(withoutMainClass)).toBe(false);
+  });
+
+  it("rejects missing assetIndex entirely", () => {
+    const { assetIndex: _ai, ...withoutAssetIndex } = validShape;
+    expect(isMinecraftVersionManifestShape(withoutAssetIndex)).toBe(false);
+    expect(isMinecraftVersionManifestShape({ ...validShape, assetIndex: null })).toBe(false);
   });
 
   it("rejects missing assetIndex.url", () => {
@@ -112,5 +132,7 @@ describe("isMinecraftVersionManifestShape", () => {
 
   it("rejects missing downloads.client", () => {
     expect(isMinecraftVersionManifestShape({ ...validShape, downloads: {} })).toBe(false);
+    const { downloads: _dl, ...withoutDownloads } = validShape;
+    expect(isMinecraftVersionManifestShape(withoutDownloads)).toBe(false);
   });
 });

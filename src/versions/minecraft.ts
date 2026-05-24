@@ -6,7 +6,6 @@ import { fetchJson } from "../http/metadata";
 import type {
   MinecraftChannel,
   MinecraftVersionId,
-  MinecraftVersionManifest,
   MinecraftVersionSummary,
   ResolvedMinecraft,
 } from "../types/minecraft";
@@ -134,11 +133,10 @@ export class MinecraftVersionsApi {
         { context: { version: summary.id, url: summary.url } },
       );
     }
-    const manifest = raw as unknown as MinecraftVersionManifest;
     return {
       version: summary.id,
       channel: summary.type,
-      manifest,
+      manifest: raw,
       summary,
     };
   }

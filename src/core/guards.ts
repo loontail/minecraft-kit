@@ -6,6 +6,7 @@
  */
 
 import type { MojangAssetState, MojangProfileSkin, MojangSkinVariant } from "../types/auth";
+import type { MinecraftVersionManifest } from "../types/minecraft";
 
 const MOJANG_ASSET_STATES: ReadonlySet<MojangAssetState> = new Set(["ACTIVE", "INACTIVE"]);
 const MOJANG_SKIN_VARIANTS: ReadonlySet<MojangSkinVariant> = new Set(["CLASSIC", "SLIM"]);
@@ -101,20 +102,22 @@ export const isMojangProfileSkin = (value: unknown): value is MojangProfileSkin 
 };
 
 /**
- * Light-touch guard for Mojang per-version manifests. Only checks the fields the kit
- * actually reads at the boundary; deep validation lives downstream where each field is
- * actually consumed.
+ * Light-touch guard for Mojang per-version manifests.
+ *
+ * @remarks
+ * Verifies only the fields the launcher reads at the boundary
+ * (`id`, `mainClass`, `assetIndex`, `downloads.client`). Optional and
+ * loader-specific fields (`libraries`, `arguments`, `javaVersion`,
+ * `inheritsFrom`, …) are validated downstream where each field is actually
+ * consumed. The predicate widens to {@link MinecraftVersionManifest} so call
+ * sites do not need an `as unknown as` cast; the widening is type-system
+ * trade-off, not a runtime guarantee.
  *
  * @internal
  */
 export const isMinecraftVersionManifestShape = (
   value: unknown,
-): value is {
-  id: string;
-  mainClass: string;
-  assetIndex: { id: string; sha1: string; size: number; url: string };
-  downloads: { client: { sha1: string; size: number; url: string } };
-} => {
+): value is MinecraftVersionManifest => {
   if (!isPlainObject(value)) return false;
   if (!isNonEmptyString(value.id)) return false;
   if (!isNonEmptyString(value.mainClass)) return false;
