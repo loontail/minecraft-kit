@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { mergeManifest } from "../../src/core/manifest-merge";
 import { asMinecraftVersionId } from "../../src/core/version-id";
-import type { MinecraftVersionManifest } from "../../src/types/minecraft";
+import type { MinecraftLibrary, MinecraftVersionManifest } from "../../src/types/minecraft";
+import type { RuntimeSystem } from "../../src/types/system";
 
 const baseDownload = { sha1: "x", size: 1, url: "https://x" };
 const MC_PARENT = asMinecraftVersionId("1.20.1");
@@ -153,5 +154,114 @@ describe("mergeManifest", () => {
     const childMinimal: MinecraftVersionManifest = { ...child, libraries: [] };
     const result = mergeManifest(parentWithBogus, childMinimal);
     expect(result.libraries.map((l) => l.name)).toEqual(["a:b:1", "not-a-coord"]);
+  });
+
+  // ---------------------------------------------------------------------------
+  // Vanilla 1.16-1.18 LWJGL shape: two entries per LWJGL module share `name`
+  // — one is the primary jar (no `natives` field), one is the natives carrier
+  // (`natives: {windows: "natives-windows", …}`). Both must survive the merge,
+  // or the primary jar gets clobbered, `buildClasspath` skips the natives
+  // entry, and Forge launch crashes with
+  // `ClassNotFoundException: org.lwjgl.system.MemoryUtil` during Mixin transform.
+  // ---------------------------------------------------------------------------
+  const lwjglPrimary: MinecraftLibrary = {
+    name: "org.lwjgl:lwjgl:3.2.2",
+    downloads: {
+      artifact: {
+        path: "org/lwjgl/lwjgl/3.2.2/lwjgl-3.2.2.jar",
+        sha1: "p",
+        size: 1,
+        url: "https://x",
+      },
+    },
+    rules: [{ action: "allow" }, { action: "disallow", os: { name: "osx" } }],
+  };
+  const lwjglNatives: MinecraftLibrary = {
+    name: "org.lwjgl:lwjgl:3.2.2",
+    downloads: {
+      artifact: {
+        path: "org/lwjgl/lwjgl/3.2.2/lwjgl-3.2.2.jar",
+        sha1: "p",
+        size: 1,
+        url: "https://x",
+      },
+      classifiers: {
+        "natives-windows": {
+          path: "org/lwjgl/lwjgl/3.2.2/lwjgl-3.2.2-natives-windows.jar",
+          sha1: "n",
+          size: 1,
+          url: "https://x",
+        },
+      },
+    },
+    natives: { windows: "natives-windows" },
+    rules: [{ action: "allow" }, { action: "disallow", os: { name: "osx" } }],
+  };
+
+  it("preserves both primary AND natives entries when vanilla ships dual entries (LWJGL pattern)", () => {
+    // Regression: previously the dedupe key was `group:artifact[:classifier]`,
+    // so both entries collapsed into one slot and the natives one won by
+    // arriving last. buildClasspath would then drop LWJGL off the classpath
+    // entirely. The new key splits primary vs natives so both survive.
+    const parentWithLwjgl: MinecraftVersionManifest = {
+      ...parent,
+      libraries: [lwjglPrimary, lwjglNatives],
+    };
+    const childMinimal: MinecraftVersionManifest = { ...child, libraries: [] };
+    const result = mergeManifest(parentWithLwjgl, childMinimal);
+    const lwjgl = result.libraries.filter((l) => l.name === "org.lwjgl:lwjgl:3.2.2");
+    expect(lwjgl).toHaveLength(2);
+    expect(lwjgl.some((l) => !l.natives)).toBe(true);
+    expect(lwjgl.some((l) => l.natives !== undefined)).toBe(true);
+  });
+
+  it("filters OS-conditional duplicates by rules when `system` is provided", () => {
+    // Vanilla 1.18.2 ships `org.lwjgl:lwjgl:3.2.1` for osx AND `:3.2.2` for
+    // non-osx as separate entries — same `group:artifact`, different version,
+    // different rules. Without rule pre-filtering they share a dedupe slot
+    // and the second clobbers the first; on macOS we'd then keep the non-osx
+    // entry whose rules filter out at classpath time → no LWJGL.
+    const lwjgl321Osx: MinecraftLibrary = {
+      name: "org.lwjgl:lwjgl:3.2.1",
+      downloads: {
+        artifact: {
+          path: "org/lwjgl/lwjgl/3.2.1/lwjgl-3.2.1.jar",
+          sha1: "p1",
+          size: 1,
+          url: "https://x",
+        },
+      },
+      rules: [{ action: "allow", os: { name: "osx" } }],
+    };
+    const macOs: RuntimeSystem = { os: "osx", arch: "x64", osVersion: "12" };
+    const parentWithOsDupes: MinecraftVersionManifest = {
+      ...parent,
+      libraries: [lwjgl321Osx, lwjglPrimary],
+    };
+    const childMinimal: MinecraftVersionManifest = { ...child, libraries: [] };
+
+    const result = mergeManifest(parentWithOsDupes, childMinimal, macOs);
+    const lwjgl = result.libraries.filter((l) => l.name.startsWith("org.lwjgl:lwjgl"));
+    expect(lwjgl).toHaveLength(1);
+    expect(lwjgl[0]?.name).toBe("org.lwjgl:lwjgl:3.2.1");
+  });
+
+  it("still allows Forge to override a vanilla primary entry on the same coordinate", () => {
+    // The primary-vs-natives split must NOT regress the override case: Forge
+    // shipping `org.ow2.asm:asm:9.3` must still replace vanilla's 9.2 on the
+    // classpath. Both have no `natives` field → same `@primary` key → child wins.
+    const parentWithAsm: MinecraftVersionManifest = {
+      ...parent,
+      libraries: [{ name: "org.ow2.asm:asm:9.2" }, { name: "io.netty:netty:4.1" }],
+    };
+    const childWithAsm: MinecraftVersionManifest = {
+      ...child,
+      libraries: [{ name: "org.ow2.asm:asm:9.3" }],
+    };
+    const result = mergeManifest(parentWithAsm, childWithAsm);
+    expect(result.libraries.map((l) => l.name)).toEqual([
+      "org.ow2.asm:asm:9.3",
+      "io.netty:netty:4.1",
+    ]);
   });
 });

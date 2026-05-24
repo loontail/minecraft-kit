@@ -6,6 +6,7 @@ import { targetPaths } from "../core/paths";
 import { asMinecraftVersionId } from "../core/version-id";
 import { Loaders } from "../types/loader";
 import type { MinecraftVersionId, MinecraftVersionManifest } from "../types/minecraft";
+import type { RuntimeSystem } from "../types/system";
 import type { Target } from "../types/target";
 
 /**
@@ -52,7 +53,16 @@ export const resolveLaunchVersion = async (target: Target): Promise<ResolvedLaun
     };
   }
   const versionId = await pickInstalledVersionId(target);
-  const merged = await loadAndMerge(target.directory, versionId, target.minecraft.manifest);
+  // Pass the runtime system so the merge can pre-filter OS-conditional library
+  // duplicates (e.g. 1.18.2 ships two `org.lwjgl:lwjgl` entries — 3.2.1 for osx,
+  // 3.2.2 for the rest — that would otherwise collapse against each other in
+  // the coordinate dedupe and drop LWJGL off the classpath for Forge launches).
+  const merged = await loadAndMerge(
+    target.directory,
+    versionId,
+    target.minecraft.manifest,
+    target.runtime.system,
+  );
   return { versionId, merged, chain: [versionId, target.minecraft.version] };
 };
 
@@ -119,6 +129,7 @@ const loadAndMerge = async (
   directory: string,
   versionId: MinecraftVersionId,
   parentManifest: MinecraftVersionManifest,
+  system: RuntimeSystem,
 ): Promise<MinecraftVersionManifest> => {
   const versionJsonPath = targetPaths.versionJson(directory, versionId);
   const text = await readText(versionJsonPath);
@@ -127,5 +138,5 @@ const loadAndMerge = async (
     message: `Version JSON is not valid JSON: ${versionJsonPath}`,
     context: { filePath: versionJsonPath },
   });
-  return mergeManifest(parentManifest, child);
+  return mergeManifest(parentManifest, child, system);
 };
