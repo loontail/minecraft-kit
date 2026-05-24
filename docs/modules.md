@@ -150,6 +150,11 @@ Cross-cutting utilities. Bottom of the dependency graph.
   `planAspectRepair` (the shared template used by every aspect planner).
 - `minecraft.ts`, `fabric.ts`, `forge.ts`, `runtime.ts` — per-aspect repair planners (each
   ~30 LOC after the M6 refactor).
+- `from-error.ts` — `planRepairFromError` and the pure `deriveRepairActionsFromError`
+  mapper. Derives a minimal `RepairPlan` from a typed `MinecraftKitError` thrown by a
+  previous install. Wired onto the kit facade as `kit.repair.fromError({ error, target })`.
+  Supported codes live in `RepairFromErrorSupportedCodes`; unsupported codes throw
+  `INVALID_INPUT` so the caller falls back to the regular `verify → plan → run` path.
 - `runner.ts` — `runRepair` is a thin wrapper that calls `runInstall` on the repair plan.
 
 ## `src/auth/`

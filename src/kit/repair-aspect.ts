@@ -10,19 +10,26 @@ import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
 import { type RepairAllReport, repairAll } from "../repair/all";
 import { planFabricRepair } from "../repair/fabric";
 import { planForgeRepair } from "../repair/forge";
+import { planRepairFromError } from "../repair/from-error";
 import { planMinecraftRepair } from "../repair/minecraft";
 import { runRepair } from "../repair/runner";
 import { planRuntimeRepair } from "../repair/runtime";
 import type { MetadataCache } from "../types/cache";
 import type { OperationOptions } from "../types/events";
 import type { HttpClient } from "../types/http";
-import type { RepairAspect, RepairPlanOptions } from "../types/repair";
+import type {
+  RepairAspect,
+  RepairFromErrorInput,
+  RepairPlan,
+  RepairPlanOptions,
+} from "../types/repair";
 import type { Spawner } from "../types/spawner";
 import type { Target } from "../types/target";
 
 /**
  * Shape of `kit.repair`. Four aspect-specific surfaces plus the `all` convenience that
- * verifies every applicable slice and repairs each broken one.
+ * verifies every applicable slice and repairs each broken one, and `fromError` which
+ * resumes a failed install by deriving a focused plan from a typed `MinecraftKitError`.
  *
  * @internal
  */
@@ -32,6 +39,7 @@ export type RepairSurface = {
   readonly forge: RepairAspect;
   readonly runtime: RepairAspect;
   all(target: Target, options?: OperationOptions): Promise<RepairAllReport>;
+  fromError(input: RepairFromErrorInput): Promise<RepairPlan>;
 };
 
 /**
@@ -93,6 +101,14 @@ export const buildRepairAspect = (deps: RepairAspectDeps): RepairSurface => {
         spawner,
         ...withOptionalSignal(opts?.signal),
         ...withOptionalOnEvent(opts?.onEvent),
+      }),
+    fromError: (input) =>
+      planRepairFromError({
+        error: input.error,
+        target: input.target,
+        http,
+        cache,
+        ...withOptionalSignal(input.signal),
       }),
   };
 };

@@ -1,4 +1,5 @@
 import type { MetadataCache } from "./cache";
+import type { MinecraftKitErrorCode, MinecraftKitErrorContext } from "./errors";
 import type { OperationOptions } from "./events";
 import type { HttpClient } from "./http";
 import type { InstallAction } from "./install";
@@ -137,4 +138,41 @@ export type RepairPlanOptions = {
 export type RepairAspect = {
   plan(target: Target, options: RepairPlanOptions): Promise<RepairPlan>;
   run(plan: RepairPlan, options?: OperationOptions): Promise<RepairReport>;
+};
+
+/**
+ * Structural shape of the `MinecraftKitError` passed to {@link RepairFromErrorInput}.
+ * Defined here so `src/types/` does not need to import the error class from `src/core/`.
+ * Any thrown `MinecraftKitError` satisfies this shape.
+ *
+ * @internal
+ */
+export type RepairableErrorLike = {
+  readonly code: MinecraftKitErrorCode;
+  readonly context: Readonly<MinecraftKitErrorContext>;
+};
+
+/**
+ * Inputs to `kit.repair.fromError({ error, target })`. Resume a failed install by deriving
+ * the smallest possible {@link RepairPlan} from a typed {@link MinecraftKitError} thrown by
+ * a previous `kit.install.run` (or any other operation that surfaces the same codes).
+ *
+ * @example
+ * ```ts
+ * import { isMinecraftKitError } from "@loontail/minecraft-kit";
+ *
+ * try {
+ *   await kit.install.run(plan);
+ * } catch (error) {
+ *   if (isMinecraftKitError(error)) {
+ *     const resume = await kit.repair.fromError({ error, target });
+ *     await kit.repair.minecraft.run(resume);
+ *   } else throw error;
+ * }
+ * ```
+ */
+export type RepairFromErrorInput = {
+  readonly error: RepairableErrorLike;
+  readonly target: Target;
+  readonly signal?: AbortSignal;
 };

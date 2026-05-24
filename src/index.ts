@@ -56,8 +56,11 @@ export {
   planFabricRepair,
   planForgeRepair,
   planMinecraftRepair,
+  planRepairFromError,
   planRuntimeRepair,
   type RepairAllReport,
+  type RepairFromErrorSupportedCode,
+  RepairFromErrorSupportedCodes,
   repairAll,
   runRepair,
 } from "./repair/index";
@@ -164,7 +167,9 @@ export {
 } from "./types/minecraft";
 export {
   type AspectRepairInput,
+  type RepairableErrorLike,
   type RepairAspect,
+  type RepairFromErrorInput,
   type RepairPhase,
   RepairPhases,
   type RepairPlan,

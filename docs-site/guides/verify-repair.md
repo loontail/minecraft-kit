@@ -73,3 +73,47 @@ const plan = await kit.repair.minecraft.plan(target, {
   fresh install. When the Forge version JSON is missing entirely the planner adds every
   forge-library plus all processors as a defensive sweep — `downloadFile` skips files that
   are already correct, so the cost is bounded.
+
+## Resume from a thrown error
+
+When an install fails with a typed `MinecraftKitError`, you do not have to re-verify the
+entire installation to fix the one broken artifact. Hand the error to
+`kit.repair.fromError` and run the resulting plan:
+
+```ts
+import {
+  isMinecraftKitError,
+  MinecraftKitErrorCodes,
+  RepairFromErrorSupportedCodes,
+} from "@loontail/minecraft-kit";
+
+try {
+  await kit.install.run(plan);
+} catch (error) {
+  if (!isMinecraftKitError(error)) throw error;
+  const supported = (Object.values(RepairFromErrorSupportedCodes) as string[]).includes(error.code);
+  if (!supported) {
+    const verification = await kit.verify.minecraft.run(target);
+    const fullPlan = await kit.repair.minecraft.plan(target, { from: verification });
+    await kit.repair.minecraft.run(fullPlan);
+    return;
+  }
+  const resumePlan = await kit.repair.fromError({ error, target });
+  await kit.repair.minecraft.run(resumePlan);
+}
+```
+
+`kit.repair.fromError` recognises:
+
+| Code | Resume strategy |
+|---|---|
+| `INTEGRITY_HASH_MISMATCH` / `INTEGRITY_SIZE_MISMATCH` | Re-download the single action whose URL matches `context.url`. |
+| `NETWORK_HTTP_ERROR` / `NETWORK_TIMEOUT` | Re-download the action whose URL (or one of its mirror URLs) matches `context.url` / `context.urls`. `NETWORK_HTTP_ERROR` also accepts `context.filePath` for the destination match. |
+| `FILESYSTEM_WRITE_ERROR` | Re-run the `DOWNLOAD_FILE`, `WRITE_VERSION_JSON`, or `WRITE_LOGGING_CONFIG` action that owns `context.filePath`. |
+| `FORGE_PROCESSOR_FAILED` | Re-run the entire Forge processor stage — every `FORGE_LIBRARY` / `FORGE_INSTALLER` download, the forge version JSON write, and every `RUN_FORGE_PROCESSOR`. We do not pinpoint a single processor by `mainClass`: the chain is sequential and one failure typically invalidates everything downstream. |
+
+Any other error code throws `INVALID_INPUT` — those failures need the regular
+`verify → plan → run` flow because their recovery is not encoded in the error context.
+A code in the supported set that nonetheless does not match any planned action also throws
+`INVALID_INPUT` (the install plan no longer mentions the broken URL or path, so
+`fromError` cannot construct a useful repair).

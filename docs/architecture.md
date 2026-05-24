@@ -90,6 +90,14 @@ keeping only those whose target file was reported as broken. The Forge planner a
 defensive post-step: if the version JSON itself was missing, every forge-library plus all
 processors are included (skip-on-correct keeps it cheap).
 
+There is also a verify-less resume path: `kit.repair.fromError({ error, target })` —
+implemented in `src/repair/from-error.ts` — inspects a typed `MinecraftKitError` from a
+previous run and returns a `RepairPlan` containing only the actions named in
+`error.context` (one download for an integrity mismatch, the whole Forge processor stage
+for `FORGE_PROCESSOR_FAILED`, etc.). Supported codes are listed in
+`RepairFromErrorSupportedCodes`; anything else throws `INVALID_INPUT` so the caller falls
+back to the regular `verify → plan → run` flow.
+
 ### Launch
 1. `composeLaunch` resolves the on-disk version JSON chain (walking `inheritsFrom`), builds
    the classpath, computes every `${placeholder}` value, and folds the JVM/game args together.
