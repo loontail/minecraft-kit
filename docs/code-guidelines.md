@@ -55,6 +55,18 @@ All thrown errors are `MinecraftKitError` with a stable `code`. New codes are ad
 - Class names use PascalCase and end in their role: `Api`, `Client`, `Spawner`, `Error`.
 - Functions are verbs: `planMinecraftRepair`, `resolveTarget`, `verifyHashedFile`.
 - Booleans start with `is`, `has`, `should`, `can`.
+- `Resolved*` prefix is reserved for the output of a resolver where a raw upstream
+  shape with the bare name is already exported from the same module:
+  `MinecraftVersionManifest` ↔ `ResolvedMinecraft`, `FabricProfile` ↔
+  `ResolvedFabricLoader`, `ForgeInstallProfile` / `ForgeVersionJson` ↔
+  `ResolvedForgeLoader`, `RuntimeFilesManifest` ↔ `ResolvedRuntime`.
+  `ResolvedVanillaLoader` keeps the prefix to stay parallel inside the
+  discriminated `Loader` union even though Vanilla has no raw counterpart.
+  Do not add the prefix to types that lack a paired raw shape — `Target`,
+  `*Summary` (listing entries), `MojangSession`, `LaunchComposition`,
+  `InstallPlan`, and similar self-describing domain entities stay bare; the
+  discovery output uses its own `Discovered*` prefix because the hint is
+  filesystem-inferred, not verified.
 
 ---
 
