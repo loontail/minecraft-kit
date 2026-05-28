@@ -1,9 +1,7 @@
 # Security model
 
-The kit follows untrusted input through three boundaries: HTTP (manifests + downloads),
-filesystem (archive extraction + atomic writes), and child processes (Forge processors +
-launch). This page documents every defence in place — useful when pen-testing your
-launcher or threat-modelling a hostile network.
+The kit treats HTTP metadata, archive contents, filesystem paths, and spawned processes as
+untrusted boundaries.
 
 ## Downloads
 
@@ -20,9 +18,8 @@ await downloadFile(http, { url: "file:///etc/passwd", target });
 
 ### Host allow-list (optional)
 
-For launchers shipping in a hostile environment (corporate proxies, captured DNS, etc.),
-the internal `downloadFile` accepts a `hostAllowList` that pins downloads to a known set
-of hosts. Entries support an exact host or a leading wildcard label:
+`downloadFile` accepts a `hostAllowList` that pins downloads to exact hosts or leading
+wildcard labels:
 
 ```ts
 import { FetchHttpClient } from "@loontail/minecraft-kit";
@@ -52,9 +49,8 @@ the code trusts it. Currently enforced:
 - `INTEGRITY_HASH_MISMATCH` / `INTEGRITY_SIZE_MISMATCH` at the download boundary — the
   downloader computes sha1 on the fly and rejects bytes that don't match the manifest.
 
-Predicates are deliberately permissive on field *values* (e.g. `sha1` is checked as a
-string, not strict 40-char hex) because legacy Mojang manifests sometimes ship placeholder
-hashes. Integrity is enforced at download time, not parse time.
+Predicates are permissive on field *values* because legacy Mojang manifests can ship
+placeholder hashes. Integrity is enforced at download time.
 
 Add new guards to `src/core/guards.ts` and call `parseJsonAs(text, guard, { code, message })`
 at the boundary.

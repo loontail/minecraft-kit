@@ -1,4 +1,4 @@
-import { Loaders } from "../../../types/loader";
+import { Loaders } from "../../../index";
 import { formatUserError } from "../../error-format";
 import type { SelectOption, Ui, WizardOutcome } from "../../ui";
 import type { InstallType, ScenarioContext } from "../types";

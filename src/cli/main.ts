@@ -1,5 +1,5 @@
 import process from "node:process";
-import { MinecraftKit } from "../kit";
+import { MinecraftKit } from "../index";
 import { formatUserError } from "./error-format";
 import {
   type AuthRef,

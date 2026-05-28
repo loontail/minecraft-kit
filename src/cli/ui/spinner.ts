@@ -11,7 +11,7 @@
  * @packageDocumentation
  */
 
-import { assertNever } from "../../core/assert-never";
+import { assertNever } from "../../index";
 import type { UiSpinner } from "./types";
 
 /**

@@ -1,10 +1,9 @@
 # Launch
 
-Launching is split into two independent steps so you can preview the command before spawning
-anything:
+Launching has two steps: compose a command, then spawn it.
 
 ```ts
-import { AuthModes } from "@loontail/minecraft-kit";
+import { AuthModes, EventTypes } from "@loontail/minecraft-kit";
 
 const composition = await kit.launch.compose(target, {
   auth: { mode: AuthModes.OFFLINE, username: "Player" },
@@ -14,7 +13,7 @@ const composition = await kit.launch.compose(target, {
 
 const session = kit.launch.run(composition, {
   onEvent: (e) => {
-    if (e.type === "launch:stdout") console.log(`[mc] ${e.line}`);
+    if (e.type === EventTypes.LAUNCH_STDOUT) console.log(`[mc] ${e.line}`);
   },
 });
 await session.exited;
@@ -45,7 +44,7 @@ It reads the on-disk `versions/<id>/<id>.json` for the chosen loader, walks the
 `${...}` placeholder against the auth + paths, and returns a deterministic command line. No
 process is spawned.
 
-You can freely log, diff, persist, or modify the composition before passing it to `run()`.
+Log, diff, persist, or modify the composition before passing it to `run()`.
 
 ## Run
 

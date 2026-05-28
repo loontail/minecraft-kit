@@ -1,6 +1,6 @@
 # Quickstart
 
-Two launch modes are supported:
+Two launch modes:
 
 - **Offline** — no Microsoft account needed; can't connect to online servers.
 - **Online** — full Microsoft sign-in via OAuth 2.0 Authorization Code + PKCE; returns a
@@ -49,29 +49,37 @@ redirect and returns a `MojangSession` ready for `kit.launch.compose`. Tokens ne
 touch disk inside the kit — **persisting the refresh token is your launcher's job**.
 
 ```ts
-import { MinecraftKit, Loaders, toOnlineAuth } from "@loontail/minecraft-kit";
+import {
+  asAzureClientId,
+  asMicrosoftRefreshToken,
+  MinecraftKit,
+  Loaders,
+  toOnlineAuth,
+} from "@loontail/minecraft-kit";
 import fs from "node:fs/promises";
 
 const kit = new MinecraftKit();
+const clientId = asAzureClientId(process.env.MINECRAFT_KIT_MSA_CLIENT_ID ?? "");
 
 // 1. Sign in. Reuse a saved refresh token if available, otherwise prompt.
 const saved = await readSavedSession();
 const session = saved
-  ? await kit.auth.refresh(saved.refreshToken, { clientId: saved.clientId })
+  ? await kit.auth.refresh(asMicrosoftRefreshToken(saved.refreshToken), {
+      clientId: asAzureClientId(saved.clientId),
+    })
   : await kit.auth.authorizationCode.run({
-      clientId: process.env.MINECRAFT_KIT_MSA_CLIENT_ID,
+      clientId,
       onOpenBrowser: async (url) => {
         // Open `url` in the user's system browser:
         //   Electron: shell.openExternal(url)
         //   CLI:      await import("open").then((o) => o.default(url))
-        // The kit waits for Microsoft to redirect back to its loopback listener —
-        // no codes for the user to type.
+        // The kit waits for Microsoft's loopback redirect.
         console.log(`Open ${url} in your browser to sign in.`);
       },
     });
 
-// 2. Persist the refresh token + client id for next start.
-//    `session.minecraft.accessToken` is short-lived — do NOT cache it.
+// 2. Persist refresh token + client id for next start.
+//    `session.minecraft.accessToken` is short-lived; do not cache it.
 await saveSession({
   refreshToken: session.microsoft.refreshToken,
   clientId: session.microsoft.clientId,
@@ -97,14 +105,14 @@ const minecraft = kit.launch.run(composition);
 await minecraft.exited;
 
 // --- helpers (your launcher's own storage; nothing the kit ships) ---
-async function readSavedSession() {
+async function readSavedSession(): Promise<{ refreshToken: string; clientId: string } | null> {
   try {
     return JSON.parse(await fs.readFile("./session.json", "utf8"));
   } catch {
     return null;
   }
 }
-async function saveSession(data: { refreshToken: string; clientId: string }) {
+async function saveSession(data: { refreshToken: string; clientId: string }): Promise<void> {
   await fs.writeFile("./session.json", JSON.stringify(data, null, 2));
 }
 ```
@@ -128,9 +136,8 @@ Pass the Application (client) ID via `MINECRAFT_KIT_MSA_CLIENT_ID` or the `clien
 option. The kit refuses to ship a default — `AUTH_MISSING_CLIENT_ID` is thrown when
 neither is set.
 
-The full surface (refresh, error taxonomy, tracing) is in the
-[authentication guide](../guides/auth). Skin mutations are documented separately in
-[skins](../guides/skins).
+More auth details are in [Authentication](../guides/auth). Skin mutations are in
+[Skins](../guides/skins).
 
 ## Statelessness
 

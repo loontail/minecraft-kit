@@ -1,7 +1,10 @@
 import path from "node:path";
-import { assertNever } from "../../core/assert-never";
-import { Loaders } from "../../types/loader";
-import type { MinecraftChannel, MinecraftVersionSummary } from "../../types/minecraft";
+import {
+  Loaders,
+  type MinecraftChannel,
+  type MinecraftVersionSummary,
+  assertNever,
+} from "../../index";
 import { formatUserError } from "../error-format";
 import {
   defaultIdFor,

@@ -1,6 +1,4 @@
-import { Loaders } from "../../types/loader";
-import type { Target } from "../../types/target";
-import type { VerificationResult } from "../../types/verify";
+import { Loaders, type Target, type VerificationResult } from "../../index";
 import { formatUserError } from "../error-format";
 import { ProgressRenderer } from "../progress";
 import { formatSummary } from "./install-helpers";

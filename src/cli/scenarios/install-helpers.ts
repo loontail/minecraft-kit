@@ -1,8 +1,11 @@
 import path from "node:path";
-import { Loaders } from "../../types/loader";
-import type { MinecraftVersionSummary } from "../../types/minecraft";
-import type { ResolvedRuntime } from "../../types/runtime";
-import type { DiscoveredTarget, Target } from "../../types/target";
+import {
+  type DiscoveredTarget,
+  Loaders,
+  type MinecraftVersionSummary,
+  type ResolvedRuntime,
+  type Target,
+} from "../../index";
 import { formatUserError } from "../error-format";
 import { ProgressRenderer, type ProgressSummary, formatBytes, formatDuration } from "../progress";
 import {

@@ -19,8 +19,6 @@ import { verifyRuntime } from "../verify/runtime";
 /**
  * Shape of `kit.verify`. The four per-aspect surfaces all share the same `(target,
  * options) → Promise<VerificationResult>` contract.
- *
- * @internal
  */
 export type VerifyAspect = {
   readonly minecraft: {

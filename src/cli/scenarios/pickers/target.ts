@@ -1,6 +1,5 @@
 import path from "node:path";
-import { Loaders, VersionPreference } from "../../../types/loader";
-import type { DiscoveredTarget, Target } from "../../../types/target";
+import { type DiscoveredTarget, Loaders, type Target, VersionPreference } from "../../../index";
 import { formatUserError } from "../../error-format";
 import type { WizardOutcome } from "../../ui";
 import type { ScenarioContext } from "../types";

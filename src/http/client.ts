@@ -50,8 +50,6 @@ export class FetchHttpClient implements HttpClient {
       }
       response = await fetch(url, init);
     } catch (cause) {
-      clearTimeout(timer);
-      options.signal?.removeEventListener("abort", onParentAbort);
       if (controller.signal.reason === TIMEOUT_REASON) {
         throw new MinecraftKitError(
           MinecraftKitErrorCodes.NETWORK_TIMEOUT,
@@ -80,9 +78,10 @@ export class FetchHttpClient implements HttpClient {
           context: { url },
         },
       );
+    } finally {
+      clearTimeout(timer);
+      options.signal?.removeEventListener("abort", onParentAbort);
     }
-    clearTimeout(timer);
-    options.signal?.removeEventListener("abort", onParentAbort);
     if (!response.ok && options.acceptNonOk !== true) {
       throw new MinecraftKitError(
         MinecraftKitErrorCodes.NETWORK_HTTP_ERROR,

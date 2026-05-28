@@ -20,8 +20,6 @@ import type { Target } from "../types/target";
 
 /**
  * Shape of `kit.launch`.
- *
- * @internal
  */
 export type LaunchAspect = {
   compose(target: Target, options: LaunchOptions): Promise<LaunchComposition>;

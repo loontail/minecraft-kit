@@ -7,26 +7,14 @@ and modern Forge.
 
 ## Features
 
-- **Install** vanilla Minecraft, Fabric, and modern Forge end-to-end.
-- **Java runtimes** — install Mojang's `java-runtime-gamma` / `delta` / `jre-legacy` /
-  others, either bundled with a target or standalone.
-- **Verify, repair, launch.** Per-aspect verifiers tell you exactly which files are missing
-  or corrupted; repair re-downloads only those.
-- **Microsoft OAuth.** Built-in Microsoft sign-in (OAuth 2.0 Authorization Code + PKCE)
-  with a loopback redirect returns a `MojangSession` ready for online launches.
-  Refresh, switch account, sign out — all without persisting tokens; that stays in your
-  launcher's hands.
-- **Skin management.** `kit.auth.profile.*` — set a skin from URL or PNG bytes, or
-  reset to the default Steve / Alex. Every mutation returns the updated
-  `MinecraftProfile` so launcher UIs refresh without an extra read.
-- **Typed events.** Discriminated-union `onEvent` callbacks cover every download, integrity
-  check, archive extraction, processor invocation, and launch transition.
-- **Defence in depth.** URL scheme allow-list on every download, optional host pinning,
-  manifest shape validation, zip-bomb caps, zip-slip rejection, atomic writes.
-- **Interactive CLI** (`mckit`) — install / verify / repair / launch / sign-in from a single
-  menu.
-- **Stateless** — writes only the files Minecraft itself needs; no profile registry, no
-  session files, no launcher-private metadata.
+- Install vanilla Minecraft, Fabric, modern Forge, and Mojang Java runtimes.
+- Verify and repair only missing or corrupt files.
+- Launch with offline auth or Microsoft OAuth 2.0 Authorization Code + PKCE.
+- Mutate Mojang skins through `kit.auth.profile.*`.
+- Consume typed progress events for downloads, integrity checks, Forge processors, and launch.
+- Use the interactive `mckit` CLI for the same flows.
+- Stay stateless: the kit writes Minecraft files only; token/profile persistence belongs to
+  the host launcher.
 
 ## Install
 
@@ -44,6 +32,7 @@ import {
   AuthModes,
   Loaders,
   MinecraftKit,
+  SkinVariants,
 } from "@loontail/minecraft-kit";
 
 const kit = new MinecraftKit();
@@ -132,14 +121,14 @@ import { readFile } from "node:fs/promises";
 await kit.auth.profile.setSkinFromUrl({
   accessToken: session.minecraft.accessToken,
   url: "https://textures.minecraft.net/texture/abc...",
-  variant: "CLASSIC", // or "SLIM" for the Alex model
+  variant: SkinVariants.CLASSIC,
 });
 
 // Upload a local PNG.
 await kit.auth.profile.uploadSkin({
   accessToken: session.minecraft.accessToken,
   skin: await readFile("./alex.png"),
-  variant: "SLIM",
+  variant: SkinVariants.SLIM,
 });
 
 // Drop back to Steve / Alex.
@@ -149,8 +138,7 @@ await kit.auth.profile.resetSkin({ accessToken: session.minecraft.accessToken })
 Capes are not exposed — Mojang's API doesn't allow launchers to set custom capes
 (only Mojang-issued ones like Migrator / MineCon), so the kit ships no cape API.
 
-See [docs/guides/skins](https://loontail.github.io/minecraft-kit/guides/skins) for the
-full surface and error taxonomy.
+See [Skins](https://loontail.github.io/minecraft-kit/guides/skins).
 
 ## CLI
 

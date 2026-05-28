@@ -9,7 +9,7 @@ import {
   type RawProfileResponse,
   parseProfileResponse,
 } from "./minecraft";
-import { type SkinVariantInput, detectSkinVariant } from "./skin-variant-detect";
+import { type SkinVariantInput, SkinVariantInputs, detectSkinVariant } from "./skin-variant-detect";
 
 const PROFILE_URL = "https://api.minecraftservices.com/minecraft/profile";
 const SKIN_URL = `${PROFILE_URL}/skins`;
@@ -201,7 +201,7 @@ export const uploadSkin = async (
   input: UploadSkinInput,
 ): Promise<MinecraftProfile> => {
   const variant: SkinVariant =
-    input.variant === "AUTO" ? detectSkinVariant(input.skin) : input.variant;
+    input.variant === SkinVariantInputs.AUTO ? detectSkinVariant(input.skin) : input.variant;
   const { body, contentType } = buildSkinMultipart(
     variant.toLowerCase(),
     input.skin,

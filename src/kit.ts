@@ -28,7 +28,10 @@ import { ForgeVersionsApi } from "./versions/forge";
 import { MinecraftVersionsApi } from "./versions/minecraft";
 import { RuntimeVersionsApi } from "./versions/runtime";
 
-export type { InstallRunOptions } from "./kit/install-aspect";
+export type { InstallAspect, InstallRunOptions } from "./kit/install-aspect";
+export type { LaunchAspect } from "./kit/launch-aspect";
+export type { RepairSurface } from "./kit/repair-aspect";
+export type { VerifyAspect } from "./kit/verify-aspect";
 
 /**
  * Constructor options for {@link MinecraftKit}.

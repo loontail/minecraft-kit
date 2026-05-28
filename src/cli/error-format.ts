@@ -1,5 +1,4 @@
-import { type MinecraftKitError, isMinecraftKitError } from "../core/errors";
-import type { MinecraftKitErrorCode } from "../types/errors";
+import { type MinecraftKitError, type MinecraftKitErrorCode, isMinecraftKitError } from "../index";
 
 const formatNetworkHttpError = (e: MinecraftKitError): string => {
   const status = typeof e.context.httpStatus === "number" ? e.context.httpStatus : undefined;

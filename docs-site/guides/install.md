@@ -1,7 +1,7 @@
 # Install
 
-The install API splits planning from execution. `plan()` produces a flat list of actions
-without touching the disk (with one exception, noted below); `run()` executes them.
+Install is split into planning and execution. `plan()` produces actions; `run()` executes
+them.
 
 ## Plan
 
@@ -37,7 +37,7 @@ The runner:
 - runs Forge processors sequentially using the installed Mojang JDK;
 - verifies each processor's declared output files by SHA-1.
 
-`run()` throws an `MinecraftKitError` on the first fatal failure (HTTP error after the
+`run()` throws a `MinecraftKitError` on the first fatal failure (HTTP error after the
 retry budget, hash mismatch, processor failure, abort signal). Per-file network failures that
 are retryable are reflected via `download:failed` events with `willRetry: true` and do not
 abort the operation.
@@ -101,8 +101,7 @@ directly).
 
 ## Runtime-only installs
 
-To install just a Java runtime — no Minecraft, no libraries, no assets — use the standalone
-flow:
+To install only a Java runtime, use the standalone flow:
 
 ```ts
 const runtime = await kit.versions.runtime.resolve({
@@ -121,12 +120,10 @@ await kit.install.runtime.run(plan, {
 });
 ```
 
-`standalonePlan` produces a regular `InstallPlan` so it runs through the same `install.runtime.run`
-entry point. The plan contains only `DOWNLOAD_FILE` actions for the runtime files — no
-client jar, no libraries.
+`standalonePlan` produces a regular `InstallPlan` with only runtime `DOWNLOAD_FILE` actions.
 
 ## Updates
 
-An "update" is just an install: the install runner skips files whose on-disk size and SHA-1
+An "update" is an install pass: the install runner skips files whose on-disk size and SHA-1
 already match the manifest. `InstallReport.actionsSkipped` tells you how many files were
 already current. There is no separate `kit.update.*` surface.

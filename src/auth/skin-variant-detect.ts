@@ -1,6 +1,6 @@
 import { inflateSync } from "node:zlib";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
-import type { SkinVariant } from "../types/auth";
+import { type SkinVariant, SkinVariants } from "../types/auth";
 
 /**
  * Skin-variant input that accepts `"AUTO"` in addition to the regular
@@ -16,7 +16,12 @@ import type { SkinVariant } from "../types/auth";
  * await kit.auth.profile.uploadSkin({ accessToken, skin, variant });
  * ```
  */
-export type SkinVariantInput = SkinVariant | "AUTO";
+export const SkinVariantInputs = {
+  ...SkinVariants,
+  AUTO: "AUTO",
+} as const;
+
+export type SkinVariantInput = (typeof SkinVariantInputs)[keyof typeof SkinVariantInputs];
 
 /**
  * Inspect the raw PNG bytes of a Minecraft skin and decide whether it
@@ -44,10 +49,10 @@ export type SkinVariantInput = SkinVariant | "AUTO";
 export const detectSkinVariant = (png: Uint8Array): SkinVariant => {
   const decoded = decodePng(png);
   // 64×32 legacy skins predate Alex and can only render as Steve.
-  if (decoded.height === 32) return "CLASSIC";
+  if (decoded.height === 32) return SkinVariants.CLASSIC;
   // Anything that is not the canonical 64×64 modern layout — fall back to
   // CLASSIC. The caller can always override by passing an explicit variant.
-  if (decoded.width !== 64 || decoded.height !== 64) return "CLASSIC";
+  if (decoded.width !== 64 || decoded.height !== 64) return SkinVariants.CLASSIC;
 
   let transparent = 0;
   for (const [x, y] of SLIM_EMPTY_SAMPLES) {
@@ -57,7 +62,7 @@ export const detectSkinVariant = (png: Uint8Array): SkinVariant => {
   // Majority vote — a SLIM skin should have every sample fully transparent
   // (alpha == 0). Lazy edits or partial paints can leave a few opaque, so
   // accept a small amount of noise.
-  return transparent * 2 >= SLIM_EMPTY_SAMPLES.length ? "SLIM" : "CLASSIC";
+  return transparent * 2 >= SLIM_EMPTY_SAMPLES.length ? SkinVariants.SLIM : SkinVariants.CLASSIC;
 };
 
 const PNG_SIGNATURE: ReadonlyArray<number> = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];

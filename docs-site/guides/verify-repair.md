@@ -1,7 +1,7 @@
 # Verify and repair
 
-Verification and repair share an aspect-based shape: `minecraft`, `fabric`, `forge`,
-`runtime`. You run only the aspects that apply to your target.
+Verification and repair are aspect-based: `minecraft`, `fabric`, `forge`, `runtime`.
+Run only the aspects that apply to the target.
 
 ## Verify
 
@@ -48,10 +48,8 @@ await kit.repair.minecraft.run(plan, {
 });
 ```
 
-`plan` intersects the install plan with the verification issues so only broken / missing
-files get touched. The install runner executes the repair — there is no separate runner to
-drift apart from install behaviour, and `actionsSkipped` in the resulting report tells you
-how many files were already correct.
+`plan` intersects the install plan with verification issues, so only broken or missing files
+are touched. Repair uses the install runner.
 
 `from` accepts a single `VerificationResult` *or* an array — useful if you ran more than one
 aspect verifier:
@@ -92,8 +90,7 @@ produced an empty plan, or the mode was `RepairModes.REPORT`. Pass `onEvent` to 
 both `verify:file-checked` and the repair-time `install:phase-changed` / `download:*`
 events.
 
-The standalone surfaces (`kit.verify.<aspect>.run`, `kit.repair.<aspect>.plan/run`) stay —
-this helper is only the convenience case for "find and fix this one aspect now".
+Use the standalone surfaces when you need to inspect or confirm before writing.
 
 ## Repair semantics
 

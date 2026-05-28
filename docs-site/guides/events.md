@@ -1,8 +1,7 @@
 # Progress events
 
-Every long-running operation accepts an `onEvent` callback. Events form a discriminated
-union, so a `switch` on `event.type` gives you exhaustiveness checking. Compare against
-`EventTypes` to avoid magic strings:
+Long-running operations accept `onEvent`. Events form a discriminated union; compare
+against `EventTypes`:
 
 ```ts
 import type { ProgressEvent } from "@loontail/minecraft-kit";
@@ -77,9 +76,8 @@ tracker.finish();
 unsubscribe();
 ```
 
-The snapshot carries `stage` (a `ProgressStage`), `stagePercent`, `overallPercent`,
-`bytesDownloaded`, `totalBytes`, and `currentFile`. See the [API reference](../api/) for
-the full type.
+The snapshot carries `stage`, `stagePercent`, `overallPercent`, `bytesDownloaded`,
+`totalBytes`, and `currentFile`.
 
 `ProgressStages` are deliberately separate from `InstallPhases`: the latter is the
 fine-grained sequence the install runner walks through (`PLANNING`,

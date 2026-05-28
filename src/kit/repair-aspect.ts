@@ -33,8 +33,6 @@ import type { Target } from "../types/target";
  * Shape of `kit.repair`. Four aspect-specific surfaces plus the `all` convenience that
  * verifies every applicable slice and repairs each broken one, and `fromError` which
  * resumes a failed install by deriving a focused plan from a typed `MinecraftKitError`.
- *
- * @internal
  */
 export type RepairSurface = {
   readonly minecraft: RepairAspect;

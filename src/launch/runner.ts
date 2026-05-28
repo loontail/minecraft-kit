@@ -50,35 +50,54 @@ export const runLaunch = (input: RunLaunchInput): LaunchSession => {
 
   const grace = options.killGracePeriodMs ?? DEFAULT_KILL_GRACE_MS;
   let aborted = false;
+  let finished = false;
+  let killTimer: NodeJS.Timeout | null = null;
+  let onSignalAbort: (() => void) | null = null;
+  const clearKillTimer = (): void => {
+    if (killTimer === null) return;
+    clearTimeout(killTimer);
+    killTimer = null;
+  };
+  const removeAbortListener = (): void => {
+    if (options.signal === undefined || onSignalAbort === null) return;
+    options.signal.removeEventListener("abort", onSignalAbort);
+    onSignalAbort = null;
+  };
   const doAbort = (reason: string): void => {
-    if (aborted) return;
+    if (aborted || finished) return;
     aborted = true;
     options.onEvent?.({ type: EventTypes.LAUNCH_ABORTED, reason });
     child.kill("SIGTERM");
-    setTimeout(() => child.kill("SIGKILL"), grace).unref();
+    killTimer = setTimeout(() => child.kill("SIGKILL"), grace);
+    killTimer.unref();
   };
 
   if (options.signal !== undefined) {
     if (options.signal.aborted) {
       doAbort(reasonFrom(options.signal.reason));
     } else {
-      options.signal.addEventListener("abort", () => doAbort(reasonFrom(options.signal?.reason)), {
-        once: true,
-      });
+      onSignalAbort = () => doAbort(reasonFrom(options.signal?.reason));
+      options.signal.addEventListener("abort", onSignalAbort, { once: true });
     }
   }
 
   const exited: Promise<LaunchExit> = (async () => {
-    const { code, signal } = await child.exited;
-    options.onEvent?.({ type: EventTypes.LAUNCH_EXITED, code, signal });
-    if (!aborted && code !== 0 && code !== null) {
-      throw new MinecraftKitError(
-        MinecraftKitErrorCodes.LAUNCH_PROCESS_FAILED,
-        `Minecraft process exited with code ${code}`,
-        { context: { exitCode: code } },
-      );
+    try {
+      const { code, signal } = await child.exited;
+      options.onEvent?.({ type: EventTypes.LAUNCH_EXITED, code, signal });
+      if (!aborted && code !== 0 && code !== null) {
+        throw new MinecraftKitError(
+          MinecraftKitErrorCodes.LAUNCH_PROCESS_FAILED,
+          `Minecraft process exited with code ${code}`,
+          { context: { exitCode: code } },
+        );
+      }
+      return { code, signal, aborted };
+    } finally {
+      finished = true;
+      clearKillTimer();
+      removeAbortListener();
     }
-    return { code, signal, aborted };
   })();
 
   return {

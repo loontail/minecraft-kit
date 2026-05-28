@@ -1,6 +1,6 @@
 # Library usage
 
-Every public capability hangs off a single facade class:
+Use the facade for normal launcher code:
 
 ```ts
 import { MinecraftKit } from "@loontail/minecraft-kit";
@@ -34,7 +34,7 @@ new MinecraftKit({
 });
 ```
 
-Every dependency is replaceable.
+Replace dependencies for tests, custom transport, logging, or process supervision.
 
 ## Symmetric versions API
 
@@ -66,8 +66,7 @@ await kit.versions.runtime.resolve({
 
 ## Standalone helpers
 
-Every method on `MinecraftKit` has a standalone counterpart you can import directly if
-you do not want the facade:
+Import standalone helpers when you do not want the facade:
 
 ```ts
 import {
@@ -82,7 +81,7 @@ import {
 } from "@loontail/minecraft-kit";
 ```
 
-The facade just composes these with the injected dependencies for you.
+The facade composes these with the injected dependencies.
 
 ## Logging
 
@@ -94,14 +93,11 @@ import { consoleLogger, silentLogger, scopedLogger } from "@loontail/minecraft-k
 const kit = new MinecraftKit({ logger: scopedLogger(consoleLogger, "launcher") });
 ```
 
-`scopedLogger(base, scope, baseFields?)` returns a `Logger` that prefixes every line
-with `[scope]` and merges `baseFields` into every emission. Returns the silent logger
-short-circuit when the base is silent. Internal modules of the kit already use this —
-the auth flow logs through `scopedLogger(base, "auth")`, for example.
+`scopedLogger(base, scope, baseFields?)` prefixes messages with `[scope]` and merges
+`baseFields` into every emission. The auth flow logs through `scopedLogger(base, "auth")`.
 
 ## Serialising a target
 
-`kit.targets.resolve` returns a fully self-contained `Target`. To remember it across
-processes, JSON-stringify the result; to use it later, pass the same `id` / `directory`
-/ `minecraft` / `loader` inputs to `kit.targets.resolve` again — the only thing fetched
-again is upstream metadata. There is no other persisted state.
+`kit.targets.resolve` returns a self-contained `Target`. To reuse it later, persist the
+same `id` / `directory` / `minecraft` / `loader` inputs and resolve again. Upstream
+metadata is fetched again; the kit stores no launcher state.

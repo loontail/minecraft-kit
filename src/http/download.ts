@@ -8,6 +8,7 @@ import { HTTP_RETRY_MAX } from "../constants/defaults";
 import { type CheckpointSources, checkpoint } from "../core/abort";
 import { MinecraftKitError, MinecraftKitErrorCodes, isMinecraftKitError } from "../core/errors";
 import { ensureDir } from "../core/fs";
+import { sha1OfFile } from "../core/hash";
 import { withOptionalPauseController, withOptionalSignal } from "../core/optional";
 import type { PauseController } from "../core/pause-controller";
 import { isHttpRetryable, withRetry } from "../core/retry";
@@ -328,8 +329,7 @@ const checkExistingFile = async (
   if (expectedSize !== undefined && stat.size !== expectedSize) {
     return { matches: false, sha1: "" };
   }
-  const buf = await fs.readFile(target);
-  const sha1 = crypto.createHash("sha1").update(buf).digest("hex");
+  const sha1 = await sha1OfFile(target);
   return { matches: sha1 === expectedSha1, sha1 };
 };
 

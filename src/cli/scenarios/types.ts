@@ -1,11 +1,13 @@
-import type { MinecraftKit } from "../../kit";
-import type { MojangSession, OfflineAuth, OnlineAuth } from "../../types/auth";
-import type { Loaders } from "../../types/loader";
 import {
+  type Loaders,
   type MinecraftChannel,
   MinecraftChannels,
+  type MinecraftKit,
   type MinecraftVersionSummary,
-} from "../../types/minecraft";
+  type MojangSession,
+  type OfflineAuth,
+  type OnlineAuth,
+} from "../../index";
 import type { SelectOption, Ui } from "../ui";
 
 /**

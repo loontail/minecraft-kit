@@ -144,8 +144,6 @@ export type RepairAspect = {
  * Structural shape of the `MinecraftKitError` passed to {@link RepairFromErrorInput}.
  * Defined here so `src/types/` does not need to import the error class from `src/core/`.
  * Any thrown `MinecraftKitError` satisfies this shape.
- *
- * @internal
  */
 export type RepairableErrorLike = {
   readonly code: MinecraftKitErrorCode;

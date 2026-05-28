@@ -21,7 +21,7 @@ only `kit.*` and types.
   `CHANNEL_OPTIONS`, `InstallWizardSteps` + `InstallRunResults` (as-const step/result names
   shared between `install.ts` and `install-helpers.ts`).
 - `scenarios/pickers/` — interactive pickers, one file per domain:
-  - `index.ts` — barrel.
+  - `index.ts` — re-export hub.
   - `version.ts` — `pickChannel`, `pickMinecraftVersion`, `pickMinecraftVersionFromEntry`.
   - `loader.ts` — `pickInstallType`, `pickFabricLoader`, `pickForgeBuild` (plus
     `FabricLoaderOutcome`, `ForgeBuildOutcome`).

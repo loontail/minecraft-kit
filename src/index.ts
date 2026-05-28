@@ -15,6 +15,7 @@ export type {
 export type { ReadProfileInput } from "./auth/profile-read";
 export {
   detectSkinVariant,
+  SkinVariantInputs,
   type SkinVariantInput,
 } from "./auth/skin-variant-detect";
 export { assertNever } from "./core/assert-never";
@@ -49,7 +50,14 @@ export {
   type PlanStandaloneRuntimeInstallInput,
 } from "./install/runtime-install";
 export { MinecraftKit } from "./kit";
-export type { InstallRunOptions, MinecraftKitOptions } from "./kit";
+export type {
+  InstallAspect,
+  InstallRunOptions,
+  LaunchAspect,
+  MinecraftKitOptions,
+  RepairSurface,
+  VerifyAspect,
+} from "./kit";
 export { ChildProcessSpawner } from "./launch/spawner";
 export { resolveLaunchVersion, type ResolvedLaunchVersion } from "./launch/version-resolution";
 export {
@@ -80,9 +88,11 @@ export {
   type LaunchAuth,
   type MicrosoftRefreshToken,
   type MinecraftProfile,
+  MojangAssetStates,
   type MojangAssetState,
   type MojangProfileSkin,
   type MojangSession,
+  SkinVariants,
   type SkinVariant,
   type OfflineAuth,
   type OnlineAuth,

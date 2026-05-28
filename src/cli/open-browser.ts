@@ -37,9 +37,14 @@ export const openBrowser = async (url: string): Promise<boolean> => {
   const { command, args } = pickCommand(url);
   return await new Promise<boolean>((resolve) => {
     let settled = false;
+    let timeout: NodeJS.Timeout | null = null;
     const finish = (value: boolean): void => {
       if (settled) return;
       settled = true;
+      if (timeout !== null) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
       resolve(value);
     };
     try {
@@ -50,7 +55,8 @@ export const openBrowser = async (url: string): Promise<boolean> => {
       });
       child.once("error", () => finish(false));
       child.once("spawn", () => finish(true));
-      setTimeout(() => finish(false), SPAWN_TIMEOUT_MS).unref();
+      timeout = setTimeout(() => finish(false), SPAWN_TIMEOUT_MS);
+      timeout.unref();
       child.unref();
     } catch {
       finish(false);

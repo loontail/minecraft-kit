@@ -1,11 +1,11 @@
-import { asMinecraftVersionId } from "../../../core/version-id";
 import {
+  type DiscoveredTarget,
   type MinecraftChannel,
   MinecraftChannels,
   type MinecraftVersionId,
   type MinecraftVersionSummary,
-} from "../../../types/minecraft";
-import type { DiscoveredTarget } from "../../../types/target";
+  asMinecraftVersionId,
+} from "../../../index";
 import { formatUserError } from "../../error-format";
 import type { SelectOption, Ui, WizardOutcome } from "../../ui";
 import { CHANNEL_OPTIONS, type ScenarioContext } from "../types";

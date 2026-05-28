@@ -155,7 +155,12 @@ export type LaunchAuth = OfflineAuth | OnlineAuth;
  *   skins.filter((s): s is MojangProfileSkin & { state: MojangAssetState } => s.state === "ACTIVE");
  * ```
  */
-export type MojangAssetState = "ACTIVE" | "INACTIVE";
+export const MojangAssetStates = {
+  ACTIVE: "ACTIVE",
+  INACTIVE: "INACTIVE",
+} as const;
+
+export type MojangAssetState = (typeof MojangAssetStates)[keyof typeof MojangAssetStates];
 
 /**
  * Skin model variant — `"CLASSIC"` for standard 4-pixel arms (Steve) or
@@ -168,7 +173,12 @@ export type MojangAssetState = "ACTIVE" | "INACTIVE";
  * const armOffset = (variant: SkinVariant): number => (variant === "SLIM" ? 3 : 4);
  * ```
  */
-export type SkinVariant = "CLASSIC" | "SLIM";
+export const SkinVariants = {
+  CLASSIC: "CLASSIC",
+  SLIM: "SLIM",
+} as const;
+
+export type SkinVariant = (typeof SkinVariants)[keyof typeof SkinVariants];
 
 /**
  * A single skin slot returned by `/minecraft/profile`.

@@ -97,7 +97,9 @@ CLI translates these into user-readable text in `src/cli/error-format.ts`. Domai
 
 ## 6. Process spawning
 
-- Always use the injected `Spawner`. Never call `child_process.spawn` from outside `src/launch/spawner.ts`.
+- Minecraft and Forge process execution goes through the injected `Spawner`.
+- The only direct `child_process.spawn` exception is `src/cli/open-browser.ts`, which opens a
+  validated `http(s)` URL with platform-native commands and never uses a shell.
 - Process arguments are constructed without shell interpolation. Never pass user data through `shell: true`.
 - Abort logic is idempotent. Multiple `abort()` calls and signal handlers must not double-emit events.
 - Stream buffers (stdout/stderr) have a bounded line length. Long lines are truncated rather than buffered indefinitely.

@@ -5,7 +5,13 @@
  * endpoint. Pair with `parseJsonAs` from `./json`.
  */
 
-import type { MojangAssetState, MojangProfileSkin, SkinVariant } from "../types/auth";
+import {
+  type MojangAssetState,
+  MojangAssetStates,
+  type MojangProfileSkin,
+  type SkinVariant,
+  SkinVariants,
+} from "../types/auth";
 import type { FabricProfile } from "../types/fabric";
 import type {
   AssetIndexDocument,
@@ -14,8 +20,10 @@ import type {
 } from "../types/minecraft";
 import type { RuntimeFilesManifest, RuntimeIndex } from "../types/runtime";
 
-const MOJANG_ASSET_STATES: ReadonlySet<MojangAssetState> = new Set(["ACTIVE", "INACTIVE"]);
-const MOJANG_SKIN_VARIANTS: ReadonlySet<SkinVariant> = new Set(["CLASSIC", "SLIM"]);
+const MOJANG_ASSET_STATES: ReadonlySet<MojangAssetState> = new Set(
+  Object.values(MojangAssetStates),
+);
+const MOJANG_SKIN_VARIANTS: ReadonlySet<SkinVariant> = new Set(Object.values(SkinVariants));
 
 /**
  * True when `value` is a non-null object.

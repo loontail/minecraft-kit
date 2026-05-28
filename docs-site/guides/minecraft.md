@@ -14,9 +14,8 @@ const resolved = await kit.versions.minecraft.resolve({ version: "1.20.1" });
 `resolve()` returns a `ResolvedMinecraft` containing the **full per-version manifest** (asset
 index, libraries, downloads, mainClass, javaVersion).
 
-For a vanilla target you do **not** need to resolve anything else — just pass
-`{ type: Loaders.VANILLA }` to `kit.targets.resolve` and the kit assembles the loader from
-the already-resolved Minecraft manifest:
+For a vanilla target, pass `{ type: Loaders.VANILLA }` to `kit.targets.resolve`; no loader
+metadata is needed.
 
 ```ts
 import { Loaders } from "@loontail/minecraft-kit";

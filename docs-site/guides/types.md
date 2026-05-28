@@ -1,7 +1,7 @@
 # Enums and types
 
-Public types live under `src/types/`. The barrel `src/types/index.ts` re-exports them; the
-package's `index.ts` re-exports the barrel.
+Import public types and const maps from `@loontail/minecraft-kit`. `src/index.ts` is the
+only public entrypoint.
 
 ## Const enum maps
 
@@ -19,17 +19,10 @@ package's `index.ts` re-exports the barrel.
 | `InstallActionKinds` | `DOWNLOAD_FILE` `EXTRACT_NATIVE` `RUN_FORGE_PROCESSOR` `WRITE_VERSION_JSON` `WRITE_LOGGING_CONFIG` |
 | `EventTypes` | One literal per `ProgressEvent.type` |
 | `AuthModes` | `OFFLINE` `ONLINE` |
+| `SkinVariants` | `CLASSIC` `SLIM` |
+| `SkinVariantInputs` | `CLASSIC` `SLIM` `AUTO` |
+| `MojangAssetStates` | `ACTIVE` `INACTIVE` |
 | `LogLevels` | `DEBUG` `INFO` `WARN` `ERROR` |
-
-## Profile literal types
-
-These are plain string-literal unions (not `as const` maps), used by the
-[skins API](./skins):
-
-| Type | Values |
-|---|---|
-| `MojangSkinVariant` | `"CLASSIC"` `"SLIM"` |
-| `MojangAssetState` | `"ACTIVE"` `"INACTIVE"` |
 
 ```ts
 import { Loaders, EventTypes, VerificationKinds } from "@loontail/minecraft-kit";
@@ -48,7 +41,4 @@ if (result.kind === VerificationKinds.MINECRAFT) { /* narrows */ }
 | `InstallAction` | `kind: InstallActionKinds.*` |
 | `ProgressEvent` | `type: EventTypes.*` (string literal) |
 
-A `switch` on the discriminator gives you exhaustiveness checking — TypeScript will tell you
-if you forgot a case.
-
-The [API reference](../api/) has the full shape of every interface and field.
+A `switch` on the discriminator gives exhaustiveness checking.

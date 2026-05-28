@@ -1,13 +1,15 @@
-import { CLIENT_ID_ENV_VAR, asAzureClientId, toOnlineAuth } from "../../auth/index";
-import { assertNever } from "../../core/assert-never";
-import { isMinecraftKitError } from "../../core/errors";
 import {
   AuthModes,
   type AzureClientId,
+  CLIENT_ID_ENV_VAR,
   type MojangSession,
   type OfflineAuth,
   type OnlineAuth,
-} from "../../types/auth";
+  asAzureClientId,
+  assertNever,
+  isMinecraftKitError,
+  toOnlineAuth,
+} from "../../index";
 import { formatUserError } from "../error-format";
 import { openBrowser } from "../open-browser";
 import type { AuthState, ScenarioContext, ScenarioOutcome } from "./types";

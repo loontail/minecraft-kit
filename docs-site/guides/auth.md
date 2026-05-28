@@ -32,17 +32,18 @@ security-posture decision.
 ## Sign in
 
 ```ts
-import { MinecraftKit } from "@loontail/minecraft-kit";
+import { asAzureClientId, MinecraftKit } from "@loontail/minecraft-kit";
 
 const kit = new MinecraftKit();
+const clientId = asAzureClientId(process.env.MINECRAFT_KIT_MSA_CLIENT_ID ?? "");
 
 const session = await kit.auth.authorizationCode.run({
-  clientId: process.env.MINECRAFT_KIT_MSA_CLIENT_ID,
+  clientId,
   onOpenBrowser: async (url) => {
     // Open `url` in the user's system browser.
     //   Electron: shell.openExternal(url)
     //   CLI:      import open from "open"; await open(url);
-    // The kit does not assume how to open browsers — that belongs to the host.
+    // Opening browsers belongs to the host environment.
   },
   signal: abortController.signal,
 });
@@ -54,8 +55,8 @@ console.log(session.microsoft.refreshToken); // ← persist this
 console.log(session.microsoft.clientId);     // ← persist this too
 ```
 
-The promise resolves only after the user finishes signing in in the browser (or rejects
-on abort, decline, or `invalid_grant` — see [error codes](./errors)). Internally the kit:
+The promise resolves after browser sign-in, or rejects on abort/decline/token failure.
+Internally the kit:
 
 1. Binds a loopback HTTP server on `127.0.0.1:<random>`.
 2. Hands you the Microsoft authorize URL via `onOpenBrowser`.
@@ -86,9 +87,7 @@ const composition = await kit.launch.compose(target, {
 const minecraft = kit.launch.run(composition);
 ```
 
-`toOnlineAuth(session)` projects the session into the `OnlineAuth` shape with
-`mode: AuthModes.ONLINE`, the player's uuid + username, the Mojang access token, the
-client id, and the XUID extracted from the JWT.
+`toOnlineAuth(session)` projects the session into the `OnlineAuth` shape.
 
 ## Validate a cached access token
 

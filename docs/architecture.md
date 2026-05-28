@@ -12,7 +12,7 @@ src/verify/          ← per-aspect file checks
 src/repair/          ← verify result → repair plan
 src/launch/          ← argument composition + child process
 src/auth/            ← Microsoft OAuth → Xbox → Minecraft sign-in
-src/versions/        ← Mojang / Fabric / Forge / Adoptium resolvers
+src/versions/        ← Mojang / Fabric / Forge / runtime resolvers
 src/targets/         ← target resolution & discovery
 ─────────────────────────────────────────────────────
 src/http/            ← HTTP client, cache, streaming download
@@ -38,8 +38,8 @@ are exposed for consumers that want to avoid the facade.
 - **Stateless.** The library only writes files Minecraft itself expects (`versions/`,
   `libraries/`, `assets/`, `runtime/`). There is no launcher-private state, no persisted
   session, no profile registry. Consumers own all metadata about their installations,
-  including authentication tokens — `kit.auth.login()` returns a `MojangSession`; storing
-  the refresh token is the launcher's job.
+  including authentication tokens — `kit.auth.authorizationCode.run()` returns a
+  `MojangSession`; storing the refresh token is the launcher's job.
 - **Plan + execute split.** Every long-running operation (install, update, repair) produces an
   `InstallPlan` before it starts touching disk. Tests assert on plans; runners are tested
   separately with `FakeHttpClient` / `FakeSpawner`.

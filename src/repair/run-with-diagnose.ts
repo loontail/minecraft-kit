@@ -27,10 +27,7 @@ import { runRepair } from "./runner";
 import { planRuntimeRepair } from "./runtime";
 
 /**
- * Inputs the helper needs from the kit constructor. Mirrors what the install / repair
- * runners require so callers can wire it identically.
- *
- * @internal
+ * Dependencies for the standalone {@link runVerifyAndRepair} helper.
  */
 export type RunVerifyAndRepairDeps = {
   readonly http: HttpClient;

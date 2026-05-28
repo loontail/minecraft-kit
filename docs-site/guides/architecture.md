@@ -49,7 +49,7 @@ src/auth/          Microsoft OAuth → Xbox → Minecraft sign-in pipeline +
                    profile mutations (skins).
 src/cli/           Interactive `mckit`; imports only the public facade.
 src/kit.ts         `MinecraftKit` facade.
-src/index.ts       Public barrel.
+src/index.ts       Public entrypoint.
 ```
 
 See [stateless](./stateless), [library usage](./library-usage), and [install](./install)

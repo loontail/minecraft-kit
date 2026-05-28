@@ -130,7 +130,8 @@ export type DownloadCategory = (typeof DownloadCategories)[keyof typeof Download
  * runner tries in order. Each URL gets a full retry budget; the next URL is only
  * consulted when the previous one's retries are exhausted. Pass a single string for the
  * common single-source case — the runner will treat it identically to a one-element
- * array. Use {@link pickPrimaryDownloadUrl} when you need a single string for display.
+ * array. For display, use the first array entry; progress events report the URL currently
+ * being fetched.
  *
  * @example
  * ```ts

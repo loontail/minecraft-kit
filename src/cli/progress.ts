@@ -1,6 +1,4 @@
-import { EventTypes } from "../types/events";
-import type { ProgressEvent, ProgressListener } from "../types/events";
-import type { InstallPhase } from "../types/install";
+import { EventTypes, type InstallPhase, type ProgressEvent, type ProgressListener } from "../index";
 import type { Ui, UiSpinner } from "./ui";
 
 type PhaseLabel = InstallPhase | "idle";

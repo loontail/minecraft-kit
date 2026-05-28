@@ -1,6 +1,6 @@
 # Interactive CLI: `mckit`
 
-The `mckit` binary is fully interactive — no required arguments.
+`mckit` is interactive; no arguments are required.
 
 ```bash
 mckit
@@ -23,7 +23,7 @@ on Windows, `open` on macOS, and `xdg-open` on Linux. The CLI waits for the loop
 redirect and stores the resulting `MojangSession` in memory for the session — nothing is
 written to disk.
 
-If sign-in fails for any reason the CLI falls back to the offline prompt with a warning.
+If sign-in fails, the CLI warns and offers offline mode.
 
 ## Main menu
 
@@ -89,7 +89,7 @@ events from the core library:
 [downloading-libraries] 124/1532 · 84.3 MB/512.7 MB · 12.4 MB/s · active 32 · ████████░░ 58% · …libraries/net/lwjgl/lwjgl/3.3.1/lwjgl-3.3.1.jar
 ```
 
-The line includes:
+Fields:
 
 - Current install phase (`downloading-libraries`, `extracting-natives`, …).
 - Files processed `X / Y`.
@@ -99,10 +99,9 @@ The line includes:
 - Textual progress bar (`████████░░ 58%`).
 - Truncated current-file path.
 
-The line is updated **in-place** through `spinner.message()` — it never produces a new
-console line per event. Refresh rate is capped (default 250 ms) and identical lines are
-deduped, so the console is never spammed. After the run, a summary note shows files
-downloaded / skipped / failed, total bytes, average speed, and duration.
+The line updates in place, refreshes at most every 250 ms by default, and skips identical
+renders. The final summary shows files downloaded / skipped / failed, total bytes, average
+speed, and duration.
 
 If `totalBytes` is unknown (zero-size manifests), the bar falls back to `—` while the
 file counter, live speed, and active-downloads counter continue to update. There is **no
@@ -117,7 +116,7 @@ The `Account…` entry from the main menu lets you:
 - **Switch account** — runs the sign-in flow again with a different Microsoft account.
 - **Sign out** — drops back to offline mode with a chosen username.
 
-When the CLI is in offline mode, `Account…` simply re-prompts for sign-in.
+In offline mode, `Account…` re-prompts for sign-in.
 
 ## Verify / Repair / Launch / Inspect
 

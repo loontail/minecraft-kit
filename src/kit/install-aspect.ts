@@ -72,10 +72,8 @@ export type InstallRunOptions = OperationOptions & {
 };
 
 /**
- * Shape of `kit.install`. Inline type rather than a public alias so the surface stays
- * derivable from `kit.install` and consumers do not need to import an intermediary.
- *
- * @internal
+ * Shape of `kit.install`. Consumers usually access this through `kit.install`; the alias is
+ * exported so the facade documentation can show the concrete surface.
  */
 export type InstallAspect = {
   plan(target: Target, options?: OperationOptions): Promise<InstallPlan>;

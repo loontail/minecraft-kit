@@ -1,7 +1,7 @@
 # Errors
 
-Every error thrown by a public API is a `MinecraftKitError` carrying a stable `code`,
-a frozen `context`, and (optionally) the wrapped `cause`. Narrow with the type guards:
+Public APIs throw `MinecraftKitError` with a stable `code`, frozen `context`, and optional
+`cause`. Narrow with the type guards:
 
 ```ts
 import {
@@ -25,10 +25,7 @@ try {
 }
 ```
 
-`isErrorCode(error, code)` accepts either the literal string or the `MinecraftKitErrorCodes`
-constant — the union derives from the as-const map, so both are type-equivalent. Prefer the
-constant: a typo on the literal is a no-match silently; a typo on the constant is a compile
-error.
+Prefer `MinecraftKitErrorCodes.*` over string literals; typos become compile errors.
 
 ## Codes by family
 
