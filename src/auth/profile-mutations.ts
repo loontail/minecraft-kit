@@ -75,6 +75,14 @@ const throwOnNonOk = async (response: HttpResponse): Promise<void> => {
   );
 };
 
+const executeProfileMutation = async (
+  pending: Promise<HttpResponse>,
+): Promise<MinecraftProfile> => {
+  const response = await pending;
+  await throwOnNonOk(response);
+  return parseProfileResponse((await response.json()) as RawProfileResponse);
+};
+
 /**
  * Inputs to {@link setSkinFromUrl}.
  *
@@ -126,15 +134,15 @@ export const setSkinFromUrl = async (
   http: HttpClient,
   input: SetSkinFromUrlInput,
 ): Promise<MinecraftProfile> => {
-  const response = await http.request(SKIN_URL, {
-    method: "POST",
-    headers: authHeaders(input.accessToken, { "content-type": "application/json" }),
-    body: JSON.stringify({ variant: input.variant.toLowerCase(), url: input.url }),
-    acceptNonOk: true,
-    ...withOptionalSignal(input.signal),
-  });
-  await throwOnNonOk(response);
-  return parseProfileResponse((await response.json()) as RawProfileResponse);
+  return executeProfileMutation(
+    http.request(SKIN_URL, {
+      method: "POST",
+      headers: authHeaders(input.accessToken, { "content-type": "application/json" }),
+      body: JSON.stringify({ variant: input.variant.toLowerCase(), url: input.url }),
+      acceptNonOk: true,
+      ...withOptionalSignal(input.signal),
+    }),
+  );
 };
 
 /**
@@ -199,15 +207,15 @@ export const uploadSkin = async (
     input.skin,
     input.fileName ?? "skin.png",
   );
-  const response = await http.request(SKIN_URL, {
-    method: "POST",
-    headers: authHeaders(input.accessToken, { "content-type": contentType }),
-    body,
-    acceptNonOk: true,
-    ...withOptionalSignal(input.signal),
-  });
-  await throwOnNonOk(response);
-  return parseProfileResponse((await response.json()) as RawProfileResponse);
+  return executeProfileMutation(
+    http.request(SKIN_URL, {
+      method: "POST",
+      headers: authHeaders(input.accessToken, { "content-type": contentType }),
+      body,
+      acceptNonOk: true,
+      ...withOptionalSignal(input.signal),
+    }),
+  );
 };
 
 /**
@@ -248,14 +256,14 @@ export const resetSkin = async (
   http: HttpClient,
   input: ResetSkinInput,
 ): Promise<MinecraftProfile> => {
-  const response = await http.request(ACTIVE_SKIN_URL, {
-    method: "DELETE",
-    headers: authHeaders(input.accessToken),
-    acceptNonOk: true,
-    ...withOptionalSignal(input.signal),
-  });
-  await throwOnNonOk(response);
-  return parseProfileResponse((await response.json()) as RawProfileResponse);
+  return executeProfileMutation(
+    http.request(ACTIVE_SKIN_URL, {
+      method: "DELETE",
+      headers: authHeaders(input.accessToken),
+      acceptNonOk: true,
+      ...withOptionalSignal(input.signal),
+    }),
+  );
 };
 
 /**
