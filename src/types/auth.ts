@@ -158,16 +158,17 @@ export type LaunchAuth = OfflineAuth | OnlineAuth;
 export type MojangAssetState = "ACTIVE" | "INACTIVE";
 
 /**
- * Skin model variant Mojang serves for the player.
+ * Skin model variant — `"CLASSIC"` for standard 4-pixel arms (Steve) or
+ * `"SLIM"` for 3-pixel arms (Alex).
  *
  * @example
  * ```ts
- * import type { MojangSkinVariant } from "@loontail/minecraft-kit";
+ * import type { SkinVariant } from "@loontail/minecraft-kit";
  *
- * const armOffset = (variant: MojangSkinVariant): number => (variant === "SLIM" ? 3 : 4);
+ * const armOffset = (variant: SkinVariant): number => (variant === "SLIM" ? 3 : 4);
  * ```
  */
-export type MojangSkinVariant = "CLASSIC" | "SLIM";
+export type SkinVariant = "CLASSIC" | "SLIM";
 
 /**
  * A single skin slot returned by `/minecraft/profile`.
@@ -185,7 +186,7 @@ export type MojangProfileSkin = {
   readonly id: string;
   readonly state: MojangAssetState;
   readonly url: string;
-  readonly variant: MojangSkinVariant;
+  readonly variant: SkinVariant;
 };
 
 /**

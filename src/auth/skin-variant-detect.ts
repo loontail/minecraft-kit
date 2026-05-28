@@ -1,22 +1,22 @@
 import { inflateSync } from "node:zlib";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
-import type { MojangSkinVariant } from "../types/auth";
+import type { SkinVariant } from "../types/auth";
 
 /**
  * Skin-variant input that accepts `"AUTO"` in addition to the regular
- * {@link MojangSkinVariant}. `"AUTO"` triggers per-pixel detection by
- * {@link detectMojangSkinVariant} — useful when the caller does not know
+ * {@link SkinVariant}. `"AUTO"` triggers per-pixel detection by
+ * {@link detectSkinVariant} — useful when the caller does not know
  * whether the user picked a Steve-style or Alex-style PNG.
  *
  * @example
  * ```ts
- * import type { MojangSkinVariantInput } from "@loontail/minecraft-kit";
+ * import type { SkinVariantInput } from "@loontail/minecraft-kit";
  *
- * const variant: MojangSkinVariantInput = "AUTO";
+ * const variant: SkinVariantInput = "AUTO";
  * await kit.auth.profile.uploadSkin({ accessToken, skin, variant });
  * ```
  */
-export type MojangSkinVariantInput = MojangSkinVariant | "AUTO";
+export type SkinVariantInput = SkinVariant | "AUTO";
 
 /**
  * Inspect the raw PNG bytes of a Minecraft skin and decide whether it
@@ -34,14 +34,14 @@ export type MojangSkinVariantInput = MojangSkinVariant | "AUTO";
  *
  * @example
  * ```ts
- * import { detectMojangSkinVariant } from "@loontail/minecraft-kit";
+ * import { detectSkinVariant } from "@loontail/minecraft-kit";
  * import { readFile } from "node:fs/promises";
  *
  * const png = await readFile("./my-skin.png");
- * const variant = detectMojangSkinVariant(png); // → "CLASSIC" | "SLIM"
+ * const variant = detectSkinVariant(png); // → "CLASSIC" | "SLIM"
  * ```
  */
-export const detectMojangSkinVariant = (png: Uint8Array): MojangSkinVariant => {
+export const detectSkinVariant = (png: Uint8Array): SkinVariant => {
   const decoded = decodePng(png);
   // 64×32 legacy skins predate Alex and can only render as Steve.
   if (decoded.height === 32) return "CLASSIC";

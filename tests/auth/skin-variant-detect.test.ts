@@ -1,17 +1,17 @@
 import { deflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
-import { detectMojangSkinVariant } from "../../src/auth/skin-variant-detect";
+import { detectSkinVariant } from "../../src/auth/skin-variant-detect";
 import { isErrorCode } from "../../src/core/errors";
 
-describe("detectMojangSkinVariant", () => {
+describe("detectSkinVariant", () => {
   it("returns CLASSIC for legacy 64×32 skins", () => {
     const png = encodeRgbaPng(64, 32, () => ({ r: 0, g: 0, b: 0, a: 255 }));
-    expect(detectMojangSkinVariant(png)).toBe("CLASSIC");
+    expect(detectSkinVariant(png)).toBe("CLASSIC");
   });
 
   it("returns CLASSIC when arm-edge sample pixels are opaque (Steve layout)", () => {
     const png = encodeRgbaPng(64, 64, () => ({ r: 200, g: 100, b: 50, a: 255 }));
-    expect(detectMojangSkinVariant(png)).toBe("CLASSIC");
+    expect(detectSkinVariant(png)).toBe("CLASSIC");
   });
 
   it("returns SLIM when arm-edge sample pixels are transparent (Alex layout)", () => {
@@ -19,23 +19,23 @@ describe("detectMojangSkinVariant", () => {
       if (isSlimEmptyPixel(x, y)) return { r: 0, g: 0, b: 0, a: 0 };
       return { r: 200, g: 100, b: 50, a: 255 };
     });
-    expect(detectMojangSkinVariant(png)).toBe("SLIM");
+    expect(detectSkinVariant(png)).toBe("SLIM");
   });
 
   it("falls back to CLASSIC for unusual image dimensions", () => {
     const png = encodeRgbaPng(32, 32, () => ({ r: 0, g: 0, b: 0, a: 255 }));
-    expect(detectMojangSkinVariant(png)).toBe("CLASSIC");
+    expect(detectSkinVariant(png)).toBe("CLASSIC");
   });
 
   it("treats RGB (no alpha) PNGs as CLASSIC because every pixel is opaque", () => {
     const png = encodeRgbPng(64, 64, () => ({ r: 200, g: 100, b: 50 }));
-    expect(detectMojangSkinVariant(png)).toBe("CLASSIC");
+    expect(detectSkinVariant(png)).toBe("CLASSIC");
   });
 
   it("throws INVALID_INPUT when the bytes are not a PNG", () => {
     const notPng = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
     try {
-      detectMojangSkinVariant(notPng);
+      detectSkinVariant(notPng);
       expect.fail("expected throw");
     } catch (error) {
       expect(isErrorCode(error, "INVALID_INPUT")).toBe(true);

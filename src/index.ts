@@ -14,8 +14,8 @@ export type {
 } from "./auth/profile-mutations";
 export type { ReadProfileInput } from "./auth/profile-read";
 export {
-  detectMojangSkinVariant,
-  type MojangSkinVariantInput,
+  detectSkinVariant,
+  type SkinVariantInput,
 } from "./auth/skin-variant-detect";
 export { assertNever } from "./core/assert-never";
 export {
@@ -83,7 +83,7 @@ export {
   type MojangAssetState,
   type MojangProfileSkin,
   type MojangSession,
-  type MojangSkinVariant,
+  type SkinVariant,
   type OfflineAuth,
   type OnlineAuth,
   type PlayerUuid,

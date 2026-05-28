@@ -5,7 +5,7 @@
  * endpoint. Pair with `parseJsonAs` from `./json`.
  */
 
-import type { MojangAssetState, MojangProfileSkin, MojangSkinVariant } from "../types/auth";
+import type { MojangAssetState, MojangProfileSkin, SkinVariant } from "../types/auth";
 import type { FabricProfile } from "../types/fabric";
 import type {
   AssetIndexDocument,
@@ -15,7 +15,7 @@ import type {
 import type { RuntimeFilesManifest, RuntimeIndex } from "../types/runtime";
 
 const MOJANG_ASSET_STATES: ReadonlySet<MojangAssetState> = new Set(["ACTIVE", "INACTIVE"]);
-const MOJANG_SKIN_VARIANTS: ReadonlySet<MojangSkinVariant> = new Set(["CLASSIC", "SLIM"]);
+const MOJANG_SKIN_VARIANTS: ReadonlySet<SkinVariant> = new Set(["CLASSIC", "SLIM"]);
 
 /**
  * True when `value` is a non-null object.
@@ -102,8 +102,7 @@ export const isMojangProfileSkin = (value: unknown): value is MojangProfileSkin 
     return false;
   }
   return (
-    typeof value.variant === "string" &&
-    MOJANG_SKIN_VARIANTS.has(value.variant as MojangSkinVariant)
+    typeof value.variant === "string" && MOJANG_SKIN_VARIANTS.has(value.variant as SkinVariant)
   );
 };
 

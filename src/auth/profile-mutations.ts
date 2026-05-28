@@ -2,14 +2,14 @@ import { randomBytes } from "node:crypto";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { withOptionalSignal } from "../core/optional";
 import { isHttpOk } from "../http/status";
-import type { MinecraftProfile, MojangSkinVariant } from "../types/auth";
+import type { MinecraftProfile, SkinVariant } from "../types/auth";
 import type { HttpClient, HttpResponse } from "../types/http";
 import {
   MINECRAFT_KIT_USER_AGENT,
   type RawProfileResponse,
   parseProfileResponse,
 } from "./minecraft";
-import { type MojangSkinVariantInput, detectMojangSkinVariant } from "./skin-variant-detect";
+import { type SkinVariantInput, detectSkinVariant } from "./skin-variant-detect";
 
 const PROFILE_URL = "https://api.minecraftservices.com/minecraft/profile";
 const SKIN_URL = `${PROFILE_URL}/skins`;
@@ -95,7 +95,7 @@ export type SetSkinFromUrlInput = {
   /** Publicly-reachable URL Mojang will download the skin PNG from. */
   readonly url: string;
   /** Skin model variant — `"CLASSIC"` for standard arms, `"SLIM"` for Alex. */
-  readonly variant: MojangSkinVariant;
+  readonly variant: SkinVariant;
   readonly signal?: AbortSignal;
 };
 
@@ -160,9 +160,9 @@ export type UploadSkinInput = {
   /**
    * Skin model variant — `"CLASSIC"` for standard arms, `"SLIM"` for Alex,
    * or `"AUTO"` to pick the variant by inspecting the PNG pixels (see
-   * {@link detectMojangSkinVariant}).
+   * {@link detectSkinVariant}).
    */
-  readonly variant: MojangSkinVariantInput;
+  readonly variant: SkinVariantInput;
   /** Optional `filename` part of the multipart entry. Defaults to `"skin.png"`. */
   readonly fileName?: string;
   readonly signal?: AbortSignal;
@@ -192,8 +192,8 @@ export const uploadSkin = async (
   http: HttpClient,
   input: UploadSkinInput,
 ): Promise<MinecraftProfile> => {
-  const variant: MojangSkinVariant =
-    input.variant === "AUTO" ? detectMojangSkinVariant(input.skin) : input.variant;
+  const variant: SkinVariant =
+    input.variant === "AUTO" ? detectSkinVariant(input.skin) : input.variant;
   const { body, contentType } = buildSkinMultipart(
     variant.toLowerCase(),
     input.skin,
