@@ -7,6 +7,7 @@ import {
   InstallPhases,
   type InstallPlan,
 } from "../types/install";
+import { type VerificationKind, VerificationKinds } from "../types/verify";
 
 /**
  * UI-oriented coarse progress stages, identical across install and repair flows.
@@ -137,6 +138,13 @@ const PROGRESS_STAGE_FOR_PHASE: Partial<Record<InstallPhase, ProgressStage>> = {
   [InstallPhases.COMPLETED]: ProgressStages.FINALIZE,
 };
 
+const PROGRESS_STAGE_FOR_ASPECT: Record<VerificationKind, ProgressStage> = {
+  [VerificationKinds.MINECRAFT]: ProgressStages.MINECRAFT,
+  [VerificationKinds.RUNTIME]: ProgressStages.RUNTIME,
+  [VerificationKinds.FABRIC]: ProgressStages.LOADER,
+  [VerificationKinds.FORGE]: ProgressStages.LOADER,
+};
+
 const ALL_STAGES: readonly ProgressStage[] = [
   ProgressStages.PREPARE,
   ProgressStages.RUNTIME,
@@ -262,6 +270,13 @@ export const createInstallProgressTracker = (
     totalDone += bytes;
   };
 
+  const setStageFromAspect = (aspect: VerificationKind | undefined): ProgressStage | undefined => {
+    if (aspect === undefined) return undefined;
+    const stage = PROGRESS_STAGE_FOR_ASPECT[aspect];
+    if (stage !== currentStage) currentStage = stage;
+    return stage;
+  };
+
   const onEvent: ProgressListener = (event: ProgressEvent) => {
     switch (event.type) {
       case EventTypes.INSTALL_PHASE_CHANGED: {
@@ -274,7 +289,8 @@ export const createInstallProgressTracker = (
         return;
       }
       case EventTypes.DOWNLOAD_STARTED: {
-        const stage = stageOfTarget.get(event.file.target) ?? currentStage;
+        const stage =
+          stageOfTarget.get(event.file.target) ?? setStageFromAspect(event.aspect) ?? currentStage;
         inFlightByTarget.set(event.file.target, { stage, bytes: 0 });
         currentFile = event.file.target;
         schedulePush();
@@ -289,13 +305,15 @@ export const createInstallProgressTracker = (
             stageInFlight[entry.stage] += delta;
             totalInFlight += delta;
           }
+        } else {
+          setStageFromAspect(event.aspect);
         }
         currentFile = event.file.target;
         schedulePush();
         return;
       }
       case EventTypes.DOWNLOAD_SKIPPED: {
-        const stage = stageOfTarget.get(event.file.target);
+        const stage = stageOfTarget.get(event.file.target) ?? setStageFromAspect(event.aspect);
         if (stage) {
           const size = expectedSizeOf.get(event.file.target) ?? 0;
           stageDone[stage] += size;
@@ -315,7 +333,14 @@ export const createInstallProgressTracker = (
           inFlightByTarget.delete(event.file.target);
         } else {
           applyCompletionWhenStartWasMissed(event.file.target, event.bytes);
+          setStageFromAspect(event.aspect);
         }
+        schedulePush();
+        return;
+      }
+      case EventTypes.VERIFY_FILE_CHECKED: {
+        setStageFromAspect(event.aspect);
+        currentFile = event.file.path;
         schedulePush();
         return;
       }

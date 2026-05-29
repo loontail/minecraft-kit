@@ -10,6 +10,7 @@ import {
   InstallPhases,
   type InstallPlan,
 } from "../../src/types/install";
+import { VerificationKinds } from "../../src/types/verify";
 
 const download = (
   target: string,
@@ -108,6 +109,27 @@ describe("createInstallProgressTracker", () => {
       bytes: 1000,
     });
     expect(tracker.snapshot().bytesDownloaded).toBe(1000);
+  });
+
+  it("uses aspect metadata for verification-only repair events", () => {
+    const tracker = createInstallProgressTracker(planOf([]), { throttleMs: 0 });
+
+    tracker.onEvent({
+      type: "verify:file-checked",
+      aspect: VerificationKinds.RUNTIME,
+      file: {
+        path: "/rt/bin/javaw.exe",
+        category: "runtime-file",
+        status: "missing",
+      },
+    });
+
+    expect(tracker.snapshot()).toEqual(
+      expect.objectContaining({
+        stage: ProgressStages.RUNTIME,
+        currentFile: "/rt/bin/javaw.exe",
+      }),
+    );
   });
 
   it("throttles snapshot pushes and emits a final 100% snapshot on finish()", async () => {

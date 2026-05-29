@@ -1,4 +1,5 @@
 import type { InstallPhase } from "./install";
+import type { VerificationKind } from "./verify";
 import type { VerificationFileResult } from "./verify";
 
 /**
@@ -92,6 +93,17 @@ export type ProcessorRef = {
 };
 
 /**
+ * Optional aspect metadata attached by verification and aggregate repair flows.
+ *
+ * Standalone install events usually omit it because the install plan already
+ * carries action categories. `repair.all` attaches it so consumers can tell
+ * whether a forwarded event belongs to Minecraft, runtime, Fabric, or Forge.
+ */
+export type ProgressEventContext = {
+  readonly aspect?: VerificationKind;
+};
+
+/**
  * Discriminated union of all runtime progress events. Pass an `onEvent` callback to
  * `install.run`, `update.run`, `verify.run`, `repair.run`, or `launch.run` to receive these.
  *
@@ -105,83 +117,85 @@ export type ProcessorRef = {
  * };
  * ```
  */
-export type ProgressEvent =
-  | {
-      readonly type: "install:phase-changed";
-      readonly phase: InstallPhase;
-      readonly previous: InstallPhase | null;
-    }
-  | { readonly type: "download:started"; readonly file: FileRef; readonly expectedSize: number }
-  | {
-      readonly type: "download:progress";
-      readonly file: FileRef;
-      readonly bytesDownloaded: number;
-      readonly totalBytes: number;
-    }
-  | { readonly type: "download:skipped"; readonly file: FileRef }
-  | {
-      readonly type: "download:completed";
-      readonly file: FileRef;
-      readonly durationMs: number;
-      readonly bytes: number;
-    }
-  | {
-      readonly type: "download:failed";
-      readonly file: FileRef;
-      readonly error: Error;
-      readonly willRetry: boolean;
-    }
-  | {
-      readonly type: "integrity:verified";
-      readonly file: FileRef;
-      readonly algorithm: "sha1" | "sha256";
-      readonly hash: string;
-    }
-  | {
-      readonly type: "integrity:mismatch";
-      readonly file: FileRef;
-      readonly algorithm: "sha1" | "sha256";
-      readonly expected: string;
-      readonly actual: string;
-    }
-  | {
-      readonly type: "archive:extracted";
-      readonly archive: string;
-      readonly target: string;
-      readonly fileCount: number;
-    }
-  | {
-      readonly type: "forge:processor-started";
-      readonly processor: ProcessorRef;
-      readonly total: number;
-    }
-  | {
-      readonly type: "forge:processor-completed";
-      readonly processor: ProcessorRef;
-      readonly exitCode: number;
-      readonly durationMs: number;
-    }
-  | {
-      readonly type: "forge:processor-output-verified";
-      readonly processor: ProcessorRef;
-      readonly path: string;
-    }
-  | { readonly type: "verify:file-checked"; readonly file: VerificationFileResult }
-  | {
-      readonly type: "launch:starting";
-      readonly command: string;
-      readonly args: readonly string[];
-      readonly cwd: string;
-    }
-  | { readonly type: "launch:started"; readonly pid: number }
-  | { readonly type: "launch:stdout"; readonly line: string }
-  | { readonly type: "launch:stderr"; readonly line: string }
-  | {
-      readonly type: "launch:exited";
-      readonly code: number | null;
-      readonly signal: NodeJS.Signals | null;
-    }
-  | { readonly type: "launch:aborted"; readonly reason: string };
+export type ProgressEvent = ProgressEventContext &
+  (
+    | {
+        readonly type: "install:phase-changed";
+        readonly phase: InstallPhase;
+        readonly previous: InstallPhase | null;
+      }
+    | { readonly type: "download:started"; readonly file: FileRef; readonly expectedSize: number }
+    | {
+        readonly type: "download:progress";
+        readonly file: FileRef;
+        readonly bytesDownloaded: number;
+        readonly totalBytes: number;
+      }
+    | { readonly type: "download:skipped"; readonly file: FileRef }
+    | {
+        readonly type: "download:completed";
+        readonly file: FileRef;
+        readonly durationMs: number;
+        readonly bytes: number;
+      }
+    | {
+        readonly type: "download:failed";
+        readonly file: FileRef;
+        readonly error: Error;
+        readonly willRetry: boolean;
+      }
+    | {
+        readonly type: "integrity:verified";
+        readonly file: FileRef;
+        readonly algorithm: "sha1" | "sha256";
+        readonly hash: string;
+      }
+    | {
+        readonly type: "integrity:mismatch";
+        readonly file: FileRef;
+        readonly algorithm: "sha1" | "sha256";
+        readonly expected: string;
+        readonly actual: string;
+      }
+    | {
+        readonly type: "archive:extracted";
+        readonly archive: string;
+        readonly target: string;
+        readonly fileCount: number;
+      }
+    | {
+        readonly type: "forge:processor-started";
+        readonly processor: ProcessorRef;
+        readonly total: number;
+      }
+    | {
+        readonly type: "forge:processor-completed";
+        readonly processor: ProcessorRef;
+        readonly exitCode: number;
+        readonly durationMs: number;
+      }
+    | {
+        readonly type: "forge:processor-output-verified";
+        readonly processor: ProcessorRef;
+        readonly path: string;
+      }
+    | { readonly type: "verify:file-checked"; readonly file: VerificationFileResult }
+    | {
+        readonly type: "launch:starting";
+        readonly command: string;
+        readonly args: readonly string[];
+        readonly cwd: string;
+      }
+    | { readonly type: "launch:started"; readonly pid: number }
+    | { readonly type: "launch:stdout"; readonly line: string }
+    | { readonly type: "launch:stderr"; readonly line: string }
+    | {
+        readonly type: "launch:exited";
+        readonly code: number | null;
+        readonly signal: NodeJS.Signals | null;
+      }
+    | { readonly type: "launch:aborted"; readonly reason: string }
+  );
 
 /**
  * Listener signature accepted by every long-running operation.

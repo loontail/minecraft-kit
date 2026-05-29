@@ -70,16 +70,20 @@ export const repairAll = async (input: RepairAllInput): Promise<RepairAllReport>
     cache: input.cache,
     ...withOptionalSignal(input.signal),
   };
+  const verificationCtx = {
+    ...ctx,
+    ...withOptionalOnEvent(input.onEvent),
+  };
 
   const verifications: VerificationResult[] = [];
-  const mc = await verifyMinecraft(ctx);
+  const mc = await verifyMinecraft(verificationCtx);
   verifications.push(mc);
-  const rt = await verifyRuntime(ctx);
+  const rt = await verifyRuntime(verificationCtx);
   verifications.push(rt);
   if (input.target.loader.type === Loaders.FABRIC) {
-    verifications.push(await verifyFabric(ctx));
+    verifications.push(await verifyFabric(verificationCtx));
   } else if (input.target.loader.type === Loaders.FORGE) {
-    verifications.push(await verifyForge(ctx));
+    verifications.push(await verifyForge(verificationCtx));
   }
 
   const repairs = new Map<VerificationKind, RepairReport>();
@@ -97,7 +101,7 @@ export const repairAll = async (input: RepairAllInput): Promise<RepairAllReport>
       cache: input.cache,
       spawner: input.spawner,
       ...withOptionalSignal(input.signal),
-      ...withOptionalOnEvent(input.onEvent),
+      ...withAspectOnEvent(input.onEvent, verification.kind),
     });
     repairs.set(verification.kind, report);
     bytesDownloaded += report.bytesDownloaded;
@@ -117,3 +121,12 @@ const PLANNERS = {
   fabric: planFabricRepair,
   forge: planForgeRepair,
 } as const;
+
+const withAspectOnEvent = (
+  onEvent: ProgressListener | undefined,
+  aspect: VerificationKind,
+): { onEvent?: ProgressListener } => {
+  if (onEvent === undefined) return {};
+  const listener: ProgressListener = (event) => onEvent({ ...event, aspect });
+  return { onEvent: listener };
+};

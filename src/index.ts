@@ -107,6 +107,7 @@ export {
   type OperationOptions,
   type ProcessorRef,
   type ProgressEvent,
+  type ProgressEventContext,
   type ProgressListener,
 } from "./types/events";
 export type {

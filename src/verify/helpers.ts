@@ -36,7 +36,7 @@ export const runVerification = async (
   const results: VerificationFileResult[] = [];
   const record: VerificationRecorder = (result) => {
     results.push(result);
-    input.onEvent?.({ type: EventTypes.VERIFY_FILE_CHECKED, file: result });
+    input.onEvent?.({ type: EventTypes.VERIFY_FILE_CHECKED, file: result, aspect: input.kind });
   };
   await check(record);
   return {
