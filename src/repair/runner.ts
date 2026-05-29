@@ -18,6 +18,8 @@ export type RunRepairInput = {
   readonly spawner: Spawner;
   readonly signal?: AbortSignal;
   readonly onEvent?: ProgressListener;
+  /** Host allow-list forwarded to the install runner's downloads. */
+  readonly hostAllowList?: readonly string[];
 };
 
 /**
@@ -46,6 +48,7 @@ export const runRepair = async (input: RunRepairInput): Promise<RepairReport> =>
     http: input.http,
     cache: input.cache,
     spawner: input.spawner,
+    ...(input.hostAllowList !== undefined ? { hostAllowList: input.hostAllowList } : {}),
     ...withOptionalSignal(input.signal),
     ...withOptionalOnEvent(input.onEvent),
   });

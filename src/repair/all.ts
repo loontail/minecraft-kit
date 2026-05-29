@@ -27,6 +27,8 @@ export type RepairAllInput = {
   readonly signal?: AbortSignal;
   readonly onEvent?: ProgressListener;
   readonly shouldRepairIssue?: RepairIssueFilter;
+  /** Host allow-list forwarded to the repair runner's downloads. */
+  readonly hostAllowList?: readonly string[];
 };
 
 /**
@@ -109,6 +111,7 @@ export const repairAll = async (input: RepairAllInput): Promise<RepairAllReport>
       http: input.http,
       cache: input.cache,
       spawner: input.spawner,
+      ...(input.hostAllowList !== undefined ? { hostAllowList: input.hostAllowList } : {}),
       ...withOptionalSignal(input.signal),
       ...withAspectOnEvent(input.onEvent, verification.kind),
     });

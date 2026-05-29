@@ -176,6 +176,7 @@ const streamOneAttempt = async (
   const response = await http.request(url, {
     ...withOptionalSignal(input.signal),
   });
+  assertSafeRedirectTarget(url, response.url, input.hostAllowList);
   const contentLength = Number(response.headers["content-length"] ?? "0");
   const total = input.expectedSize ?? (Number.isFinite(contentLength) ? contentLength : 0);
   const checkpointSources: CheckpointSources = {
@@ -402,6 +403,43 @@ const assertSafeDownloadUrl = (url: string, allowList: readonly string[] | undef
       MinecraftKitErrorCodes.INVALID_INPUT,
       `Download URL host is not in the allow-list: ${parsed.hostname}`,
       { context: { url, host: parsed.hostname } },
+    );
+  }
+};
+
+/**
+ * Reject a download whose response landed on a host outside the allow-list after following
+ * redirects.
+ *
+ * `assertSafeDownloadUrl` only sees the pre-redirect URL, and the HTTP client follows
+ * redirects, so an allow-listed host could 30x-redirect the download to an attacker-
+ * controlled host. This re-validates the final `response.url` once it is known and before
+ * any bytes are streamed to disk. Skips when no allow-list is in effect, when the final URL
+ * is unavailable, or when it equals the requested URL (no redirect happened).
+ *
+ * @internal
+ */
+const assertSafeRedirectTarget = (
+  requestedUrl: string,
+  finalUrl: string,
+  allowList: readonly string[] | undefined,
+): void => {
+  if (allowList === undefined || finalUrl === "" || finalUrl === requestedUrl) return;
+  let parsed: URL;
+  try {
+    parsed = new URL(finalUrl);
+  } catch {
+    throw new MinecraftKitError(
+      MinecraftKitErrorCodes.INVALID_INPUT,
+      `Download redirect target is not parseable: ${finalUrl}`,
+      { context: { url: requestedUrl, finalUrl } },
+    );
+  }
+  if (!matchesHostAllowList(parsed.hostname, allowList)) {
+    throw new MinecraftKitError(
+      MinecraftKitErrorCodes.INVALID_INPUT,
+      `Download redirected to a host not in the allow-list: ${parsed.hostname}`,
+      { context: { url: requestedUrl, finalUrl, host: parsed.hostname } },
     );
   }
 };

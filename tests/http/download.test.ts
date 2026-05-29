@@ -2,11 +2,36 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { DEFAULT_DOWNLOAD_HOST_ALLOWLIST } from "../../src/constants/api";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../../src/core/errors";
 import { downloadFile } from "../../src/http/download";
 import type { ProgressEvent } from "../../src/types/events";
+import type { HttpClient, HttpResponse } from "../../src/types/http";
 import { FakeHttpClient } from "../helpers/fake-http";
 import { sha1OfBytes } from "../helpers/hash";
+
+/** HttpClient that reports a post-redirect final URL distinct from the requested one. */
+const redirectingHttp = (requestedUrl: string, finalUrl: string, body: Uint8Array): HttpClient => ({
+  async request(url): Promise<HttpResponse> {
+    return {
+      status: 200,
+      headers: { "content-length": String(body.byteLength) },
+      url: url === requestedUrl ? finalUrl : url,
+      async text() {
+        return new TextDecoder().decode(body);
+      },
+      async json<T = unknown>(): Promise<T> {
+        return JSON.parse(new TextDecoder().decode(body)) as T;
+      },
+      async bytes() {
+        return body;
+      },
+      async *stream() {
+        yield body;
+      },
+    };
+  },
+});
 
 describe("downloadFile", () => {
   let tmpDir: string;
@@ -130,6 +155,72 @@ describe("downloadFile", () => {
       hostAllowList: ["*.minecraft.net"],
     });
     expect(result.bytesDownloaded).toBe(body.byteLength);
+  });
+
+  it("rejects a redirect whose final host is outside the allow-list", async () => {
+    const body = new TextEncoder().encode("payload");
+    const http = redirectingHttp(
+      "https://piston-data.minecraft.net/file",
+      "https://evil.example.com/file",
+      body,
+    );
+    const target = path.join(tmpDir, "x");
+    await expect(
+      downloadFile(http, {
+        url: "https://piston-data.minecraft.net/file",
+        target,
+        hostAllowList: ["*.minecraft.net"],
+      }),
+    ).rejects.toThrow(/redirected to a host not in the allow-list/);
+    await expect(fs.stat(target)).rejects.toThrow();
+  });
+
+  it("accepts a redirect whose final host is still in the allow-list", async () => {
+    const body = new TextEncoder().encode("payload");
+    const expectedSha1 = sha1OfBytes(body);
+    const http = redirectingHttp(
+      "https://piston-meta.mojang.com/file",
+      "https://piston-data.mojang.com/file",
+      body,
+    );
+    const target = path.join(tmpDir, "x");
+    const result = await downloadFile(http, {
+      url: "https://piston-meta.mojang.com/file",
+      target,
+      expectedSha1,
+      hostAllowList: ["*.mojang.com"],
+    });
+    expect(result.bytesDownloaded).toBe(body.byteLength);
+  });
+
+  it("default allow-list rejects arbitrary hosts but accepts the Mojang/Fabric/Forge ecosystem", async () => {
+    const body = new TextEncoder().encode("ok");
+    const expectedSha1 = sha1OfBytes(body);
+    const allowed = [
+      "https://piston-data.mojang.com/a",
+      "https://resources.download.minecraft.net/b",
+      "https://maven.fabricmc.net/c",
+      "https://maven.minecraftforge.net/d",
+    ];
+    for (const url of allowed) {
+      const http = new FakeHttpClient().on(url, { body });
+      const result = await downloadFile(http, {
+        url,
+        target: path.join(tmpDir, encodeURIComponent(url)),
+        expectedSha1,
+        hostAllowList: DEFAULT_DOWNLOAD_HOST_ALLOWLIST,
+      });
+      expect(result.bytesDownloaded).toBe(body.byteLength);
+    }
+    const http = new FakeHttpClient().on("https://evil.example.com/x", { body });
+    await expect(
+      downloadFile(http, {
+        url: "https://evil.example.com/x",
+        target: path.join(tmpDir, "evil"),
+        hostAllowList: DEFAULT_DOWNLOAD_HOST_ALLOWLIST,
+      }),
+    ).rejects.toThrow(/allow-list/);
+    expect(http.requests.length).toBe(0);
   });
 
   it("falls back to the next mirror URL when the first one fails", async () => {

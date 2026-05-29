@@ -109,6 +109,8 @@ export type InstallAspectDeps = {
   readonly http: HttpClient;
   readonly cache: MetadataCache;
   readonly spawner: Spawner;
+  /** Host allow-list forwarded to the install runner's downloads. */
+  readonly hostAllowList?: readonly string[];
 };
 
 /**
@@ -117,9 +119,16 @@ export type InstallAspectDeps = {
  * @internal
  */
 export const buildInstallAspect = (deps: InstallAspectDeps): InstallAspect => {
-  const { http, cache, spawner } = deps;
+  const { http, cache, spawner, hostAllowList } = deps;
   const runInstallPlan = (plan: InstallPlan, opts?: InstallRunOptions) =>
-    runInstall({ plan, http, cache, spawner, ...forwardInstallRunOptions(opts) });
+    runInstall({
+      plan,
+      http,
+      cache,
+      spawner,
+      ...(hostAllowList !== undefined ? { hostAllowList } : {}),
+      ...forwardInstallRunOptions(opts),
+    });
   return {
     plan: (target, opts) => planInstall({ target, http, cache, ...forwardSignalAndEvent(opts) }),
     run: runInstallPlan,

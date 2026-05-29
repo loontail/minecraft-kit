@@ -33,6 +33,8 @@ export type RunVerifyAndRepairDeps = {
   readonly http: HttpClient;
   readonly cache: MetadataCache;
   readonly spawner: Spawner;
+  /** Host allow-list forwarded to the repair runner's downloads. */
+  readonly hostAllowList?: readonly string[];
 };
 
 /**
@@ -83,6 +85,7 @@ export const runVerifyAndRepair = async (
     http: deps.http,
     cache: deps.cache,
     spawner: deps.spawner,
+    ...(deps.hostAllowList !== undefined ? { hostAllowList: deps.hostAllowList } : {}),
     ...withOptionalSignal(input.signal),
     ...withOptionalOnEvent(input.onEvent),
   });

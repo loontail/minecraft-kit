@@ -56,3 +56,24 @@ export const ApiEndpoints = {
  * @internal
  */
 export type ApiEndpointsShape = typeof ApiEndpoints;
+
+/**
+ * Default host allow-list for install/repair file downloads.
+ *
+ * Download URLs come from network-fetched manifests (`library.url`, asset/runtime/Forge
+ * URLs), so without pinning a MITM/DNS/manifest-rewrite attacker could point a download at
+ * any host. These wildcard entries cover the full Mojang/Fabric/Forge ecosystem (data and
+ * metadata subdomains alike) plus the Maven repositories Forge install profiles reference,
+ * while still rejecting arbitrary attacker hosts. Wildcard matching is defined by
+ * `matchesHostEntry` in {@link "../http/download"}.
+ *
+ * @internal
+ */
+export const DEFAULT_DOWNLOAD_HOST_ALLOWLIST: readonly string[] = [
+  "*.mojang.com",
+  "*.minecraft.net",
+  "*.fabricmc.net",
+  "*.minecraftforge.net",
+  "repo1.maven.org",
+  "maven.creeperhost.net",
+];

@@ -8,6 +8,7 @@
  */
 
 import { MojangAuthApi } from "./auth/index";
+import { DEFAULT_DOWNLOAD_HOST_ALLOWLIST } from "./constants/api";
 import { silentLogger } from "./core/logger";
 import { detectSystem } from "./core/system";
 import { createMemoryCache } from "./http/cache";
@@ -50,6 +51,14 @@ export type MinecraftKitOptions = {
   readonly logger?: Logger;
   readonly system?: RuntimeSystem;
   readonly spawner?: Spawner;
+  /**
+   * Host allow-list applied to every install/repair file download. Download URLs come from
+   * network-fetched manifests, so pinning them to a known set of hosts closes a supply-chain
+   * MITM/manifest-rewrite vector. Defaults to {@link DEFAULT_DOWNLOAD_HOST_ALLOWLIST} (the
+   * Mojang/Fabric/Forge ecosystem). Entries support a leading wildcard label, e.g.
+   * `"*.minecraft.net"`. Pass a custom list to add a private mirror.
+   */
+  readonly hostAllowList?: readonly string[];
 };
 
 /**
@@ -89,6 +98,7 @@ export class MinecraftKit {
     const logger = options.logger ?? silentLogger;
     const system = options.system ?? detectSystem();
     const spawner = options.spawner ?? new ChildProcessSpawner();
+    const hostAllowList = options.hostAllowList ?? DEFAULT_DOWNLOAD_HOST_ALLOWLIST;
     const ctx = { http, cache, logger };
 
     const minecraft = new MinecraftVersionsApi(ctx);
@@ -100,9 +110,9 @@ export class MinecraftKit {
     this.auth = new MojangAuthApi(http, options.logger);
     this.cache = cache;
 
-    this.install = buildInstallAspect({ http, cache, spawner });
+    this.install = buildInstallAspect({ http, cache, spawner, hostAllowList });
     this.verify = buildVerifyAspect({ http, cache });
-    this.repair = buildRepairAspect({ http, cache, spawner });
+    this.repair = buildRepairAspect({ http, cache, spawner, hostAllowList });
     this.launch = buildLaunchAspect({ spawner, logger });
   }
 }

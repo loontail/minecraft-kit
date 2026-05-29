@@ -53,6 +53,8 @@ export type RepairAspectDeps = {
   readonly http: HttpClient;
   readonly cache: MetadataCache;
   readonly spawner: Spawner;
+  /** Host allow-list forwarded to the repair runner's downloads. */
+  readonly hostAllowList?: readonly string[];
 };
 
 /**
@@ -61,7 +63,8 @@ export type RepairAspectDeps = {
  * @internal
  */
 export const buildRepairAspect = (deps: RepairAspectDeps): RepairSurface => {
-  const { http, cache, spawner } = deps;
+  const { http, cache, spawner, hostAllowList } = deps;
+  const withHostAllowList = hostAllowList !== undefined ? { hostAllowList } : {};
   const repairArgs = (target: Target, opts: RepairPlanOptions) => ({
     target,
     from: opts.from,
@@ -76,6 +79,7 @@ export const buildRepairAspect = (deps: RepairAspectDeps): RepairSurface => {
       http,
       cache,
       spawner,
+      ...withHostAllowList,
       ...withOptionalSignal(opts?.signal),
       ...withOptionalOnEvent(opts?.onEvent),
     });
@@ -102,6 +106,7 @@ export const buildRepairAspect = (deps: RepairAspectDeps): RepairSurface => {
         http,
         cache,
         spawner,
+        ...withHostAllowList,
         ...withOptionalSignal(opts?.signal),
         ...withOptionalOnEvent(opts?.onEvent),
         ...(opts?.shouldRepairIssue === undefined
@@ -116,6 +121,7 @@ export const buildRepairAspect = (deps: RepairAspectDeps): RepairSurface => {
         cache,
         ...withOptionalSignal(input.signal),
       }),
-    runVerifyAndRepair: (input) => runVerifyAndRepair({ http, cache, spawner }, input),
+    runVerifyAndRepair: (input) =>
+      runVerifyAndRepair({ http, cache, spawner, ...withHostAllowList }, input),
   };
 };

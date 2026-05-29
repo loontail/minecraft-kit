@@ -105,7 +105,7 @@ class FetchHttpResponse implements HttpResponse {
     url: string,
   ) {
     this.status = response.status;
-    this.url = url;
+    this.url = response.url !== "" ? response.url : url;
     const headers: Record<string, string> = {};
     response.headers.forEach((value, key) => {
       headers[key.toLowerCase()] = value;

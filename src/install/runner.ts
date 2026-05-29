@@ -54,6 +54,8 @@ export type RunInstallInput = {
   readonly pauseController?: PauseController;
   /** When set, only download actions in this set run; post-download steps that depend on them are skipped too. */
   readonly actionCategories?: ReadonlySet<DownloadAction["category"]>;
+  /** Host allow-list enforced on every download (including redirect targets). */
+  readonly hostAllowList?: readonly string[];
 };
 
 /** Download category → install phase mapping that runs each category as its own phase. */
@@ -212,6 +214,9 @@ const runDownloadGroup = async (
           ...(action.expectedSha1 !== undefined ? { expectedSha1: action.expectedSha1 } : {}),
           ...(action.expectedSize !== undefined ? { expectedSize: action.expectedSize } : {}),
           ...(action.category !== undefined ? { category: action.category } : {}),
+          ...(ctx.input.hostAllowList !== undefined
+            ? { hostAllowList: ctx.input.hostAllowList }
+            : {}),
           ...withOptionalSignal(ctx.input.signal),
           ...withOptionalOnEvent(ctx.input.onEvent),
           ...withOptionalPauseController(ctx.input.pauseController),
