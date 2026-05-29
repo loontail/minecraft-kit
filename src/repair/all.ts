@@ -3,7 +3,7 @@ import type { MetadataCache } from "../types/cache";
 import type { ProgressListener } from "../types/events";
 import type { HttpClient } from "../types/http";
 import { Loaders } from "../types/loader";
-import type { RepairReport } from "../types/repair";
+import type { RepairIssueFilter, RepairReport } from "../types/repair";
 import type { Spawner } from "../types/spawner";
 import type { Target } from "../types/target";
 import type { VerificationKind, VerificationResult } from "../types/verify";
@@ -13,6 +13,7 @@ import { verifyMinecraft } from "../verify/minecraft";
 import { verifyRuntime } from "../verify/runtime";
 import { planFabricRepair } from "./fabric";
 import { planForgeRepair } from "./forge";
+import { filterRepairIssueResults } from "./helpers";
 import { planMinecraftRepair } from "./minecraft";
 import { runRepair } from "./runner";
 import { planRuntimeRepair } from "./runtime";
@@ -25,6 +26,7 @@ export type RepairAllInput = {
   readonly spawner: Spawner;
   readonly signal?: AbortSignal;
   readonly onEvent?: ProgressListener;
+  readonly shouldRepairIssue?: RepairIssueFilter;
 };
 
 /**
@@ -75,16 +77,23 @@ export const repairAll = async (input: RepairAllInput): Promise<RepairAllReport>
     ...withOptionalOnEvent(input.onEvent),
   };
 
-  const verifications: VerificationResult[] = [];
+  const rawVerifications: VerificationResult[] = [];
   const mc = await verifyMinecraft(verificationCtx);
-  verifications.push(mc);
+  rawVerifications.push(mc);
   const rt = await verifyRuntime(verificationCtx);
-  verifications.push(rt);
+  rawVerifications.push(rt);
   if (input.target.loader.type === Loaders.FABRIC) {
-    verifications.push(await verifyFabric(verificationCtx));
+    rawVerifications.push(await verifyFabric(verificationCtx));
   } else if (input.target.loader.type === Loaders.FORGE) {
-    verifications.push(await verifyForge(verificationCtx));
+    rawVerifications.push(await verifyForge(verificationCtx));
   }
+  const verifications = filterRepairIssueResults({
+    target: input.target,
+    from: rawVerifications,
+    ...(input.shouldRepairIssue === undefined
+      ? {}
+      : { shouldRepairIssue: input.shouldRepairIssue }),
+  });
 
   const repairs = new Map<VerificationKind, RepairReport>();
   let bytesDownloaded = 0;

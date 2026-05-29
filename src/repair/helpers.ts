@@ -8,7 +8,7 @@ import {
   type InstallPlan,
   type WriteVersionJsonAction,
 } from "../types/install";
-import type { AspectRepairInput, RepairPlan } from "../types/repair";
+import type { AspectRepairInput, RepairIssueFilter, RepairPlan } from "../types/repair";
 import type { Target } from "../types/target";
 import {
   type VerificationResult,
@@ -82,6 +82,33 @@ export const buildIssueIndex = (
 };
 
 /**
+ * Apply a caller-owned issue filter while preserving the verification shape expected by
+ * repair planners.
+ *
+ * @internal
+ */
+export const filterRepairIssueResults = (input: {
+  readonly target: Target;
+  readonly from: VerificationResult | readonly VerificationResult[];
+  readonly shouldRepairIssue?: RepairIssueFilter;
+}): readonly VerificationResult[] => {
+  const results = asResultArray(input.from);
+  const shouldRepairIssue = input.shouldRepairIssue;
+  if (shouldRepairIssue === undefined) return results;
+  return results.map((result) => {
+    const issues = result.issues.filter((issue) =>
+      shouldRepairIssue({ target: input.target, verification: result, issue }),
+    );
+    if (issues.length === result.issues.length) return result;
+    return {
+      ...result,
+      isValid: issues.length === 0,
+      issues,
+    };
+  });
+};
+
+/**
  * Sum expected bytes of all DOWNLOAD_FILE actions in a list.
  *
  * @internal
@@ -144,7 +171,7 @@ export const planAspectRepair = async (
     cache: input.cache,
     ...withOptionalSignal(input.signal),
   });
-  const issues = buildIssueIndex(input.from);
+  const issues = buildIssueIndex(filterRepairIssueResults(input));
   const actions = selectRepairActions({
     target: input.target,
     installPlan,

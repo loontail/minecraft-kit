@@ -16,9 +16,9 @@ import { runVerifyAndRepair } from "../repair/run-with-diagnose";
 import { runRepair } from "../repair/runner";
 import { planRuntimeRepair } from "../repair/runtime";
 import type { MetadataCache } from "../types/cache";
-import type { OperationOptions } from "../types/events";
 import type { HttpClient } from "../types/http";
 import type {
+  RepairAllOptions,
   RepairAspect,
   RepairFromErrorInput,
   RepairPlan,
@@ -39,7 +39,7 @@ export type RepairSurface = {
   readonly fabric: RepairAspect;
   readonly forge: RepairAspect;
   readonly runtime: RepairAspect;
-  all(target: Target, options?: OperationOptions): Promise<RepairAllReport>;
+  all(target: Target, options?: RepairAllOptions): Promise<RepairAllReport>;
   fromError(input: RepairFromErrorInput): Promise<RepairPlan>;
   runVerifyAndRepair(input: VerifyAndRepairInput): Promise<VerifyAndRepairResult>;
 };
@@ -68,6 +68,7 @@ export const buildRepairAspect = (deps: RepairAspectDeps): RepairSurface => {
     http,
     cache,
     ...withOptionalSignal(opts.signal),
+    ...(opts.shouldRepairIssue === undefined ? {} : { shouldRepairIssue: opts.shouldRepairIssue }),
   });
   const runRepairPlan: RepairAspect["run"] = (plan, opts) =>
     runRepair({
@@ -103,6 +104,9 @@ export const buildRepairAspect = (deps: RepairAspectDeps): RepairSurface => {
         spawner,
         ...withOptionalSignal(opts?.signal),
         ...withOptionalOnEvent(opts?.onEvent),
+        ...(opts?.shouldRepairIssue === undefined
+          ? {}
+          : { shouldRepairIssue: opts.shouldRepairIssue }),
       }),
     fromError: (input) =>
       planRepairFromError({

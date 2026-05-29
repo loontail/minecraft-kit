@@ -4,7 +4,7 @@ import type { OperationOptions, ProgressListener } from "./events";
 import type { HttpClient } from "./http";
 import type { InstallAction } from "./install";
 import type { Target } from "./target";
-import type { VerificationKind, VerificationResult } from "./verify";
+import type { VerificationFileResult, VerificationKind, VerificationResult } from "./verify";
 
 /**
  * Coarse-grained repair phases used for `repair:phase-changed` events.
@@ -81,6 +81,37 @@ export type RepairReport = {
 };
 
 /**
+ * Context passed to caller-owned repair filters.
+ *
+ * @example
+ * ```ts
+ * import type { RepairIssueFilterInput } from "@loontail/minecraft-kit";
+ *
+ * const describeIssue = (input: RepairIssueFilterInput) =>
+ *   `${input.verification.kind}:${input.issue.path}`;
+ * ```
+ */
+export type RepairIssueFilterInput = {
+  readonly target: Target;
+  readonly verification: VerificationResult;
+  readonly issue: VerificationFileResult;
+};
+
+/**
+ * Predicate used by repair planning to decide whether a verification issue belongs to
+ * the kit-managed repair plan. Return `false` for files intentionally owned by the caller.
+ *
+ * @example
+ * ```ts
+ * import type { RepairIssueFilter } from "@loontail/minecraft-kit";
+ *
+ * const shouldRepairIssue: RepairIssueFilter = ({ issue }) =>
+ *   !bundleOwnedPaths.has(issue.path);
+ * ```
+ */
+export type RepairIssueFilter = (input: RepairIssueFilterInput) => boolean;
+
+/**
  * Inputs accepted by every aspect-specific `planXxxRepair` (`planMinecraftRepair`,
  * `planFabricRepair`, `planForgeRepair`, `planRuntimeRepair`). The per-aspect input types
  * are aliases over this shape.
@@ -100,6 +131,7 @@ export type AspectRepairInput = {
   readonly http: HttpClient;
   readonly cache: MetadataCache;
   readonly signal?: AbortSignal;
+  readonly shouldRepairIssue?: RepairIssueFilter;
 };
 
 /**
@@ -118,6 +150,23 @@ export type AspectRepairInput = {
 export type RepairPlanOptions = {
   readonly from: VerificationResult | readonly VerificationResult[];
   readonly signal?: AbortSignal;
+  readonly shouldRepairIssue?: RepairIssueFilter;
+};
+
+/**
+ * Options for `kit.repair.all`. Extends the common long-running operation options with
+ * caller-owned issue filtering.
+ *
+ * @example
+ * ```ts
+ * const report = await kit.repair.all(target, {
+ *   signal,
+ *   shouldRepairIssue: ({ issue }) => !bundleOwnedPaths.has(issue.path),
+ * });
+ * ```
+ */
+export type RepairAllOptions = OperationOptions & {
+  readonly shouldRepairIssue?: RepairIssueFilter;
 };
 
 /**

@@ -180,9 +180,12 @@ export {
 } from "./types/minecraft";
 export {
   type AspectRepairInput,
+  type RepairAllOptions,
   type RepairableErrorLike,
   type RepairAspect,
   type RepairFromErrorInput,
+  type RepairIssueFilter,
+  type RepairIssueFilterInput,
   type RepairMode,
   RepairModes,
   type RepairPhase,
