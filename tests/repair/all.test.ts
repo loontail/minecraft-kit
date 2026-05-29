@@ -2,6 +2,7 @@ import { access, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { MinecraftKitError, MinecraftKitErrorCodes } from "../../src/core/errors";
 import { targetPaths } from "../../src/core/paths";
 import { asMinecraftVersionId } from "../../src/core/version-id";
 import { createMemoryCache } from "../../src/http/cache";
@@ -216,6 +217,41 @@ describe("repairAll progress events", () => {
       expect([...report.repairs.keys()]).toEqual([VerificationKinds.MINECRAFT]);
       await expect(access(clientJarPath)).resolves.toBeUndefined();
       await expect(access(runtimePath)).rejects.toThrow();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("repairAll offline tolerance", () => {
+  it("reports aspects whose repair needs the network as blocked instead of rejecting", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "mckit-repair-all-offline-"));
+    try {
+      const target = buildRepairTarget(root);
+      const offlineHttp = new FakeHttpClient()
+        .on("https://idx/", {
+          error: () =>
+            new MinecraftKitError(MinecraftKitErrorCodes.NETWORK_HTTP_ERROR, "offline: idx"),
+        })
+        .on("https://runtime-manifest/", {
+          error: () =>
+            new MinecraftKitError(MinecraftKitErrorCodes.NETWORK_HTTP_ERROR, "offline: rt"),
+        });
+
+      const report = await repairAll({
+        target,
+        http: offlineHttp,
+        cache: createMemoryCache(),
+        spawner: new FakeSpawner(),
+      });
+
+      expect(report.repairs.size).toBe(0);
+      expect([...report.blockedAspects.keys()].sort()).toEqual(
+        [VerificationKinds.MINECRAFT, VerificationKinds.RUNTIME].sort(),
+      );
+      expect(report.blockedAspects.get(VerificationKinds.MINECRAFT)?.code).toBe(
+        MinecraftKitErrorCodes.NETWORK_HTTP_ERROR,
+      );
     } finally {
       await rm(root, { recursive: true, force: true });
     }

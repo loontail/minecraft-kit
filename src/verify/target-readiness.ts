@@ -1,31 +1,11 @@
 import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
-import type { MetadataCache } from "../types/cache";
-import type { ProgressListener } from "../types/events";
-import type { HttpClient } from "../types/http";
-import { Loaders } from "../types/loader";
-import type { Target } from "../types/target";
+import { ASPECTS, aspectsForTarget } from "../repair/aspects";
 import type {
   TargetReadinessIssue,
   TargetReadinessResult,
   VerificationResult,
+  VerifyAspectInput,
 } from "../types/verify";
-import { verifyFabric } from "./fabric";
-import { verifyForge } from "./forge";
-import { verifyMinecraft } from "./minecraft";
-import { verifyRuntime } from "./runtime";
-
-/**
- * Inputs to {@link verifyTargetReadiness}.
- *
- * @internal
- */
-export type VerifyTargetReadinessInput = {
-  readonly target: Target;
-  readonly http: HttpClient;
-  readonly cache: MetadataCache;
-  readonly signal?: AbortSignal;
-  readonly onEvent?: ProgressListener;
-};
 
 /**
  * Verify every launch-critical aspect that applies to the target.
@@ -42,7 +22,7 @@ export type VerifyTargetReadinessInput = {
  * ```
  */
 export const verifyTargetReadiness = async (
-  input: VerifyTargetReadinessInput,
+  input: VerifyAspectInput,
 ): Promise<TargetReadinessResult> => {
   const startedAt = Date.now();
   const ctx = {
@@ -53,15 +33,9 @@ export const verifyTargetReadiness = async (
     ...withOptionalOnEvent(input.onEvent),
   };
 
-  const verifications: VerificationResult[] = [
-    await verifyMinecraft(ctx),
-    await verifyRuntime(ctx),
-  ];
-
-  if (input.target.loader.type === Loaders.FABRIC) {
-    verifications.push(await verifyFabric(ctx));
-  } else if (input.target.loader.type === Loaders.FORGE) {
-    verifications.push(await verifyForge(ctx));
+  const verifications: VerificationResult[] = [];
+  for (const kind of aspectsForTarget(input.target)) {
+    verifications.push(await ASPECTS[kind].verify(ctx));
   }
 
   const issues: TargetReadinessIssue[] = verifications.flatMap((verification) =>

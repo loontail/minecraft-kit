@@ -3,7 +3,12 @@ export { planMinecraftRepair, type PlanMinecraftRepairInput } from "./minecraft"
 export { planFabricRepair, type PlanFabricRepairInput } from "./fabric";
 export { planForgeRepair, type PlanForgeRepairInput } from "./forge";
 export { planRuntimeRepair, type PlanRuntimeRepairInput } from "./runtime";
-export { repairAll, type RepairAllInput, type RepairAllReport } from "./all";
+export {
+  repairAll,
+  type RepairAllInput,
+  type RepairAllReport,
+  type RepairBlockedAspect,
+} from "./all";
 export {
   planRepairFromError,
   type PlanRepairFromErrorInput,
