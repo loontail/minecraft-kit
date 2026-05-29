@@ -201,6 +201,7 @@ export {
   type ResolvedRuntime,
   type RuntimeComponent,
   RuntimeComponents,
+  type RuntimeFilesManifest,
   RuntimePreference,
   type RuntimePreferenceKind,
 } from "./types/runtime";

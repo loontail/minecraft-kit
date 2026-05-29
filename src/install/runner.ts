@@ -270,17 +270,21 @@ const runRuntimeStage = async (ctx: InstallRunnerContext): Promise<void> => {
   if (runtime === undefined) return;
   await ctx.checkpoint();
   ctx.enterPhase(InstallPhases.INSTALLING_RUNTIME);
-  const runtimePlan = await planRuntimeDownloads({
-    runtime,
-    directory: ctx.input.plan.directory,
-    http: ctx.input.http,
-    cache: ctx.input.cache,
-    ...withOptionalSignal(ctx.input.signal),
-  });
+  const manifest =
+    ctx.input.plan.runtimeManifest ??
+    (
+      await planRuntimeDownloads({
+        runtime,
+        directory: ctx.input.plan.directory,
+        http: ctx.input.http,
+        cache: ctx.input.cache,
+        ...withOptionalSignal(ctx.input.signal),
+      })
+    ).manifest;
   await materializeRuntimeExtras({
     runtime,
     directory: ctx.input.plan.directory,
-    manifest: runtimePlan.manifest,
+    manifest,
   });
 };
 

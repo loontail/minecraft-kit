@@ -39,13 +39,14 @@ export type PlanInstallInput = {
  */
 export const planInstall = async (input: PlanInstallInput): Promise<InstallPlan> => {
   const { target } = input;
+  const runtime = await planRuntimeFiles(input);
   const actions: InstallAction[] = [
     planClientJarAction(target),
     planVersionJsonWriteAction(target),
     ...planVanillaLibraries(target),
     ...(await planAssetIndexAndObjects(input)),
     ...planLoggingConfigAction(target),
-    ...(await planRuntimeFiles(input)),
+    ...runtime.actions,
     ...(await planLoaderExtras(input)),
   ];
 
@@ -63,6 +64,7 @@ export const planInstall = async (input: PlanInstallInput): Promise<InstallPlan>
     actions,
     totalActions: actions.length,
     totalBytes,
+    runtimeManifest: runtime.manifest,
   };
 };
 
@@ -120,15 +122,16 @@ const planLoggingConfigAction = (target: Target): readonly InstallAction[] => {
   ];
 };
 
-const planRuntimeFiles = async (input: PlanInstallInput): Promise<readonly InstallAction[]> => {
-  const plan = await planRuntimeDownloads({
+const planRuntimeFiles = async (
+  input: PlanInstallInput,
+): Promise<Awaited<ReturnType<typeof planRuntimeDownloads>>> => {
+  return planRuntimeDownloads({
     runtime: input.target.runtime,
     directory: input.target.directory,
     http: input.http,
     cache: input.cache,
     ...withOptionalSignal(input.signal),
   });
-  return plan.actions;
 };
 
 const planLoaderExtras = async (input: PlanInstallInput): Promise<readonly InstallAction[]> => {

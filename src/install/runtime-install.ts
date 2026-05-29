@@ -63,6 +63,7 @@ export const planRuntimeInstall = async (input: PlanRuntimeInstallInput): Promis
     actions,
     totalActions: actions.length,
     totalBytes,
+    runtimeManifest: runtimePlan.manifest,
   };
 };
 
@@ -143,5 +144,6 @@ export const planStandaloneRuntimeInstall = async (
     actions,
     totalActions: actions.length,
     totalBytes,
+    runtimeManifest: runtimePlan.manifest,
   };
 };

@@ -85,6 +85,11 @@ export type PlanForgeInstallInput = {
  * `install_profile.json`, extracts embedded artifacts to `libraries/`, and prepares
  * processor invocations when the profile declares processors.
  *
+ * Unlike the vanilla/Fabric planners this is **not** side-effect-free: it hits the network
+ * (installer download) and writes to disk (`libraries/` extraction). The actions it returns
+ * cannot be enumerated without first reading `install_profile.json` out of the installer
+ * JAR, so the download + extract are intrinsic to planning rather than deferrable to run.
+ *
  * @internal
  */
 export const planForgeInstall = async (input: PlanForgeInstallInput): Promise<ForgeInstallPlan> => {

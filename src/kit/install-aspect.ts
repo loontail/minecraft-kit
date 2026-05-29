@@ -76,6 +76,14 @@ export type InstallRunOptions = OperationOptions & {
  * exported so the facade documentation can show the concrete surface.
  */
 export type InstallAspect = {
+  /**
+   * Build the install plan for a target. Side-effect-free for vanilla and Fabric.
+   *
+   * **Forge is the exception**: planning downloads the Forge installer JAR and extracts its
+   * embedded Maven artifacts to `libraries/`, because the per-library and processor actions
+   * can only be enumerated after reading the installer's `install_profile.json` from disk.
+   * Do not treat `plan(forgeTarget)` as a pure/offline dry-run — it requires network + disk.
+   */
   plan(target: Target, options?: OperationOptions): Promise<InstallPlan>;
   run(plan: InstallPlan, options?: InstallRunOptions): Promise<InstallReport>;
   readonly runtime: {

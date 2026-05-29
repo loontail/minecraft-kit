@@ -1,4 +1,4 @@
-import type { ResolvedRuntime } from "./runtime";
+import type { ResolvedRuntime, RuntimeFilesManifest } from "./runtime";
 import type { Target } from "./target";
 
 /**
@@ -291,9 +291,14 @@ export type InstallPlanTarget = Target | RuntimeOnlyInstallTarget;
 /**
  * Pre-computed install plan: a flat ordered list of actions plus computed totals.
  *
- * The runner consumes this; nothing is downloaded or written during planning. The plan
- * carries a reference to the resolved target so the runner does not need a second target
- * argument.
+ * The runner consumes this; the plan carries a reference to the resolved target so the
+ * runner does not need a second target argument.
+ *
+ * Planning is side-effect-free for vanilla and Fabric. **Forge is the exception**: planning a
+ * Forge target downloads the installer JAR and extracts its embedded Maven artifacts to
+ * `libraries/`, because the per-library/processor actions can only be enumerated after
+ * reading the installer's `install_profile.json` from disk. Treat `install.plan(forgeTarget)`
+ * as requiring network + disk, not a pure dry-run.
  *
  * @example
  * ```ts
@@ -311,6 +316,12 @@ export type InstallPlan = {
   readonly actions: readonly InstallAction[];
   readonly totalBytes: number;
   readonly totalActions: number;
+  /**
+   * Java runtime files manifest resolved during planning, when the plan includes a runtime.
+   * Carried so the runner can materialize directory/symlink/executable entries without a
+   * second fetch of the same manifest.
+   */
+  readonly runtimeManifest?: RuntimeFilesManifest;
 };
 
 /**
