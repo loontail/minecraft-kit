@@ -110,9 +110,11 @@ const pickInstalledVersionId = async (target: Target): Promise<MinecraftVersionI
       if (!(await fileExists(versionJsonPath))) continue;
       const text = await readText(versionJsonPath);
       const parsed = parseJsonOrUndefined<{ inheritsFrom?: string; id?: string }>(text);
+      const versionId = id.toLowerCase();
+      const parsedId = (parsed?.id ?? "").toLowerCase();
       if (
         parsed?.inheritsFrom === target.minecraft.version &&
-        (id.includes("forge") || (parsed.id ?? "").includes("forge"))
+        (versionId.includes("forge") || parsedId.includes("forge"))
       ) {
         return asMinecraftVersionId(id);
       }

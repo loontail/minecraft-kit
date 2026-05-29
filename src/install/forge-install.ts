@@ -11,12 +11,18 @@
 
 import { ApiEndpoints } from "../constants/api";
 import { dedupe, dedupeBy } from "../core/collections";
+import { mavenRelativePathFor } from "../core/maven";
 import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
 import { downloadFile } from "../http/download";
 import type { MetadataCache } from "../types/cache";
 import type { ProgressListener } from "../types/events";
-import type { ForgeInstallProfile, ForgeVersionJson, ResolvedForgeLoader } from "../types/forge";
+import type {
+  ForgeInstallerProfile,
+  ForgeVersionJson,
+  LegacyForgeInstallProfile,
+  ResolvedForgeLoader,
+} from "../types/forge";
 import type { HttpClient } from "../types/http";
 import {
   type DownloadAction,
@@ -29,8 +35,10 @@ import type { ResolvedMinecraft } from "../types/minecraft";
 import type { RuntimeSystem } from "../types/system";
 import {
   extractInstallerMavenEntries,
-  isForgeInstallProfileShape,
+  extractLegacyForgeUniversalJar,
+  isForgeInstallerProfileShape,
   isForgeVersionJsonShape,
+  isLegacyForgeInstallProfileShape,
   readJsonEntry,
 } from "./forge-installer-archive";
 import { buildProcessorActions, resolveProfileData } from "./forge-processor-plan";
@@ -51,7 +59,7 @@ export type ForgeInstallPlan = {
   readonly processorActions: readonly RunForgeProcessorAction[];
   readonly versionJson: WriteVersionJsonAction;
   readonly versionId: string;
-  readonly profile: ForgeInstallProfile;
+  readonly profile: ForgeInstallerProfile;
   readonly version: ForgeVersionJson;
 };
 
@@ -94,11 +102,20 @@ export const planForgeInstall = async (input: PlanForgeInstallInput): Promise<Fo
     category: DownloadCategories.FORGE_INSTALLER,
   };
 
-  const profile = await readJsonEntry<ForgeInstallProfile>(
+  const profile = await readJsonEntry<ForgeInstallerProfile>(
     installerPath,
     "install_profile.json",
-    isForgeInstallProfileShape,
+    isForgeInstallerProfileShape,
   );
+  if (isLegacyForgeInstallProfileShape(profile)) {
+    return await planLegacyForgeInstall({
+      input,
+      installerPath,
+      installerDownload,
+      profile,
+    });
+  }
+
   const versionRelative = profile.json.startsWith("/") ? profile.json.slice(1) : profile.json;
   const version = await readJsonEntry<ForgeVersionJson>(
     installerPath,
@@ -162,6 +179,64 @@ export const planForgeInstall = async (input: PlanForgeInstallInput): Promise<Fo
     versionId: version.id,
     profile,
     version,
+  };
+};
+
+const planLegacyForgeInstall = async (args: {
+  readonly input: PlanForgeInstallInput;
+  readonly installerPath: string;
+  readonly installerDownload: DownloadAction;
+  readonly profile: LegacyForgeInstallProfile;
+}): Promise<ForgeInstallPlan> => {
+  await extractLegacyForgeUniversalJar(args.installerPath, args.profile, args.input.directory);
+
+  const version = withEmbeddedLegacyForgeLibrary(args.profile);
+  const versionLibraries = planLibraryDownloads({
+    libraries: version.libraries,
+    directory: args.input.directory,
+    system: args.input.system,
+    versionId: version.id,
+    category: DownloadCategories.FORGE_LIBRARY,
+  });
+  const versionJsonPath = targetPaths.versionJson(args.input.directory, version.id);
+  const versionJson: WriteVersionJsonAction = {
+    kind: InstallActionKinds.WRITE_VERSION_JSON,
+    path: versionJsonPath,
+    content: `${JSON.stringify(version, null, 2)}\n`,
+  };
+
+  return {
+    installerDownload: args.installerDownload,
+    libraryDownloads: versionLibraries.downloads,
+    classpathFiles: versionLibraries.classpathFiles,
+    processorActions: [],
+    versionJson,
+    versionId: version.id,
+    profile: args.profile,
+    version,
+  };
+};
+
+const withEmbeddedLegacyForgeLibrary = (profile: LegacyForgeInstallProfile): ForgeVersionJson => {
+  const forgeCoord = profile.install.path;
+  const forgeLibraryPath = mavenRelativePathFor(forgeCoord);
+  return {
+    ...profile.versionInfo,
+    libraries: profile.versionInfo.libraries.map((library) => {
+      if (library.name !== forgeCoord) return library;
+      return {
+        ...library,
+        downloads: {
+          ...library.downloads,
+          artifact: {
+            path: forgeLibraryPath,
+            url: "",
+            sha1: "",
+            size: 0,
+          },
+        },
+      };
+    }),
   };
 };
 

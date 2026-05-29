@@ -13,8 +13,14 @@ import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { atomicWrite } from "../core/fs";
 import { isNonEmptyString, isPlainObject } from "../core/guards";
 import { parseJsonAs } from "../core/json";
+import { mavenRelativePathFor } from "../core/maven";
 import { targetPaths } from "../core/paths";
-import type { ForgeInstallProfile, ForgeVersionJson } from "../types/forge";
+import type {
+  ForgeInstallProfile,
+  ForgeInstallerProfile,
+  ForgeVersionJson,
+  LegacyForgeInstallProfile,
+} from "../types/forge";
 
 /**
  * Read a single JSON entry from the installer JAR. Throws `FORGE_INSTALLER_INVALID`
@@ -67,6 +73,34 @@ export const isForgeInstallProfileShape = (value: unknown): value is ForgeInstal
 };
 
 /**
+ * Light-touch guard for legacy Forge 1.7.x `install_profile.json`.
+ *
+ * @internal
+ */
+export const isLegacyForgeInstallProfileShape = (
+  value: unknown,
+): value is LegacyForgeInstallProfile => {
+  if (!isPlainObject(value)) return false;
+  if (!isPlainObject(value.install)) return false;
+  if (!isForgeVersionJsonShape(value.versionInfo)) return false;
+  return (
+    isNonEmptyString(value.install.target) &&
+    isNonEmptyString(value.install.path) &&
+    isNonEmptyString(value.install.filePath) &&
+    isNonEmptyString(value.install.minecraft)
+  );
+};
+
+/**
+ * Guard for every Forge installer profile shape the planner supports.
+ *
+ * @internal
+ */
+export const isForgeInstallerProfileShape = (value: unknown): value is ForgeInstallerProfile => {
+  return isForgeInstallProfileShape(value) || isLegacyForgeInstallProfileShape(value);
+};
+
+/**
  * Light-touch guard for the `version.json` entry shipped inside the Forge
  * installer JAR. Checks `id`, `mainClass`, `inheritsFrom` (all strings) and
  * `libraries[]` is an array of `{ name: string }`.
@@ -113,4 +147,34 @@ export const extractInstallerMavenEntries = async (
   } finally {
     reader.close();
   }
+};
+
+/**
+ * Extract the embedded universal jar referenced by a legacy Forge installer to
+ * the Maven path expected by the launch classpath builder.
+ *
+ * @internal
+ */
+export const extractLegacyForgeUniversalJar = async (
+  installerPath: string,
+  profile: LegacyForgeInstallProfile,
+  directory: string,
+): Promise<string> => {
+  const entryName = profile.install.filePath.startsWith("/")
+    ? profile.install.filePath.slice(1)
+    : profile.install.filePath;
+  const buffer = await readEntryBuffer(installerPath, entryName);
+  if (!buffer) {
+    throw new MinecraftKitError(
+      MinecraftKitErrorCodes.FORGE_INSTALLER_INVALID,
+      `Forge legacy installer is missing required entry: ${entryName}`,
+      { context: { filePath: installerPath, entryName } },
+    );
+  }
+  const destination = path.join(
+    targetPaths.librariesDir(directory),
+    mavenRelativePathFor(profile.install.path),
+  );
+  await atomicWrite(destination, buffer);
+  return destination;
 };

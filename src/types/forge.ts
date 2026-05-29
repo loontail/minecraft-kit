@@ -47,6 +47,35 @@ export type ForgeInstallProfile = {
 };
 
 /**
+ * Legacy Forge installer shape used by 1.7.x-era installers. Those installers
+ * put the launch version JSON under `versionInfo` and ship the Forge universal
+ * jar as a top-level archive entry referenced by `install.filePath`.
+ *
+ * @internal
+ */
+export type LegacyForgeInstallProfile = {
+  readonly install: {
+    readonly profileName?: string;
+    readonly target: string;
+    readonly path: string;
+    readonly version?: string;
+    readonly filePath: string;
+    readonly welcome?: string;
+    readonly minecraft: string;
+    readonly mirrorList?: string;
+    readonly logo?: string;
+  };
+  readonly versionInfo: ForgeVersionJson;
+};
+
+/**
+ * Any Forge `install_profile.json` shape the installer planner can consume.
+ *
+ * @internal
+ */
+export type ForgeInstallerProfile = ForgeInstallProfile | LegacyForgeInstallProfile;
+
+/**
  * Side-keyed data value pair.
  *
  * @internal
@@ -81,6 +110,12 @@ export type ForgeVersionJson = {
   readonly mainClass: string;
   readonly libraries: readonly MinecraftLibrary[];
   readonly arguments?: { readonly game?: readonly string[]; readonly jvm?: readonly string[] };
+  readonly minecraftArguments?: string;
+  readonly assets?: string;
+  readonly jar?: string;
+  readonly minimumLauncherVersion?: number;
+  readonly releaseTime?: string;
+  readonly time?: string;
 };
 
 /**

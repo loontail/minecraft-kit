@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   isForgeInstallProfileShape,
+  isForgeInstallerProfileShape,
   isForgeVersionJsonShape,
+  isLegacyForgeInstallProfileShape,
 } from "../../src/install/forge-installer-archive";
 
 describe("isForgeInstallProfileShape", () => {
@@ -66,6 +68,45 @@ describe("isForgeInstallProfileShape", () => {
       isForgeInstallProfileShape({
         ...valid,
         processors: [{ jar: "x", classpath: [] }],
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("isLegacyForgeInstallProfileShape", () => {
+  const legacy = {
+    install: {
+      profileName: "Forge",
+      target: "1.7.10-Forge10.13.4.1614-1.7.10",
+      path: "net.minecraftforge:forge:1.7.10-10.13.4.1614-1.7.10",
+      version: "Forge 10.13.4.1614-1.7.10",
+      filePath: "forge-1.7.10-10.13.4.1614-1.7.10-universal.jar",
+      minecraft: "1.7.10",
+    },
+    versionInfo: {
+      id: "1.7.10-Forge10.13.4.1614-1.7.10",
+      inheritsFrom: "1.7.10",
+      type: "release",
+      mainClass: "net.minecraft.launchwrapper.Launch",
+      minecraftArguments: "--username ${auth_player_name}",
+      libraries: [{ name: "net.minecraftforge:forge:1.7.10-10.13.4.1614-1.7.10" }],
+    },
+  };
+
+  it("accepts a legacy 1.7.x install profile", () => {
+    expect(isLegacyForgeInstallProfileShape(legacy)).toBe(true);
+    expect(isForgeInstallerProfileShape(legacy)).toBe(true);
+  });
+
+  it("keeps the modern guard scoped to spec/json profiles", () => {
+    expect(isForgeInstallProfileShape(legacy)).toBe(false);
+  });
+
+  it("rejects legacy profiles missing the embedded universal jar path", () => {
+    expect(
+      isLegacyForgeInstallProfileShape({
+        ...legacy,
+        install: { ...legacy.install, filePath: "" },
       }),
     ).toBe(false);
   });
