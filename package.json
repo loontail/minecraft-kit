@@ -1,7 +1,7 @@
 {
   "name": "@loontail/minecraft-kit",
   "version": "0.8.10",
-  "description": "Stateless TypeScript Minecraft launcher library and interactive CLI for vanilla, Fabric, and modern Forge.",
+  "description": "Stateless TypeScript Minecraft launcher library and interactive CLI for vanilla, Fabric, and Forge.",
   "type": "module",
   "license": "MIT",
   "repository": {

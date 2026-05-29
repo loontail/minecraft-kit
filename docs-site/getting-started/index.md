@@ -1,7 +1,7 @@
 # Getting started
 
 `@loontail/minecraft-kit` installs, verifies, repairs, and launches vanilla Minecraft,
-Fabric, and modern Forge from a TypeScript API or the `mckit` CLI.
+Fabric, and Forge from a TypeScript API or the `mckit` CLI.
 
 Requirements: Node ≥ 20.11. ESM-only.
 

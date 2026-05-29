@@ -1,9 +1,10 @@
 /**
  * Forge install orchestrator. Downloads the installer JAR (needed on disk to read
- * `install_profile.json` before the rest of the plan can be produced — see
+ * `install_profile.json` before the rest of the plan can be produced - see
  * `docs/ai-context.md`), reads the installer's metadata via
- * {@link "./forge-installer-archive"}, plans the per-library / processor actions via
- * {@link "./forge-processor-plan"}, and assembles the resulting {@link ForgeInstallPlan}.
+ * {@link "./forge-installer-archive"}, plans the per-library actions plus modern processor
+ * actions via {@link "./forge-processor-plan"}, and assembles the resulting
+ * {@link ForgeInstallPlan}.
  *
  * @internal
  * @packageDocumentation
@@ -80,8 +81,9 @@ export type PlanForgeInstallInput = {
 };
 
 /**
- * Plan the Forge install steps. Downloads the installer, parses install_profile + version.json,
- * extracts embedded artifacts to `libraries/`, and prepares processor invocations.
+ * Plan the Forge install steps. Downloads the installer, parses modern or legacy
+ * `install_profile.json`, extracts embedded artifacts to `libraries/`, and prepares
+ * processor invocations when the profile declares processors.
  *
  * @internal
  */

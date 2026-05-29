@@ -73,9 +73,9 @@ export const resolveLaunchVersion = async (target: Target): Promise<ResolvedLaun
  *
  * Why: Fabric's profile id is `fabric-loader-0.14.21-1.20.1`, but Fabric does not produce a
  * matching `.jar`; the loader expects the **vanilla** client jar on the classpath and hooks
- * it via `KnotClient`. Modern Forge similarly leaves `versions/<forge-id>/<forge-id>.jar`
- * absent and routes the patched client jar through `libraries/`. Walking the chain picks
- * the right id for both shapes without special-casing.
+ * it via `KnotClient`. Processor-based Forge similarly leaves
+ * `versions/<forge-id>/<forge-id>.jar` absent and routes the patched client jar through
+ * `libraries/`. Walking the chain picks the right id for both shapes without special-casing.
  *
  * @internal
  */

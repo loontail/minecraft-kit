@@ -14,10 +14,11 @@ console.log(`${plan.totalActions} actions, ${plan.totalBytes} bytes`);
 logging config + runtime files + (for Fabric/Forge) loader profile JSON and libraries + (for
 Forge) processor invocations.
 
-**Disk during planning.** The only file written during `plan()` is the Forge installer
-JAR. Forge planning needs to read `install_profile.json` from inside that JAR before it
-can emit the rest of the plan, so the JAR is downloaded into `<directory>/forge-installers/`.
-Vanilla, Fabric, and runtime planning are pure metadata.
+**Disk during planning.** Forge planning downloads the installer JAR into
+`<directory>/forge-installers/` because it must read `install_profile.json` before it can
+emit the rest of the plan. Legacy Forge installers may also extract the embedded universal
+JAR into `libraries/` during planning so the generated version JSON points at an artifact
+already present on disk. Vanilla, Fabric, and runtime planning are pure metadata.
 
 ## Run
 
@@ -34,8 +35,9 @@ The runner:
 - skips any download whose target file already matches the expected size + SHA-1;
 - emits typed `download:*`, `integrity:*`, `archive:*`, `forge:*`, and
   `install:phase-changed` events;
-- runs Forge processors sequentially using the installed Mojang JDK;
-- verifies each processor's declared output files by SHA-1.
+- runs Forge processors sequentially using the installed Mojang JDK when the Forge profile
+  declares processors;
+- verifies each declared processor output file by SHA-1.
 
 `run()` throws a `MinecraftKitError` on the first fatal failure (HTTP error after the
 retry budget, hash mismatch, processor failure, abort signal). Per-file network failures that

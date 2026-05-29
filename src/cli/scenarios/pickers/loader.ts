@@ -36,7 +36,7 @@ export const pickInstallType = async (ui: Ui): Promise<WizardOutcome<InstallType
         value: Loaders.FABRIC,
         hint: "lightweight modern loader",
       },
-      { label: "Forge", value: Loaders.FORGE, hint: "modern Forge (1.13+)" },
+      { label: "Forge", value: Loaders.FORGE, hint: "Forge mod loader" },
     ],
     allowBack: true,
     allowCancel: true,

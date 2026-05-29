@@ -16,8 +16,8 @@ features:
     details: One TypeScript facade and the same flows in mckit.
   - title: Versions API
     details: List and resolve Minecraft, Fabric, Forge, and Mojang runtimes.
-  - title: Modern Forge
-    details: Downloads the installer, runs processors with the installed Mojang JDK, verifies every output hash.
+  - title: Forge
+    details: Handles modern processor installers and legacy embedded universal installers.
   - title: Microsoft sign-in
     details: OAuth 2.0 Authorization Code + PKCE over loopback; token storage stays in the host.
   - title: Skin management

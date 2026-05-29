@@ -27,7 +27,7 @@ export type ForgeBuildSummary = {
 };
 
 /**
- * Modern Forge `install_profile.json` (spec 1) shape — only fields we actually consume.
+ * Processor-based Forge `install_profile.json` (spec 1) shape - only fields we actually consume.
  *
  * @internal
  */

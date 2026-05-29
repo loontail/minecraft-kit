@@ -1,13 +1,13 @@
 # @loontail/minecraft-kit
 
 A stateless TypeScript Minecraft launcher library and interactive CLI for vanilla, Fabric,
-and modern Forge.
+and Forge.
 
 **Documentation:** https://loontail.github.io/minecraft-kit/
 
 ## Features
 
-- Install vanilla Minecraft, Fabric, modern Forge, and Mojang Java runtimes.
+- Install vanilla Minecraft, Fabric, Forge, and Mojang Java runtimes.
 - Verify and repair only missing or corrupt files.
 - Launch with offline auth or Microsoft OAuth 2.0 Authorization Code + PKCE.
 - Mutate Mojang skins through `kit.auth.profile.*`.

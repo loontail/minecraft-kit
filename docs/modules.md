@@ -62,6 +62,7 @@ Cross-cutting utilities. Bottom of the dependency graph.
   `isVersionManifestRootShape`, `isAssetIndexShape`, `isMojangJavaRuntimesShape`,
   `isJavaRuntimeManifestShape`, `isFabricProfileShape`. Forge-specific guards live next to
   their consumer in `src/install/forge-installer-archive.ts` (`isForgeInstallProfileShape`,
+  `isLegacyForgeInstallProfileShape`, `isForgeInstallerProfileShape`,
   `isForgeVersionJsonShape`). Pairs with `parseJsonAs`.
 - `hash.ts` — `sha1OfFile` (streaming; wraps the read stream in `try/finally` and destroys
   it on error).
@@ -116,8 +117,9 @@ Cross-cutting utilities. Bottom of the dependency graph.
 - `libraries.ts` — `planLibraryDownloads` (walks library entries, evaluates OS rules,
   emits download + native-extraction actions).
 - `fabric-install.ts` — `planFabricInstall` (profile JSON write + libraries).
-- `forge-install.ts` — `planForgeInstall` (download installer, extract `maven/` entries,
-  parse `install_profile.json` + version.json, resolve tokens, build processor actions).
+- `forge-install.ts` — `planForgeInstall` (download installer, parse modern or legacy
+  `install_profile.json`, extract embedded Maven/universal artifacts, resolve tokens for
+  modern profiles, build processor actions when processors exist).
 - `runtime.ts` — `planRuntimeDownloads` (file-type entries of a runtime manifest).
 - `runtime-extras.ts` — `materializeRuntimeExtras` (directory placeholders + symlinks; falls
   back to `copyFile` when symlinks are forbidden; throws if both fail).

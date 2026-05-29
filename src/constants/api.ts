@@ -42,7 +42,7 @@ export const ApiEndpoints = {
     mavenMetadata: (): string => `${FORGE_MAVEN}/net/minecraftforge/forge/maven-metadata.xml`,
     /** Slim "recommended" / "latest" promotion mapping. */
     promotions: (): string => `${FORGE_FILES}/net/minecraftforge/forge/promotions_slim.json`,
-    /** URL of the modern installer JAR for a Maven version (e.g. `1.20.1-47.2.0`). */
+    /** URL of the Forge installer JAR for a Maven version (e.g. `1.20.1-47.2.0`). */
     installer: (mavenVersion: string): string => {
       const filename = `forge-${mavenVersion}-installer.jar`;
       return `${FORGE_MAVEN}/net/minecraftforge/forge/${mavenVersion}/${filename}`;

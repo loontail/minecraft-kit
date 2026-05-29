@@ -1,14 +1,11 @@
 # Limitations
 
-## Forge legacy (≤ 1.12.2) is not implemented
+## Forge legacy support is narrow
 
-The kit supports **modern Forge only** (1.13+). The legacy Forge install flow (universal
-JAR + `FMLTweaker`) needs its own metadata parsing, classpath layout, and tweaker
-arguments and is not in scope today.
-
-If you call `kit.versions.forge.list()` for a 1.12.2 build the entry will appear, but
-attempting to install it will fail because the kit cannot find a modern
-`install_profile.json` inside the installer JAR.
+The kit supports processor-based Forge installer profiles and the legacy Forge installer
+profile used by 1.7.x-era installers: `install.versionInfo` plus an embedded universal JAR
+referenced by `install.filePath`. Other historical Forge installer shapes should be treated
+as unsupported until a real installer fixture is added for them.
 
 ## NeoForge is not implemented
 

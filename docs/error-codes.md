@@ -69,7 +69,7 @@ typo on either side surfaces at compile time.
 
 | Code | Thrown when | Context fields |
 |---|---|---|
-| `FORGE_INSTALLER_INVALID` | Installer JAR is missing required entries, the entries are not valid JSON, the parsed JSON fails a shape guard (`isForgeInstallProfileShape` / `isForgeVersionJsonShape` in `src/install/forge-installer-archive.ts`), or a processor JAR has no `Main-Class`. | `filePath`, `entryName`, `token` |
+| `FORGE_INSTALLER_INVALID` | Installer JAR is missing required entries, the entries are not valid JSON, the parsed JSON fails a modern or legacy Forge installer shape guard in `src/install/forge-installer-archive.ts`, or a processor JAR has no `Main-Class`. | `filePath`, `entryName`, `token` |
 | `FORGE_PROCESSOR_FAILED` | A processor exited non-zero, or its declared output sha1 mismatched. | `exitCode`, `mainClass`, `stderr`, `expectedHash`, `actualHash` |
 
 ## Launch
@@ -105,7 +105,7 @@ network failed vs. Xbox Live missing).
 | `INVALID_INPUT` | A public API was called with an obviously wrong argument (empty username, wrong loader type for an aspect verifier, malformed coordinate). | varies |
 | `VERIFICATION_FAILED` | Reserved for future use. | — |
 | `NOT_IMPLEMENTED` | A code path is intentionally not implemented yet. | — |
-| `UNSUPPORTED_VERSION` | The selected Minecraft version is outside the supported range (e.g. legacy Forge < 1.13). | `version` |
+| `UNSUPPORTED_VERSION` | The selected Minecraft / loader / runtime version is outside a supported range for the requested operation. | `version` |
 
 ## Conventions
 

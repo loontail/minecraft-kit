@@ -70,7 +70,9 @@ are exposed for consumers that want to avoid the facade.
 ### Install
 1. `planInstall` walks the target's vanilla manifest, asset index, runtime manifest, and loader
    metadata. It produces a flat `InstallAction[]`. **No disk writes happen during planning**
-   except the Forge installer JAR (must be on disk to read `install_profile.json`).
+   except Forge installer artifacts: the installer JAR must be on disk to read
+   `install_profile.json`, and legacy Forge profiles may extract their embedded universal JAR
+   into `libraries/` while building the plan.
 2. `runInstall` consumes the plan: parallel downloads (concurrency = `DOWNLOAD_CONCURRENCY`),
    then atomic writes, then native extractions, then runtime symlinks/dirs, then Forge
    processors. Each phase emits `install:phase-changed`.

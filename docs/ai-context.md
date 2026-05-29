@@ -39,17 +39,21 @@ Skip the user-facing tree (`docs-site/`) unless you are editing public documenta
 - **`runtime-extras.ts`** symlink fallback throws on Windows when both `symlink` and
   `copyFile` fail. Earlier versions swallowed this, leading to cryptic launch failures —
   don't reintroduce the silent catch.
-- **Forge installer is downloaded during planning.** `planForgeInstall` writes the installer
-  JAR to disk because it needs to read `install_profile.json` before producing the rest of
-  the plan. The same URL is then included as a `DOWNLOAD_FILE` action in the plan; `downloadFile`
-  skips it because the on-disk hash already matches.
+- **Forge installer artifacts are materialised during planning.** `planForgeInstall` writes
+  the installer JAR to disk because it needs to read `install_profile.json` before producing
+  the rest of the plan. Legacy Forge profiles may also extract the embedded universal JAR
+  referenced by `install.filePath` into `libraries/`. The installer URL is still included as
+  a `DOWNLOAD_FILE` action in the plan; `downloadFile` skips it when the on-disk hash already
+  matches.
 - **Asset deduplication.** Mojang asset indexes occasionally list the same hash under
   multiple virtual paths. `planAssetDownloads` and `verifyMinecraft` both deduplicate by
   hash. Touching one without the other will cause parallel writes to the same target during
   install / repair.
-- **`pickClientJarVersionId`** walks `inheritsFrom` because Fabric and modern Forge use the
-  *vanilla* client jar on the classpath; their own `versions/<id>/<id>.jar` is empty. Do
-  not "fix" this by always picking the top of the chain.
+- **`pickClientJarVersionId`** walks `inheritsFrom` because Fabric and processor-based Forge
+  use the *vanilla* client jar on the classpath; their own `versions/<id>/<id>.jar` is empty.
+  Legacy Forge can provide a differently-cased Forge version id, so Forge version discovery is
+  case-insensitive. Do not "fix" this by always picking the top of the chain.
+
 ## Tests live in `tests/`, mirror `src/`
 
 `tests/helpers/`:

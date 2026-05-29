@@ -18,7 +18,7 @@ import { evaluateRules } from "./rules";
  *    child winning. When `system` is supplied, entries are rule-filtered first so an
  *    OS-conditional vanilla entry (e.g. 1.18.2 ships `org.lwjgl:lwjgl:3.2.1` for osx
  *    AND `:3.2.2` for non-osx under the same `group:artifact`) doesn't clobber the
- *    applicable one. Fabric Knot and modern Forge use this dedupe to replace vanilla's
+ *    applicable one. Fabric Knot and Forge use this dedupe to replace vanilla's
  *    intrinsic libraries (ASM, mixin, intermediary, …) on the classpath.
  *  - `arguments.game` / `arguments.jvm` — additive concat.
  *  - `downloads` — shallow merge; child wins on conflict.

@@ -25,7 +25,7 @@ export const Loaders = {
   VANILLA: "vanilla",
   /** Fabric mod loader. */
   FABRIC: "fabric",
-  /** Modern (1.13+) Forge mod loader. */
+  /** Forge mod loader. */
   FORGE: "forge",
 } as const;
 
