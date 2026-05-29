@@ -37,6 +37,11 @@ export { createMemoryCache } from "./http/cache";
 export type { MemoryCacheOptions } from "./http/cache";
 export { FetchHttpClient } from "./http/client";
 export {
+  createPersistentMetadataCache,
+  type PersistentMetadataCache,
+  type PersistentMetadataCacheOptions,
+} from "./http/persistent-cache";
+export {
   createInstallProgressTracker,
   type InstallProgressTracker,
   type ProgressSnapshot,
@@ -67,6 +72,7 @@ export {
   planRepairFromError,
   planRuntimeRepair,
   type RepairAllReport,
+  type RepairBlockedAspect,
   type RepairFromErrorSupportedCode,
   RepairFromErrorSupportedCodes,
   repairAll,

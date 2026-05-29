@@ -49,6 +49,16 @@ export const CACHE_TTL_MS = 5 * 60_000;
 export const CACHE_MAX_ENTRIES = 256;
 
 /**
+ * Default retention for a disk-backed {@link "../http/persistent-cache"} entry, in
+ * milliseconds. Decoupled from {@link CACHE_TTL_MS}: the in-memory TTL keeps a single process
+ * from serving minutes-stale data, whereas the persistent cache exists so a target resolved
+ * once still resolves on a later, offline launch — that wants days, not minutes.
+ *
+ * @internal
+ */
+export const PERSISTENT_CACHE_TTL_MS = 7 * 24 * 60 * 60_000;
+
+/**
  * User-agent value sent on every HTTP request.
  *
  * @internal
