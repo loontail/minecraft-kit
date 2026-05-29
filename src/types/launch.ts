@@ -95,6 +95,24 @@ export type LaunchComposition = {
 };
 
 /**
+ * Result of a network-free `kit.launch.preflight(target)` check.
+ *
+ * @example
+ * ```ts
+ * import type { LaunchPreflightResult } from "@loontail/minecraft-kit";
+ *
+ * const preflight: LaunchPreflightResult = await kit.launch.preflight(target);
+ * if (!preflight.ok) console.warn(`cannot launch — missing:\n${preflight.missing.join("\n")}`);
+ * ```
+ */
+export type LaunchPreflightResult = {
+  /** True when every launch-critical file is present on disk. */
+  readonly ok: boolean;
+  /** Absolute paths of the launch-critical files that are missing (empty when `ok`). */
+  readonly missing: readonly string[];
+};
+
+/**
  * Live handle for a running game process.
  *
  * @example

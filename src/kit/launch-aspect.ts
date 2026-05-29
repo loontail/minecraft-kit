@@ -7,10 +7,12 @@
  */
 
 import { composeLaunch } from "../launch/compose";
+import { launchPreflight } from "../launch/preflight";
 import { runLaunch } from "../launch/runner";
 import type {
   LaunchComposition,
   LaunchOptions,
+  LaunchPreflightResult,
   LaunchRunOptions,
   LaunchSession,
 } from "../types/launch";
@@ -24,6 +26,11 @@ import type { Target } from "../types/target";
 export type LaunchAspect = {
   compose(target: Target, options: LaunchOptions): Promise<LaunchComposition>;
   run(composition: LaunchComposition, options?: LaunchRunOptions): LaunchSession;
+  /**
+   * Cheap, network-free readiness gate: reports whether every launch-critical file (java
+   * executable, version JSON, client jar, classpath entries) is present on disk.
+   */
+  preflight(target: Target): Promise<LaunchPreflightResult>;
 };
 
 /**
@@ -47,5 +54,6 @@ export const buildLaunchAspect = (deps: LaunchAspectDeps): LaunchAspect => {
     compose: (target, opts) => composeLaunch({ target, options: opts, logger }),
     run: (composition, opts) =>
       runLaunch({ composition, ...(opts !== undefined ? { options: opts } : {}), spawner }),
+    preflight: (target) => launchPreflight(target),
   };
 };

@@ -147,6 +147,7 @@ export type {
   LaunchExit,
   LaunchMemoryOptions,
   LaunchOptions,
+  LaunchPreflightResult,
   LaunchResolutionOptions,
   LaunchRunOptions,
   LaunchSession,
