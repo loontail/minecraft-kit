@@ -137,6 +137,37 @@ describe("verifyMinecraft", () => {
     const clientJarIssue = result.issues.find((i) => i.category === "client-jar");
     expect(clientJarIssue?.path).toBe(path.join("/r", "versions", "1.20.1", "1.20.1.jar"));
   });
+
+  it("records a missing asset-index issue and does not throw when the index fetch fails", async () => {
+    const http = new FakeHttpClient()
+      .on(ApiEndpoints.mojang.versionManifest(), { body: JSON.stringify(versionRoot) })
+      .on("https://m/1.20.1", { body: JSON.stringify(versionManifest) })
+      .on(ApiEndpoints.mojang.runtimeIndex(), { body: JSON.stringify(runtimeIndex) })
+      .on("https://idx/", { error: () => new Error("offline") });
+    const cache = createMemoryCache();
+    const target = await buildVanillaTarget(http);
+    const result = await verifyMinecraft({ target, http, cache });
+    expect(result.isValid).toBe(false);
+    const indexIssue = result.issues.find(
+      (i) => i.category === VerifyFileCategories.ASSET_INDEX && i.path === "https://idx/",
+    );
+    expect(indexIssue?.status).toBe("missing");
+  });
+
+  it("reports a malformed asset index as an issue instead of trusting it as valid", async () => {
+    const http = new FakeHttpClient()
+      .on(ApiEndpoints.mojang.versionManifest(), { body: JSON.stringify(versionRoot) })
+      .on("https://m/1.20.1", { body: JSON.stringify(versionManifest) })
+      .on(ApiEndpoints.mojang.runtimeIndex(), { body: JSON.stringify(runtimeIndex) })
+      .on("https://idx/", { body: '{"not":"an-asset-index"}' });
+    const cache = createMemoryCache();
+    const target = await buildVanillaTarget(http);
+    const result = await verifyMinecraft({ target, http, cache });
+    const indexIssue = result.issues.find(
+      (i) => i.category === VerifyFileCategories.ASSET_INDEX && i.path === "https://idx/",
+    );
+    expect(indexIssue?.status).toBe("missing");
+  });
 });
 
 describe("kit.verify.targetReady", () => {

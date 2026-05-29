@@ -1,4 +1,5 @@
 import { fileExists } from "../core/fs";
+import { isAssetIndexShape } from "../core/guards";
 import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
 import { pickPrimaryDownloadUrl } from "../http/download";
@@ -8,7 +9,6 @@ import type { MetadataCache } from "../types/cache";
 import type { ProgressListener } from "../types/events";
 import type { HttpClient } from "../types/http";
 import { DownloadCategories } from "../types/install";
-import type { AssetIndexDocument } from "../types/minecraft";
 import type { Target } from "../types/target";
 import {
   VerificationKinds,
@@ -146,11 +146,21 @@ const recordAssetIndexAndObjects = async (
       category: VerifyFileCategories.ASSET_INDEX,
     }),
   );
-  const indexDocument = await fetchJson<AssetIndexDocument>(input.http, input.cache, {
-    url: indexUrl,
-    cacheKey: `asset-index:${minecraft.manifest.assetIndex.id}:${minecraft.manifest.assetIndex.sha1}`,
-    ...withOptionalSignal(input.signal),
-  });
+  let indexDocument: unknown;
+  try {
+    indexDocument = await fetchJson<unknown>(input.http, input.cache, {
+      url: indexUrl,
+      cacheKey: `asset-index:${minecraft.manifest.assetIndex.id}:${minecraft.manifest.assetIndex.sha1}`,
+      ...withOptionalSignal(input.signal),
+    });
+  } catch {
+    recordAssetIndexUnusable(record, indexUrl);
+    return;
+  }
+  if (!isAssetIndexShape(indexDocument)) {
+    recordAssetIndexUnusable(record, indexUrl);
+    return;
+  }
   const seenAssetHashes = new Set<string>();
   for (const entry of Object.values(indexDocument.objects)) {
     if (seenAssetHashes.has(entry.hash)) continue;
@@ -164,6 +174,21 @@ const recordAssetIndexAndObjects = async (
       }),
     );
   }
+};
+
+/**
+ * Record a single `MISSING` issue keyed on the asset-index URL when the index cannot be
+ * read — either it is unreachable (offline / cold cache) or the 200 response is not a valid
+ * asset index (captive portal / hijacked mirror). Mirrors
+ * {@link recordRuntimeManifestUnreachable}: lets the caller see that assets cannot be
+ * verified right now without treating an unenumerable index as proof the assets are valid.
+ */
+const recordAssetIndexUnusable = (record: VerificationRecorder, indexUrl: string): void => {
+  record({
+    path: indexUrl,
+    category: VerifyFileCategories.ASSET_INDEX,
+    status: VerifyFileStatuses.MISSING,
+  });
 };
 
 /**
