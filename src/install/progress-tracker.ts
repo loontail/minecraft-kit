@@ -3,6 +3,7 @@ import type { ProgressEvent, ProgressListener } from "../types/events";
 import {
   DownloadCategories,
   type DownloadCategory,
+  InstallActionKinds,
   type InstallPhase,
   InstallPhases,
   type InstallPlan,
@@ -183,7 +184,7 @@ export const createInstallProgressTracker = (
   };
   let overallTotal = 0;
   for (const action of plan.actions) {
-    if (action.kind !== "download-file") continue;
+    if (action.kind !== InstallActionKinds.DOWNLOAD_FILE) continue;
     const stage = PROGRESS_STAGE_FOR_CATEGORY[action.category] ?? ProgressStages.MINECRAFT;
     stageOfTarget.set(action.target, stage);
     const size = action.expectedSize ?? 0;

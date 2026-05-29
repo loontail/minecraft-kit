@@ -3,7 +3,11 @@ import path from "node:path";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { ensureDir } from "../core/fs";
 import { targetPaths } from "../core/paths";
-import type { ResolvedRuntime, RuntimeFilesManifest } from "../types/runtime";
+import {
+  type ResolvedRuntime,
+  RuntimeEntryTypes,
+  type RuntimeFilesManifest,
+} from "../types/runtime";
 
 /**
  * Materialize directory placeholders and symlinks declared by a runtime manifest.
@@ -25,9 +29,9 @@ export const materializeRuntimeExtras = async (input: {
   );
   for (const [relativePath, entry] of Object.entries(input.manifest.files)) {
     const fullPath = path.join(root, relativePath);
-    if (entry.type === "directory") {
+    if (entry.type === RuntimeEntryTypes.DIRECTORY) {
       await ensureDir(fullPath);
-    } else if (entry.type === "link") {
+    } else if (entry.type === RuntimeEntryTypes.LINK) {
       await ensureDir(path.dirname(fullPath));
       await unlinkIfPresent(fullPath);
       await createLinkOrCopy(root, relativePath, entry.target, fullPath);

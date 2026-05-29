@@ -1,12 +1,6 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { targetPaths } from "../core/paths";
-import {
-  type DownloadAction,
-  DownloadCategories,
-  type InstallAction,
-  InstallActionKinds,
-  type WriteVersionJsonAction,
-} from "../types/install";
+import { DownloadCategories, type InstallAction, InstallActionKinds } from "../types/install";
 import { Loaders } from "../types/loader";
 import type { RepairPlan } from "../types/repair";
 import type { AspectRepairInput } from "../types/repair";
@@ -50,10 +44,10 @@ export const planFabricRepair = async (input: PlanFabricRepairInput): Promise<Re
   );
   return planAspectRepair(input, (action: InstallAction) => {
     if (action.kind === InstallActionKinds.DOWNLOAD_FILE) {
-      return (action as DownloadAction).category === DownloadCategories.FABRIC_LIBRARY;
+      return action.category === DownloadCategories.FABRIC_LIBRARY;
     }
     if (action.kind === InstallActionKinds.WRITE_VERSION_JSON) {
-      return (action as WriteVersionJsonAction).path === fabricJsonPath;
+      return action.path === fabricJsonPath;
     }
     return false;
   });

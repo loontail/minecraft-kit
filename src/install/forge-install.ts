@@ -10,7 +10,6 @@
  * @packageDocumentation
  */
 
-import { ApiEndpoints } from "../constants/api";
 import { dedupe, dedupeBy } from "../core/collections";
 import { mavenRelativePathFor } from "../core/maven";
 import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
@@ -245,13 +244,4 @@ const withEmbeddedLegacyForgeLibrary = (profile: LegacyForgeInstallProfile): For
       };
     }),
   };
-};
-
-/**
- * Build the Forge installer download URL. Used by repair flows that need to refetch.
- *
- * @internal
- */
-export const forgeInstallerUrl = (fullVersion: string): string => {
-  return ApiEndpoints.forge.installer(fullVersion);
 };

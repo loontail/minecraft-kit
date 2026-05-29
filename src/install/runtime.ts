@@ -7,7 +7,11 @@ import { fetchJson } from "../http/metadata";
 import type { MetadataCache } from "../types/cache";
 import type { HttpClient } from "../types/http";
 import { type DownloadAction, DownloadCategories, InstallActionKinds } from "../types/install";
-import type { ResolvedRuntime, RuntimeFilesManifest } from "../types/runtime";
+import {
+  type ResolvedRuntime,
+  RuntimeEntryTypes,
+  type RuntimeFilesManifest,
+} from "../types/runtime";
 
 /**
  * Plan the per-file downloads required to install a runtime.
@@ -44,7 +48,7 @@ export const planRuntimeDownloads = async (input: {
     input.runtime.installRoot,
   );
   for (const [relativePath, entry] of Object.entries(manifest.files)) {
-    if (entry.type !== "file") continue;
+    if (entry.type !== RuntimeEntryTypes.FILE) continue;
     const target = path.join(runtimeRoot, relativePath);
     actions.push({
       kind: InstallActionKinds.DOWNLOAD_FILE,

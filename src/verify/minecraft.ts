@@ -58,6 +58,7 @@ export const verifyMinecraft = async (input: VerifyMinecraftInput): Promise<Veri
       targetId: input.target.id,
       kind: VerificationKinds.MINECRAFT,
       ...withOptionalOnEvent(input.onEvent),
+      ...withOptionalSignal(input.signal),
     },
     async (record) => {
       await recordClientJarAndVersionJson(record, input.target);

@@ -111,6 +111,25 @@ export type RuntimeFilesManifest = {
 };
 
 /**
+ * Discriminant values for {@link RuntimeFileEntry}. Use these instead of bare `"file"` /
+ * `"directory"` / `"link"` strings at call sites.
+ *
+ * @internal
+ */
+export const RuntimeEntryTypes = {
+  FILE: "file",
+  DIRECTORY: "directory",
+  LINK: "link",
+} as const;
+
+/**
+ * Discriminant of a {@link RuntimeFileEntry}.
+ *
+ * @internal
+ */
+export type RuntimeEntryType = (typeof RuntimeEntryTypes)[keyof typeof RuntimeEntryTypes];
+
+/**
  * A single file in the runtime manifest.
  *
  * @internal
@@ -124,7 +143,7 @@ export type RuntimeFileEntry = RuntimeFileFile | RuntimeFileDirectory | RuntimeF
  * @internal
  */
 export type RuntimeFileFile = {
-  readonly type: "file";
+  readonly type: typeof RuntimeEntryTypes.FILE;
   readonly executable: boolean;
   readonly downloads: {
     readonly raw: { readonly sha1: string; readonly size: number; readonly url: string };
@@ -138,7 +157,7 @@ export type RuntimeFileFile = {
  * @internal
  */
 export type RuntimeFileDirectory = {
-  readonly type: "directory";
+  readonly type: typeof RuntimeEntryTypes.DIRECTORY;
 };
 
 /**
@@ -147,7 +166,7 @@ export type RuntimeFileDirectory = {
  * @internal
  */
 export type RuntimeFileLink = {
-  readonly type: "link";
+  readonly type: typeof RuntimeEntryTypes.LINK;
   readonly target: string;
 };
 

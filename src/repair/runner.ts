@@ -40,11 +40,7 @@ export type RunRepairInput = {
  */
 export const runRepair = async (input: RunRepairInput): Promise<RepairReport> => {
   const report = await runInstall({
-    plan: {
-      ...input.plan,
-      totalActions: input.plan.actions.length,
-      totalBytes: input.plan.totalBytes,
-    },
+    plan: input.plan,
     http: input.http,
     cache: input.cache,
     spawner: input.spawner,

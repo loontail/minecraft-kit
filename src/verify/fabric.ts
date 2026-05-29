@@ -1,5 +1,5 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
-import { withOptionalOnEvent } from "../core/optional";
+import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
 import { pickPrimaryDownloadUrl } from "../http/download";
 import { planLibraryDownloads } from "../install/libraries";
@@ -57,6 +57,7 @@ export const verifyFabric = async (input: VerifyFabricInput): Promise<Verificati
       targetId: input.target.id,
       kind: VerificationKinds.FABRIC,
       ...withOptionalOnEvent(input.onEvent),
+      ...withOptionalSignal(input.signal),
     },
     async (record) => {
       record(

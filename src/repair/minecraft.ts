@@ -1,11 +1,9 @@
 import { targetPaths } from "../core/paths";
 import {
-  type DownloadAction,
   DownloadCategories,
   type DownloadCategory,
   type InstallAction,
   InstallActionKinds,
-  type WriteVersionJsonAction,
 } from "../types/install";
 import type { AspectRepairInput, RepairPlan } from "../types/repair";
 import { planAspectRepair } from "./helpers";
@@ -48,10 +46,10 @@ export const planMinecraftRepair = async (input: PlanMinecraftRepairInput): Prom
   );
   return planAspectRepair(input, (action: InstallAction) => {
     if (action.kind === InstallActionKinds.DOWNLOAD_FILE) {
-      return MINECRAFT_DOWNLOAD_CATEGORIES.has((action as DownloadAction).category);
+      return MINECRAFT_DOWNLOAD_CATEGORIES.has(action.category);
     }
     if (action.kind === InstallActionKinds.WRITE_VERSION_JSON) {
-      return (action as WriteVersionJsonAction).path === vanillaJsonPath;
+      return action.path === vanillaJsonPath;
     }
     if (action.kind === InstallActionKinds.EXTRACT_NATIVE) {
       return true;

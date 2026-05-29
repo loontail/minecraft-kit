@@ -6,7 +6,6 @@ import {
   type DownloadCategory,
   type InstallAction,
   InstallActionKinds,
-  type WriteVersionJsonAction,
 } from "../types/install";
 import { Loaders } from "../types/loader";
 import type { AspectRepairInput, RepairPlan } from "../types/repair";
@@ -60,10 +59,10 @@ export const planForgeRepair = async (input: PlanForgeRepairInput): Promise<Repa
     input,
     (action: InstallAction) => {
       if (action.kind === InstallActionKinds.DOWNLOAD_FILE) {
-        return FORGE_DOWNLOAD_CATEGORIES.has((action as DownloadAction).category);
+        return FORGE_DOWNLOAD_CATEGORIES.has(action.category);
       }
       if (action.kind === InstallActionKinds.WRITE_VERSION_JSON) {
-        return (action as WriteVersionJsonAction).path === forgeJsonPath;
+        return action.path === forgeJsonPath;
       }
       return false;
     },
@@ -94,8 +93,8 @@ const expandRepairForMissingForgeJson = (input: {
   for (const action of installPlan.actions) {
     if (
       action.kind === InstallActionKinds.DOWNLOAD_FILE &&
-      (action as DownloadAction).category === DownloadCategories.FORGE_LIBRARY &&
-      !alreadyIncluded.has((action as DownloadAction).target)
+      action.category === DownloadCategories.FORGE_LIBRARY &&
+      !alreadyIncluded.has(action.target)
     ) {
       actions.push(action);
     } else if (action.kind === InstallActionKinds.RUN_FORGE_PROCESSOR) {

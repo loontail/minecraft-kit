@@ -5,7 +5,7 @@ import { fetchJson } from "../http/metadata";
 import type { MetadataCache } from "../types/cache";
 import type { ProgressListener } from "../types/events";
 import type { HttpClient } from "../types/http";
-import type { RuntimeFilesManifest } from "../types/runtime";
+import { RuntimeEntryTypes, type RuntimeFilesManifest } from "../types/runtime";
 import type { Target } from "../types/target";
 import {
   VerificationKinds,
@@ -50,6 +50,7 @@ export const verifyRuntime = async (input: VerifyRuntimeInput): Promise<Verifica
       targetId: input.target.id,
       kind: VerificationKinds.RUNTIME,
       ...withOptionalOnEvent(input.onEvent),
+      ...withOptionalSignal(input.signal),
     },
     async (record) => {
       let manifest: RuntimeFilesManifest;
@@ -69,7 +70,7 @@ export const verifyRuntime = async (input: VerifyRuntimeInput): Promise<Verifica
         input.target.runtime.installRoot,
       );
       for (const [relative, entry] of Object.entries(manifest.files)) {
-        if (entry.type !== "file") continue;
+        if (entry.type !== RuntimeEntryTypes.FILE) continue;
         record(
           await verifyHashedFile({
             path: path.join(runtimeRoot, relative),

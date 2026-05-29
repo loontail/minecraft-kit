@@ -1,9 +1,4 @@
-import {
-  type DownloadAction,
-  DownloadCategories,
-  type InstallAction,
-  InstallActionKinds,
-} from "../types/install";
+import { DownloadCategories, type InstallAction, InstallActionKinds } from "../types/install";
 import type { RepairPlan } from "../types/repair";
 import type { AspectRepairInput } from "../types/repair";
 import { planAspectRepair } from "./helpers";
@@ -37,6 +32,6 @@ export const planRuntimeRepair = async (input: PlanRuntimeRepairInput): Promise<
     input,
     (action: InstallAction) =>
       action.kind === InstallActionKinds.DOWNLOAD_FILE &&
-      (action as DownloadAction).category === DownloadCategories.RUNTIME_FILE,
+      action.category === DownloadCategories.RUNTIME_FILE,
   );
 };

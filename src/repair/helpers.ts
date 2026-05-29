@@ -1,13 +1,6 @@
 import { withOptionalSignal } from "../core/optional";
 import { planInstall } from "../install/planner";
-import {
-  type DownloadAction,
-  type ExtractNativeAction,
-  type InstallAction,
-  InstallActionKinds,
-  type InstallPlan,
-  type WriteVersionJsonAction,
-} from "../types/install";
+import { type InstallAction, InstallActionKinds, type InstallPlan } from "../types/install";
 import type { AspectRepairInput, RepairIssueFilter, RepairPlan } from "../types/repair";
 import type { Target } from "../types/target";
 import {
@@ -47,8 +40,6 @@ export type IssueIndex = {
    * means "re-extract the JAR" not "re-download the JAR".
    */
   hasNonNative(path: string): boolean;
-  /** All categories recorded for the given path (empty when none). */
-  categoriesAt(path: string): ReadonlySet<VerifyFileCategory>;
 };
 
 /**
@@ -77,7 +68,6 @@ export const buildIssueIndex = (
       }
       return false;
     },
-    categoriesAt: (path) => map.get(path) ?? new Set<VerifyFileCategory>(),
   };
 };
 
@@ -116,7 +106,7 @@ export const filterRepairIssueResults = (input: {
 export const sumDownloadBytes = (actions: readonly InstallAction[]): number => {
   return actions.reduce((sum, action) => {
     if (action.kind === InstallActionKinds.DOWNLOAD_FILE) {
-      return sum + ((action as DownloadAction).expectedSize ?? 0);
+      return sum + (action.expectedSize ?? 0);
     }
     return sum;
   }, 0);
@@ -202,15 +192,15 @@ export const selectRepairActions = (input: {
   for (const action of input.installPlan.actions) {
     if (!input.aspectFilter(action)) continue;
     if (action.kind === InstallActionKinds.DOWNLOAD_FILE) {
-      if (input.issues.hasNonNative((action as DownloadAction).target)) {
+      if (input.issues.hasNonNative(action.target)) {
         matching.push(action);
       }
     } else if (action.kind === InstallActionKinds.WRITE_VERSION_JSON) {
-      if (input.issues.has((action as WriteVersionJsonAction).path)) {
+      if (input.issues.has(action.path)) {
         matching.push(action);
       }
     } else if (action.kind === InstallActionKinds.EXTRACT_NATIVE) {
-      if (input.issues.has((action as ExtractNativeAction).source)) {
+      if (input.issues.has(action.source)) {
         matching.push(action);
       }
     } else {

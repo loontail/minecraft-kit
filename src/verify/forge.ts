@@ -1,7 +1,7 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
-import { fileExists, readText } from "../core/fs";
+import { readText } from "../core/fs";
 import { parseJsonOrUndefined } from "../core/json";
-import { withOptionalOnEvent } from "../core/optional";
+import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
 import { pickPrimaryDownloadUrl } from "../http/download";
 import { planLibraryDownloads } from "../install/libraries";
@@ -69,6 +69,7 @@ export const verifyForge = async (input: VerifyForgeInput): Promise<Verification
       targetId: input.target.id,
       kind: VerificationKinds.FORGE,
       ...withOptionalOnEvent(input.onEvent),
+      ...withOptionalSignal(input.signal),
     },
     async (record) => {
       const forgeVersionJsonPath = await findForgeVersionJsonPath(
@@ -84,13 +85,12 @@ export const verifyForge = async (input: VerifyForgeInput): Promise<Verification
         );
         return;
       }
-      record(
-        await verifyExistence({
-          path: forgeVersionJsonPath,
-          category: VerifyFileCategories.LOADER_LIBRARY,
-        }),
-      );
-      if (!(await fileExists(forgeVersionJsonPath))) return;
+      const existence = await verifyExistence({
+        path: forgeVersionJsonPath,
+        category: VerifyFileCategories.LOADER_LIBRARY,
+      });
+      record(existence);
+      if (existence.status !== VerifyFileStatuses.OK) return;
 
       const parsed = parseJsonOrUndefined<ForgeVersionJson>(await readText(forgeVersionJsonPath));
       if (parsed === undefined) {
