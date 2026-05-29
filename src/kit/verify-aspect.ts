@@ -10,15 +10,21 @@ import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
 import type { MetadataCache } from "../types/cache";
 import type { HttpClient } from "../types/http";
 import type { Target } from "../types/target";
-import type { VerificationResult, VerifyOperationOptions } from "../types/verify";
+import type {
+  TargetReadinessResult,
+  VerificationResult,
+  VerifyOperationOptions,
+} from "../types/verify";
 import { verifyFabric } from "../verify/fabric";
 import { verifyForge } from "../verify/forge";
 import { verifyMinecraft } from "../verify/minecraft";
 import { verifyRuntime } from "../verify/runtime";
+import { verifyTargetReadiness } from "../verify/target-readiness";
 
 /**
- * Shape of `kit.verify`. The four per-aspect surfaces all share the same `(target,
- * options) → Promise<VerificationResult>` contract.
+ * Shape of `kit.verify`. The four per-aspect surfaces share the same `(target,
+ * options) → Promise<VerificationResult>` contract; `targetReady` aggregates them for
+ * launch gating.
  */
 export type VerifyAspect = {
   readonly minecraft: {
@@ -32,6 +38,9 @@ export type VerifyAspect = {
   };
   readonly runtime: {
     run(target: Target, options?: VerifyOperationOptions): Promise<VerificationResult>;
+  };
+  readonly targetReady: {
+    run(target: Target, options?: VerifyOperationOptions): Promise<TargetReadinessResult>;
   };
 };
 
@@ -64,5 +73,6 @@ export const buildVerifyAspect = (deps: VerifyAspectDeps): VerifyAspect => {
     fabric: { run: (target, opts) => verifyFabric(verifyArgs(target, opts)) },
     forge: { run: (target, opts) => verifyForge(verifyArgs(target, opts)) },
     runtime: { run: (target, opts) => verifyRuntime(verifyArgs(target, opts)) },
+    targetReady: { run: (target, opts) => verifyTargetReadiness(verifyArgs(target, opts)) },
   };
 };

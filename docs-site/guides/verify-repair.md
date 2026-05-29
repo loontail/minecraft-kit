@@ -39,6 +39,23 @@ Pass `onEvent` to receive a `verify:file-checked` event per file.
 Aspect verifiers that require a specific loader throw `INVALID_INPUT` when called on the
 wrong loader (`verify.fabric.run` on a vanilla target, etc.).
 
+For a launch gate, use the aggregate readiness API. It runs `minecraft`, `runtime`, and
+the active loader aspect when one applies:
+
+```ts
+const readiness = await kit.verify.targetReady.run(target);
+
+if (!readiness.isReady) {
+  for (const issue of readiness.issues) {
+    console.warn(`${issue.kind}: ${issue.status}: ${issue.path}`);
+  }
+}
+```
+
+`readiness.verifications` contains the underlying `VerificationResult[]`. Each flattened
+`readiness.issues` entry also carries `kind`, so callers can route runtime, Minecraft, and
+loader failures to different UI states.
+
 ## Repair
 
 ```ts

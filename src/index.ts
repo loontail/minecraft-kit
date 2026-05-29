@@ -225,13 +225,21 @@ export {
   type VerificationKind,
   VerificationKinds,
   type VerificationResult,
+  type TargetReadinessIssue,
+  type TargetReadinessResult,
   VerifyFileCategories,
   type VerifyFileCategory,
   type VerifyFileStatus,
   VerifyFileStatuses,
   type VerifyOperationOptions,
 } from "./types/verify";
-export { verifyFabric, verifyForge, verifyMinecraft, verifyRuntime } from "./verify/index";
+export {
+  verifyFabric,
+  verifyForge,
+  verifyMinecraft,
+  verifyRuntime,
+  verifyTargetReadiness,
+} from "./verify/index";
 export { FabricVersionsApi } from "./versions/fabric";
 export type {
   FabricGameVersionEntry,

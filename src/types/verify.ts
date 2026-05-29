@@ -142,6 +142,38 @@ export type VerificationResult = {
 };
 
 /**
+ * A verification issue annotated with the aspect that produced it.
+ *
+ * @example
+ * ```ts
+ * import type { TargetReadinessIssue } from "@loontail/minecraft-kit";
+ *
+ * const runtimeIssues = (issues: readonly TargetReadinessIssue[]) =>
+ *   issues.filter((issue) => issue.kind === "runtime");
+ * ```
+ */
+export type TargetReadinessIssue = VerificationFileResult & {
+  readonly kind: VerificationKind;
+};
+
+/**
+ * Aggregate launch-readiness report for every aspect that applies to a target.
+ *
+ * @example
+ * ```ts
+ * const readiness = await kit.verify.targetReady.run(target);
+ * if (!readiness.isReady) console.warn(readiness.issues.map((i) => i.path));
+ * ```
+ */
+export type TargetReadinessResult = {
+  readonly targetId: string;
+  readonly isReady: boolean;
+  readonly verifications: readonly VerificationResult[];
+  readonly issues: readonly TargetReadinessIssue[];
+  readonly durationMs: number;
+};
+
+/**
  * Options accepted by every `verify.<kind>.run`.
  *
  * @example

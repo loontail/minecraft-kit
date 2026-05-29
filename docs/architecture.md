@@ -84,6 +84,9 @@ Per-aspect verifiers (`verifyMinecraft`, `verifyFabric`, `verifyForge`, `verifyR
 walk the files they own. They emit one `verify:file-checked` event per file and return a
 `VerificationResult` with the issue list. The shared `runVerification` helper in
 `src/verify/helpers.ts` owns the timing/issue-array/emit boilerplate.
+`kit.verify.targetReady.run(target)` is the aggregate launch gate: it runs Minecraft,
+runtime, and the active loader verifier, then flattens their issues with the producing
+verification kind attached.
 
 ### Repair
 A `VerificationResult` (or array thereof) feeds `planXxxRepair`. The shared `planAspectRepair`

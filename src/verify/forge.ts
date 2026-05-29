@@ -2,6 +2,7 @@ import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { fileExists, readText } from "../core/fs";
 import { parseJsonOrUndefined } from "../core/json";
 import { withOptionalOnEvent } from "../core/optional";
+import { targetPaths } from "../core/paths";
 import { pickPrimaryDownloadUrl } from "../http/download";
 import { planLibraryDownloads } from "../install/libraries";
 import type { MetadataCache } from "../types/cache";
@@ -62,6 +63,7 @@ export const verifyForge = async (input: VerifyForgeInput): Promise<Verification
       `verify.forge requires a Forge target (got ${input.target.loader.type})`,
     );
   }
+  const loader = input.target.loader;
   return runVerification(
     {
       targetId: input.target.id,
@@ -73,7 +75,15 @@ export const verifyForge = async (input: VerifyForgeInput): Promise<Verification
         input.target.directory,
         input.target.minecraft.version,
       );
-      if (forgeVersionJsonPath === null) return;
+      if (forgeVersionJsonPath === null) {
+        record(
+          await verifyExistence({
+            path: targetPaths.versionJson(input.target.directory, loader.fullVersion),
+            category: VerifyFileCategories.LOADER_LIBRARY,
+          }),
+        );
+        return;
+      }
       record(
         await verifyExistence({
           path: forgeVersionJsonPath,

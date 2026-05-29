@@ -15,7 +15,7 @@ const kit = new MinecraftKit();
 | `kit.versions.{minecraft,fabric,forge,runtime}` | `list`, `resolve` (and `latest` / `get` on `minecraft`) |
 | `kit.targets` | `create`, `resolve`, `list` |
 | `kit.install` | `plan`, `run`, `runtime.{plan,run,standalonePlan}` |
-| `kit.verify.{minecraft,fabric,forge,runtime}` | `run` |
+| `kit.verify.{minecraft,fabric,forge,runtime,targetReady}` | `run` |
 | `kit.repair.{minecraft,fabric,forge,runtime}` | `plan`, `run` (plus `kit.repair.all`) |
 | `kit.launch` | `compose`, `run` |
 | `kit.auth` | `authorizationCode.run`, `refresh` |
