@@ -1,13 +1,10 @@
 import { ApiEndpoints } from "../constants/api";
-import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
-import { isAssetIndexShape } from "../core/guards";
-import { withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
-import { fetchJson } from "../http/metadata";
+import { fetchAssetIndex, uniqueAssetObjects } from "../http/manifests";
 import type { MetadataCache } from "../types/cache";
 import type { HttpClient } from "../types/http";
 import { type DownloadAction, DownloadCategories, InstallActionKinds } from "../types/install";
-import type { AssetIndexDocument, AssetIndexReference, AssetObject } from "../types/minecraft";
+import type { AssetIndexDocument, AssetIndexReference } from "../types/minecraft";
 
 /**
  * Plan asset downloads: fetch the asset index and emit a download action per object plus the
@@ -27,19 +24,12 @@ export const planAssetDownloads = async (input: {
 }> => {
   const indexUrl = input.assetIndex.url;
   const indexPath = targetPaths.assetIndex(input.directory, input.assetIndex.id);
-  const indexRaw = await fetchJson<unknown>(input.http, input.cache, {
-    url: indexUrl,
-    cacheKey: `asset-index:${input.assetIndex.id}:${input.assetIndex.sha1}`,
-    ...withOptionalSignal(input.signal),
-  });
-  if (!isAssetIndexShape(indexRaw)) {
-    throw new MinecraftKitError(
-      MinecraftKitErrorCodes.MANIFEST_INVALID,
-      `Asset index does not match the expected shape: ${input.assetIndex.id}`,
-      { context: { url: indexUrl } },
-    );
-  }
-  const indexDocument: AssetIndexDocument = indexRaw;
+  const indexDocument = await fetchAssetIndex(
+    input.http,
+    input.cache,
+    input.assetIndex,
+    input.signal,
+  );
   const actions: DownloadAction[] = [
     {
       kind: InstallActionKinds.DOWNLOAD_FILE,
@@ -50,7 +40,7 @@ export const planAssetDownloads = async (input: {
       category: DownloadCategories.ASSET_INDEX,
     },
   ];
-  for (const entry of uniqueObjectsByHash(indexDocument.objects)) {
+  for (const entry of uniqueAssetObjects(indexDocument.objects)) {
     actions.push({
       kind: InstallActionKinds.DOWNLOAD_FILE,
       url: ApiEndpoints.resources.asset(entry.hash),
@@ -62,20 +52,3 @@ export const planAssetDownloads = async (input: {
   }
   return { actions, indexDocument };
 };
-
-/**
- * Yield one entry per unique asset hash from the asset index.
- *
- * Asset indexes routinely list the same hash under multiple virtual paths (e.g. legacy
- * localized variants of the same byte content). Emitting one `DOWNLOAD_FILE` per unique
- * hash keeps two parallel writes from racing the same `assets/objects/<hash>` target — a
- * race that surfaces during repair as a "Failed to finalize download" error.
- */
-function* uniqueObjectsByHash(objects: AssetIndexDocument["objects"]): Generator<AssetObject> {
-  const seen = new Set<string>();
-  for (const entry of Object.values(objects)) {
-    if (seen.has(entry.hash)) continue;
-    seen.add(entry.hash);
-    yield entry;
-  }
-}

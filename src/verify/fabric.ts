@@ -1,29 +1,16 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
-import { pickPrimaryDownloadUrl } from "../http/download";
 import { planLibraryDownloads } from "../install/libraries";
-import type { MetadataCache } from "../types/cache";
-import type { ProgressListener } from "../types/events";
-import type { HttpClient } from "../types/http";
 import { DownloadCategories } from "../types/install";
 import { Loaders } from "../types/loader";
-import type { Target } from "../types/target";
-import { VerificationKinds, type VerificationResult, VerifyFileCategories } from "../types/verify";
-import { runVerification, verifyExistence, verifyHashedFile } from "./helpers";
-
-/**
- * Inputs to {@link verifyFabric}.
- *
- * @internal
- */
-export type VerifyFabricInput = {
-  readonly target: Target;
-  readonly http: HttpClient;
-  readonly cache: MetadataCache;
-  readonly signal?: AbortSignal;
-  readonly onEvent?: ProgressListener;
-};
+import {
+  VerificationKinds,
+  type VerificationResult,
+  type VerifyAspectInput,
+  VerifyFileCategories,
+} from "../types/verify";
+import { recordLibraryDownloads, runVerification, verifyExistence } from "./helpers";
 
 /**
  * Verify the Fabric loader slice: profile JSON + every library it pulls in.
@@ -44,7 +31,7 @@ export type VerifyFabricInput = {
  * }
  * ```
  */
-export const verifyFabric = async (input: VerifyFabricInput): Promise<VerificationResult> => {
+export const verifyFabric = async (input: VerifyAspectInput): Promise<VerificationResult> => {
   if (input.target.loader.type !== Loaders.FABRIC) {
     throw new MinecraftKitError(
       MinecraftKitErrorCodes.INVALID_INPUT,
@@ -73,17 +60,7 @@ export const verifyFabric = async (input: VerifyFabricInput): Promise<Verificati
         versionId: input.target.minecraft.version,
         category: DownloadCategories.FABRIC_LIBRARY,
       });
-      for (const action of fabricLibraries.downloads) {
-        record(
-          await verifyHashedFile({
-            path: action.target,
-            ...(action.expectedSha1 !== undefined ? { expectedSha1: action.expectedSha1 } : {}),
-            ...(action.expectedSize !== undefined ? { expectedSize: action.expectedSize } : {}),
-            url: pickPrimaryDownloadUrl(action.url),
-            category: VerifyFileCategories.LOADER_LIBRARY,
-          }),
-        );
-      }
+      await recordLibraryDownloads(record, fabricLibraries, VerifyFileCategories.LOADER_LIBRARY);
     },
   );
 };

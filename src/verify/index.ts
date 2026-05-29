@@ -1,8 +1,5 @@
-export { verifyMinecraft, type VerifyMinecraftInput } from "./minecraft";
-export { verifyFabric, type VerifyFabricInput } from "./fabric";
-export { verifyForge, type VerifyForgeInput } from "./forge";
-export { verifyRuntime, type VerifyRuntimeInput } from "./runtime";
-export {
-  verifyTargetReadiness,
-  type VerifyTargetReadinessInput,
-} from "./target-readiness";
+export { verifyMinecraft } from "./minecraft";
+export { verifyFabric } from "./fabric";
+export { verifyForge } from "./forge";
+export { verifyRuntime } from "./runtime";
+export { verifyTargetReadiness } from "./target-readiness";

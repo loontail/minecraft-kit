@@ -19,10 +19,7 @@
   "typeDeclarationFormat": "table",
   "indexFormat": "table",
   "intentionallyNotExported": [
-    "VerifyFabricInput",
-    "VerifyForgeInput",
-    "VerifyMinecraftInput",
-    "VerifyRuntimeInput",
+    "VerifyAspectInput",
     "PlanRuntimeInstallInput",
     "RepairAllInput",
     "RunRepairInput",

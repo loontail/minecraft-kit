@@ -3,12 +3,15 @@ import { fileExists, fileSize, listChildDirectories, readText } from "../core/fs
 import { sha1OfFile } from "../core/hash";
 import { parseJsonOrUndefined } from "../core/json";
 import { targetPaths } from "../core/paths";
+import { pickPrimaryDownloadUrl } from "../http/download";
+import type { LibraryPlan } from "../install/libraries";
 import { EventTypes } from "../types/events";
 import type { ProgressListener } from "../types/events";
 import {
   type VerificationFileResult,
   type VerificationKind,
   type VerificationResult,
+  type VerifyFileCategory,
   VerifyFileStatuses,
 } from "../types/verify";
 
@@ -110,6 +113,31 @@ export const verifyHashedFile = async (input: {
     ...(input.expectedSize !== undefined ? { expectedSize: input.expectedSize } : {}),
     ...(input.url !== undefined ? { url: input.url } : {}),
   };
+};
+
+/**
+ * Record a {@link verifyHashedFile} result for every library download in a plan under the
+ * given category. Shared by the Minecraft, Fabric, and Forge verifiers — the loop body and
+ * the `pickPrimaryDownloadUrl` mirror-selection are identical across all three.
+ *
+ * @internal
+ */
+export const recordLibraryDownloads = async (
+  record: VerificationRecorder,
+  plan: LibraryPlan,
+  category: VerifyFileCategory,
+): Promise<void> => {
+  for (const action of plan.downloads) {
+    record(
+      await verifyHashedFile({
+        path: action.target,
+        ...(action.expectedSha1 !== undefined ? { expectedSha1: action.expectedSha1 } : {}),
+        ...(action.expectedSize !== undefined ? { expectedSize: action.expectedSize } : {}),
+        url: pickPrimaryDownloadUrl(action.url),
+        category,
+      }),
+    );
+  }
 };
 
 /**

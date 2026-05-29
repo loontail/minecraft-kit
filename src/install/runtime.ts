@@ -1,9 +1,6 @@
 import path from "node:path";
-import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
-import { isJavaRuntimeManifestShape } from "../core/guards";
-import { withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
-import { fetchJson } from "../http/metadata";
+import { fetchRuntimeManifest } from "../http/manifests";
 import type { MetadataCache } from "../types/cache";
 import type { HttpClient } from "../types/http";
 import { type DownloadAction, DownloadCategories, InstallActionKinds } from "../types/install";
@@ -28,19 +25,7 @@ export const planRuntimeDownloads = async (input: {
   readonly actions: readonly DownloadAction[];
   readonly manifest: RuntimeFilesManifest;
 }> => {
-  const manifestRaw = await fetchJson<unknown>(input.http, input.cache, {
-    url: input.runtime.manifestUrl,
-    cacheKey: `runtime-manifest:${input.runtime.component}:${input.runtime.platformKey}:${input.runtime.manifestSha1}`,
-    ...withOptionalSignal(input.signal),
-  });
-  if (!isJavaRuntimeManifestShape(manifestRaw)) {
-    throw new MinecraftKitError(
-      MinecraftKitErrorCodes.MANIFEST_INVALID,
-      `Java runtime files manifest does not match the expected shape: ${input.runtime.component}`,
-      { context: { url: input.runtime.manifestUrl, platform: input.runtime.platformKey } },
-    );
-  }
-  const manifest: RuntimeFilesManifest = manifestRaw;
+  const manifest = await fetchRuntimeManifest(input.http, input.cache, input.runtime, input.signal);
   const actions: DownloadAction[] = [];
   const runtimeRoot = targetPaths.runtimeRoot(
     input.directory,

@@ -339,4 +339,19 @@ describe("verifyRuntime with installRoot", () => {
     const expectedPath = path.join("/r", "runtime", "java-runtime-gamma", "bin", "javaw.exe");
     expect(result.issues.find((i) => i.path === expectedPath)).toBeDefined();
   });
+
+  it("records the manifest as unreachable when it returns an unrecognisable shape", async () => {
+    const http = new FakeHttpClient()
+      .on(ApiEndpoints.mojang.versionManifest(), { body: JSON.stringify(versionRoot) })
+      .on("https://m/1.20.1", { body: JSON.stringify(versionManifest) })
+      .on(ApiEndpoints.mojang.runtimeIndex(), { body: JSON.stringify(runtimeIndex) })
+      .on("https://rm/", { body: '{"not":"a-runtime-manifest"}' });
+    const cache = createMemoryCache();
+    const target = await buildVanillaTarget(http);
+    const result = await verifyRuntime({ target, http, cache });
+    expect(result.kind).toBe(VerificationKinds.RUNTIME);
+    const manifestIssue = result.issues.find((i) => i.path === "https://rm/");
+    expect(manifestIssue?.status).toBe("missing");
+    expect(manifestIssue?.category).toBe(VerifyFileCategories.RUNTIME_FILE);
+  });
 });

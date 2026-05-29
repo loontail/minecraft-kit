@@ -1,32 +1,16 @@
 import path from "node:path";
 import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
-import { fetchJson } from "../http/metadata";
-import type { MetadataCache } from "../types/cache";
-import type { ProgressListener } from "../types/events";
-import type { HttpClient } from "../types/http";
+import { fetchRuntimeManifest } from "../http/manifests";
 import { RuntimeEntryTypes, type RuntimeFilesManifest } from "../types/runtime";
-import type { Target } from "../types/target";
 import {
   VerificationKinds,
   type VerificationResult,
+  type VerifyAspectInput,
   VerifyFileCategories,
   VerifyFileStatuses,
 } from "../types/verify";
 import { type VerificationRecorder, runVerification, verifyHashedFile } from "./helpers";
-
-/**
- * Inputs to {@link verifyRuntime}.
- *
- * @internal
- */
-export type VerifyRuntimeInput = {
-  readonly target: Target;
-  readonly http: HttpClient;
-  readonly cache: MetadataCache;
-  readonly signal?: AbortSignal;
-  readonly onEvent?: ProgressListener;
-};
 
 /**
  * Verify the Java runtime files. Honours `target.runtime.installRoot` when set so a
@@ -44,7 +28,7 @@ export type VerifyRuntimeInput = {
  * console.log(`runtime ${result.isValid ? "ok" : "broken"} — ${result.checkedFiles} files checked`);
  * ```
  */
-export const verifyRuntime = async (input: VerifyRuntimeInput): Promise<VerificationResult> => {
+export const verifyRuntime = async (input: VerifyAspectInput): Promise<VerificationResult> => {
   return runVerification(
     {
       targetId: input.target.id,
@@ -55,11 +39,12 @@ export const verifyRuntime = async (input: VerifyRuntimeInput): Promise<Verifica
     async (record) => {
       let manifest: RuntimeFilesManifest;
       try {
-        manifest = await fetchJson<RuntimeFilesManifest>(input.http, input.cache, {
-          url: input.target.runtime.manifestUrl,
-          cacheKey: `runtime-manifest:${input.target.runtime.component}:${input.target.runtime.platformKey}:${input.target.runtime.manifestSha1}`,
-          ...withOptionalSignal(input.signal),
-        });
+        manifest = await fetchRuntimeManifest(
+          input.http,
+          input.cache,
+          input.target.runtime,
+          input.signal,
+        );
       } catch {
         recordRuntimeManifestUnreachable(record, input.target.runtime.manifestUrl);
         return;

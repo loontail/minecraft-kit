@@ -1,40 +1,24 @@
 import { fileExists } from "../core/fs";
-import { isAssetIndexShape } from "../core/guards";
 import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
-import { pickPrimaryDownloadUrl } from "../http/download";
-import { fetchJson } from "../http/metadata";
+import { fetchAssetIndex, uniqueAssetObjects } from "../http/manifests";
 import { planLibraryDownloads } from "../install/libraries";
-import type { MetadataCache } from "../types/cache";
-import type { ProgressListener } from "../types/events";
-import type { HttpClient } from "../types/http";
 import { DownloadCategories } from "../types/install";
 import type { Target } from "../types/target";
 import {
   VerificationKinds,
   type VerificationResult,
+  type VerifyAspectInput,
   VerifyFileCategories,
   VerifyFileStatuses,
 } from "../types/verify";
 import {
   type VerificationRecorder,
+  recordLibraryDownloads,
   runVerification,
   verifyExistence,
   verifyHashedFile,
 } from "./helpers";
-
-/**
- * Inputs to {@link verifyMinecraft}.
- *
- * @internal
- */
-export type VerifyMinecraftInput = {
-  readonly target: Target;
-  readonly http: HttpClient;
-  readonly cache: MetadataCache;
-  readonly signal?: AbortSignal;
-  readonly onEvent?: ProgressListener;
-};
 
 /**
  * Verify the vanilla Minecraft slice of an installation: the client jar, version JSON,
@@ -52,7 +36,7 @@ export type VerifyMinecraftInput = {
  * if (!result.isValid) console.warn(`missing/corrupt: ${result.issues.length} files`);
  * ```
  */
-export const verifyMinecraft = async (input: VerifyMinecraftInput): Promise<VerificationResult> => {
+export const verifyMinecraft = async (input: VerifyAspectInput): Promise<VerificationResult> => {
   return runVerification(
     {
       targetId: input.target.id,
@@ -117,23 +101,13 @@ const recordLibrariesAndReturnPlan = async (
     versionId: target.minecraft.version,
     category: DownloadCategories.LIBRARY,
   });
-  for (const action of libraryPlan.downloads) {
-    record(
-      await verifyHashedFile({
-        path: action.target,
-        ...(action.expectedSha1 !== undefined ? { expectedSha1: action.expectedSha1 } : {}),
-        ...(action.expectedSize !== undefined ? { expectedSize: action.expectedSize } : {}),
-        url: pickPrimaryDownloadUrl(action.url),
-        category: VerifyFileCategories.LIBRARY,
-      }),
-    );
-  }
+  await recordLibraryDownloads(record, libraryPlan, VerifyFileCategories.LIBRARY);
   return libraryPlan;
 };
 
 const recordAssetIndexAndObjects = async (
   record: VerificationRecorder,
-  input: VerifyMinecraftInput,
+  input: VerifyAspectInput,
 ): Promise<void> => {
   const { directory, minecraft } = input.target;
   const indexUrl = minecraft.manifest.assetIndex.url;
@@ -147,25 +121,19 @@ const recordAssetIndexAndObjects = async (
       category: VerifyFileCategories.ASSET_INDEX,
     }),
   );
-  let indexDocument: unknown;
+  let indexDocument: Awaited<ReturnType<typeof fetchAssetIndex>>;
   try {
-    indexDocument = await fetchJson<unknown>(input.http, input.cache, {
-      url: indexUrl,
-      cacheKey: `asset-index:${minecraft.manifest.assetIndex.id}:${minecraft.manifest.assetIndex.sha1}`,
-      ...withOptionalSignal(input.signal),
-    });
+    indexDocument = await fetchAssetIndex(
+      input.http,
+      input.cache,
+      minecraft.manifest.assetIndex,
+      input.signal,
+    );
   } catch {
     recordAssetIndexUnusable(record, indexUrl);
     return;
   }
-  if (!isAssetIndexShape(indexDocument)) {
-    recordAssetIndexUnusable(record, indexUrl);
-    return;
-  }
-  const seenAssetHashes = new Set<string>();
-  for (const entry of Object.values(indexDocument.objects)) {
-    if (seenAssetHashes.has(entry.hash)) continue;
-    seenAssetHashes.add(entry.hash);
+  for (const entry of uniqueAssetObjects(indexDocument.objects)) {
     record(
       await verifyHashedFile({
         path: targetPaths.assetObject(directory, entry.hash),

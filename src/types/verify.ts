@@ -1,4 +1,7 @@
+import type { MetadataCache } from "./cache";
 import type { ProgressListener } from "./events";
+import type { HttpClient } from "./http";
+import type { Target } from "./target";
 
 /**
  * Aspect of an installation a verification result describes.
@@ -193,3 +196,16 @@ export type VerifyOperationOptions = {
   readonly signal?: AbortSignal;
   readonly onEvent?: ProgressListener;
 };
+
+/**
+ * Inputs shared by every per-aspect verifier (`verifyMinecraft`, `verifyRuntime`,
+ * `verifyFabric`, `verifyForge`) and the readiness aggregator (`verifyTargetReadiness`).
+ * One shape so the verifiers and the dispatch sites that call them cannot drift.
+ *
+ * @internal
+ */
+export type VerifyAspectInput = {
+  readonly target: Target;
+  readonly http: HttpClient;
+  readonly cache: MetadataCache;
+} & VerifyOperationOptions;

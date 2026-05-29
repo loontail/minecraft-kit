@@ -3,40 +3,23 @@ import { readText } from "../core/fs";
 import { parseJsonOrUndefined } from "../core/json";
 import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
-import { pickPrimaryDownloadUrl } from "../http/download";
 import { planLibraryDownloads } from "../install/libraries";
-import type { MetadataCache } from "../types/cache";
-import type { ProgressListener } from "../types/events";
 import type { ForgeVersionJson } from "../types/forge";
-import type { HttpClient } from "../types/http";
 import { DownloadCategories } from "../types/install";
 import { Loaders } from "../types/loader";
-import type { Target } from "../types/target";
 import {
   VerificationKinds,
   type VerificationResult,
+  type VerifyAspectInput,
   VerifyFileCategories,
   VerifyFileStatuses,
 } from "../types/verify";
 import {
   findForgeVersionJsonPath,
+  recordLibraryDownloads,
   runVerification,
   verifyExistence,
-  verifyHashedFile,
 } from "./helpers";
-
-/**
- * Inputs to {@link verifyForge}.
- *
- * @internal
- */
-export type VerifyForgeInput = {
-  readonly target: Target;
-  readonly http: HttpClient;
-  readonly cache: MetadataCache;
-  readonly signal?: AbortSignal;
-  readonly onEvent?: ProgressListener;
-};
 
 /**
  * Verify the Forge loader slice: the on-disk Forge version JSON and every library it
@@ -56,7 +39,7 @@ export type VerifyForgeInput = {
  * for (const issue of result.issues) console.log(issue.status, issue.path);
  * ```
  */
-export const verifyForge = async (input: VerifyForgeInput): Promise<VerificationResult> => {
+export const verifyForge = async (input: VerifyAspectInput): Promise<VerificationResult> => {
   if (input.target.loader.type !== Loaders.FORGE) {
     throw new MinecraftKitError(
       MinecraftKitErrorCodes.INVALID_INPUT,
@@ -108,17 +91,7 @@ export const verifyForge = async (input: VerifyForgeInput): Promise<Verification
         versionId: input.target.minecraft.version,
         category: DownloadCategories.FORGE_LIBRARY,
       });
-      for (const action of forgeLibraries.downloads) {
-        record(
-          await verifyHashedFile({
-            path: action.target,
-            ...(action.expectedSha1 !== undefined ? { expectedSha1: action.expectedSha1 } : {}),
-            ...(action.expectedSize !== undefined ? { expectedSize: action.expectedSize } : {}),
-            url: pickPrimaryDownloadUrl(action.url),
-            category: VerifyFileCategories.LOADER_LIBRARY,
-          }),
-        );
-      }
+      await recordLibraryDownloads(record, forgeLibraries, VerifyFileCategories.LOADER_LIBRARY);
     },
   );
 };
