@@ -13,10 +13,10 @@ import { silentLogger } from "./core/logger";
 import { detectSystem } from "./core/system";
 import { createMemoryCache } from "./http/cache";
 import { FetchHttpClient } from "./http/client";
-import { type InstallAspect, buildInstallAspect } from "./kit/install-aspect";
-import { type LaunchAspect, buildLaunchAspect } from "./kit/launch-aspect";
-import { type RepairSurface, buildRepairAspect } from "./kit/repair-aspect";
-import { type VerifyAspect, buildVerifyAspect } from "./kit/verify-aspect";
+import { buildInstallAspect, type InstallAspect } from "./kit/install-aspect";
+import { buildLaunchAspect, type LaunchAspect } from "./kit/launch-aspect";
+import { buildRepairAspect, type RepairSurface } from "./kit/repair-aspect";
+import { buildVerifyAspect, type VerifyAspect } from "./kit/verify-aspect";
 import { ChildProcessSpawner } from "./launch/spawner";
 import { TargetsApi } from "./targets/index";
 import type { MetadataCache } from "./types/cache";
@@ -31,7 +31,12 @@ import { RuntimeVersionsApi } from "./versions/runtime";
 
 export type { InstallAspect, InstallRunOptions } from "./kit/install-aspect";
 export type { LaunchAspect } from "./kit/launch-aspect";
-export type { RepairSurface } from "./kit/repair-aspect";
+export type {
+  RepairAllRunOptions,
+  RepairAspectSurface,
+  RepairRunOptions,
+  RepairSurface,
+} from "./kit/repair-aspect";
 export type { VerifyAspect } from "./kit/verify-aspect";
 
 /**

@@ -1,8 +1,15 @@
-import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
+import {
+  withOptionalHostAllowList,
+  withOptionalOnEvent,
+  withOptionalPauseController,
+  withOptionalSignal,
+} from "../core/optional";
+import type { PauseController } from "../core/pause-controller";
 import { runInstall } from "../install/runner";
 import type { MetadataCache } from "../types/cache";
 import type { ProgressListener } from "../types/events";
 import type { HttpClient } from "../types/http";
+import type { DownloadAction } from "../types/install";
 import type { RepairPlan, RepairReport } from "../types/repair";
 import type { Spawner } from "../types/spawner";
 
@@ -20,6 +27,10 @@ export type RunRepairInput = {
   readonly onEvent?: ProgressListener;
   /** Host allow-list forwarded to the install runner's downloads. */
   readonly hostAllowList?: readonly string[];
+  /** Cooperative pause, forwarded to the install runner. */
+  readonly pauseController?: PauseController;
+  /** Category filter, forwarded to the install runner. */
+  readonly actionCategories?: ReadonlySet<DownloadAction["category"]>;
 };
 
 /**
@@ -35,7 +46,9 @@ export type RunRepairInput = {
  * const verification = await kit.verify.minecraft.run(target);
  * const plan = await kit.repair.minecraft.plan(target, { from: verification });
  * const report = await kit.repair.minecraft.run(plan);
- * console.log(`repaired ${report.actionsCompleted} files in ${report.durationMs}ms`);
+ * console.log(
+ *   `checked ${report.actionsCompleted} files, ${report.actionsSkipped} were already correct`,
+ * );
  * ```
  */
 export const runRepair = async (input: RunRepairInput): Promise<RepairReport> => {
@@ -44,14 +57,17 @@ export const runRepair = async (input: RunRepairInput): Promise<RepairReport> =>
     http: input.http,
     cache: input.cache,
     spawner: input.spawner,
-    ...(input.hostAllowList !== undefined ? { hostAllowList: input.hostAllowList } : {}),
+    ...withOptionalHostAllowList(input.hostAllowList),
     ...withOptionalSignal(input.signal),
     ...withOptionalOnEvent(input.onEvent),
+    ...withOptionalPauseController(input.pauseController),
+    ...(input.actionCategories !== undefined ? { actionCategories: input.actionCategories } : {}),
   });
   return {
     targetId: report.targetId,
     bytesDownloaded: report.bytesDownloaded,
     actionsCompleted: report.actionsCompleted,
+    actionsSkipped: report.actionsSkipped,
     durationMs: report.durationMs,
   };
 };

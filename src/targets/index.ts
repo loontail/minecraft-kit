@@ -1,12 +1,13 @@
 import path from "node:path";
+import { NODE_PLATFORM_TO_MOJANG_OS } from "../constants/platform";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { dirExists, fileExists, listChildDirectories } from "../core/fs";
 import { withOptionalSignal } from "../core/optional";
-import { targetPaths } from "../core/paths";
+import { javaExecutableUnder, targetPaths } from "../core/paths";
 import { Loaders, type VersionPreferenceKind } from "../types/loader";
 import type { MinecraftVersionId } from "../types/minecraft";
 import { RuntimePreference, type RuntimePreferenceKind } from "../types/runtime";
-import type { RuntimeSystem } from "../types/system";
+import type { OperatingSystem, RuntimeSystem } from "../types/system";
 import type {
   DiscoveredLoaderHint,
   DiscoveredRuntimeHint,
@@ -290,6 +291,11 @@ const discoverInstallation = async (
 };
 
 const discoverRuntime = async (directory: string): Promise<DiscoveredRuntimeHint | undefined> => {
+  // Discovery probes the *host* filesystem for an already-installed runtime, so the layout to
+  // look for is the host's — not any target's `system.os`.
+  const hostOs: OperatingSystem | undefined =
+    NODE_PLATFORM_TO_MOJANG_OS[process.platform as keyof typeof NODE_PLATFORM_TO_MOJANG_OS];
+  if (hostOs === undefined) return undefined;
   const runtimeDir = targetPaths.runtimesDir(directory);
   if (!(await dirExists(runtimeDir))) return undefined;
   let components: readonly string[];
@@ -299,8 +305,7 @@ const discoverRuntime = async (directory: string): Promise<DiscoveredRuntimeHint
     return undefined;
   }
   for (const component of components) {
-    const root = path.join(runtimeDir, component);
-    const javaPath = javaExecutablePath(root);
+    const javaPath = javaExecutableUnder(path.join(runtimeDir, component), hostOs);
     if (await fileExists(javaPath)) {
       return { component, javaPath };
     }
@@ -318,12 +323,4 @@ const inferLoaderFromVersionId = (versionId: string): DiscoveredLoaderHint | nul
     return { type: Loaders.FORGE, minecraftVersion: forgeMatch[1], version: forgeMatch[2] };
   }
   return null;
-};
-
-const javaExecutablePath = (runtimeRoot: string): string => {
-  if (process.platform === "win32") return path.join(runtimeRoot, "bin", "javaw.exe");
-  if (process.platform === "darwin") {
-    return path.join(runtimeRoot, "jre.bundle", "Contents", "Home", "bin", "java");
-  }
-  return path.join(runtimeRoot, "bin", "java");
 };

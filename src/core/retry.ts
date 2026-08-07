@@ -3,7 +3,7 @@ import {
   HTTP_RETRY_BACKOFF_CAP_MS,
   HTTP_RETRY_MAX,
 } from "../constants/defaults";
-import { MinecraftKitError, MinecraftKitErrorCodes, isMinecraftKitError } from "./errors";
+import { isMinecraftKitError, MinecraftKitError, MinecraftKitErrorCodes } from "./errors";
 
 /**
  * Inputs passed to {@link withRetry}.

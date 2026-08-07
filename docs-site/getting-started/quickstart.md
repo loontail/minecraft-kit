@@ -9,7 +9,13 @@ Two launch modes:
 ## Offline launch
 
 ```ts
-import { MinecraftKit, AuthModes, Loaders, EventTypes } from "@loontail/minecraft-kit";
+import {
+  asMinecraftVersionId,
+  AuthModes,
+  EventTypes,
+  Loaders,
+  MinecraftKit,
+} from "@loontail/minecraft-kit";
 
 const kit = new MinecraftKit();
 
@@ -17,12 +23,13 @@ const kit = new MinecraftKit();
 const target = await kit.targets.resolve({
   id: "fabric-client",
   directory: "./minecrafts/fabric-client",
-  minecraft: { version: "1.20.1" },
+  minecraft: { version: asMinecraftVersionId("1.20.1") },
   loader: { type: Loaders.FABRIC },
 });
 
-// 2. Plan the install. No disk writes happen here apart from the Forge installer
-//    (Fabric and vanilla skip the disk during planning).
+// 2. Plan the install. No disk writes happen here apart from the Forge installer's
+//    `libraries/` flush (Fabric and vanilla skip the disk during planning), and that flush
+//    is idempotent — re-planning the same Forge target re-uses what is already there.
 const plan = await kit.install.plan(target);
 console.log(`${plan.totalActions} actions, ${plan.totalBytes} bytes`);
 
@@ -52,8 +59,9 @@ touch disk inside the kit — **persisting the refresh token is your launcher's 
 import {
   asAzureClientId,
   asMicrosoftRefreshToken,
-  MinecraftKit,
+  asMinecraftVersionId,
   Loaders,
+  MinecraftKit,
   toOnlineAuth,
 } from "@loontail/minecraft-kit";
 import fs from "node:fs/promises";
@@ -91,7 +99,7 @@ console.log(`Signed in as ${session.minecraft.username}`);
 const target = await kit.targets.resolve({
   id: "fabric-client",
   directory: "./minecrafts/fabric-client",
-  minecraft: { version: "1.20.1" },
+  minecraft: { version: asMinecraftVersionId("1.20.1") },
   loader: { type: Loaders.FABRIC },
 });
 await kit.install.run(await kit.install.plan(target));

@@ -159,16 +159,44 @@ export class ZipReader {
           );
         }
         const stream = await openStream(file, entry, this.filePath);
-        const chunks: Buffer[] = [];
-        for await (const chunk of stream) {
-          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-        }
-        return Buffer.concat(chunks);
+        return await collectStream(stream, this.filePath, name);
       },
       openReadStream: () => openStream(file, entry, this.filePath),
     };
   }
 }
+
+/**
+ * Drain a yauzl entry stream into one Buffer using flow-mode events.
+ *
+ * `for await (const chunk of stream)` cannot be used here: for a *stored* (uncompressed)
+ * entry yauzl hands back fd-slicer's own `Readable`, whose `_read` never runs under async
+ * iteration, so the promise never settles and the whole install hangs. Deflated entries go
+ * through a zlib `PassThrough` chain and hide the problem, which is why it only bites on
+ * archives that contain stored members.
+ */
+const collectStream = (
+  stream: Readable,
+  archivePath: string,
+  entryName: string,
+): Promise<Buffer> => {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    stream.on("data", (chunk: Buffer | string) => {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    });
+    stream.once("end", () => resolve(Buffer.concat(chunks)));
+    stream.once("error", (cause: unknown) => {
+      reject(
+        new MinecraftKitError(
+          MinecraftKitErrorCodes.ARCHIVE_INVALID,
+          `Failed to read archive entry: ${entryName}`,
+          { cause, context: { filePath: archivePath, entryName } },
+        ),
+      );
+    });
+  });
+};
 
 const openStream = (
   file: yauzl.ZipFile,
@@ -223,9 +251,7 @@ export const extractAllToDir = async (
     for await (const entry of reader.entries()) {
       if (entry.isDirectory) continue;
       if (exclude.some((prefix) => entry.name.startsWith(prefix))) continue;
-      assertSafeEntryName(entry.name);
-      const destination = path.join(targetDir, entry.name);
-      assertWithinRoot(targetDir, entry.name);
+      const destination = resolveContainedDestination(targetDir, entry.name);
       totalSize += entry.uncompressedSize;
       if (totalSize > EXTRACTION_MAX_TOTAL_SIZE) {
         throw new MinecraftKitError(
@@ -299,6 +325,24 @@ const rejectEntry = (name: string, reason: string): MinecraftKitError => {
 };
 
 /**
+ * Resolve an archive-controlled relative path into an absolute destination inside `root`.
+ *
+ * Every write path that derives a filename from archive or archive-metadata content must go
+ * through this instead of a bare `path.join`, so zip-slip containment is a property of the
+ * primitive rather than something each call site has to remember.
+ *
+ * @throws `ARCHIVE_ENTRY_REJECTED` when the name is dangerous regardless of containment
+ * (absolute, `..` segment, null byte, reserved Windows name, trailing dot/space).
+ * @throws `FILESYSTEM_PATH_TRAVERSAL` when the resolved path escapes `root`.
+ * @internal
+ */
+export const resolveContainedDestination = (root: string, relativePath: string): string => {
+  assertSafeEntryName(relativePath);
+  assertWithinRoot(root, relativePath);
+  return path.join(root, relativePath);
+};
+
+/**
  * Read a single named entry to a Buffer. Returns undefined if missing.
  *
  * @internal
@@ -318,15 +362,22 @@ export const readEntryBuffer = async (
 };
 
 /**
- * Extract a single entry to a destination path.
+ * Extract a single entry to `<root>/<relativeDestination>`.
+ *
+ * The destination is expressed as a root plus a relative path rather than a ready-made
+ * absolute path so containment can be enforced here — callers routinely derive
+ * `relativeDestination` from attacker-influenceable archive metadata.
  *
  * @internal
  */
 export const extractSingleEntry = async (
   zipPath: string,
   entryName: string,
-  destination: string,
+  root: string,
+  relativeDestination: string,
 ): Promise<void> => {
+  assertSafeEntryName(entryName);
+  const destination = resolveContainedDestination(root, relativeDestination);
   const buffer = await readEntryBuffer(zipPath, entryName);
   if (!buffer) {
     throw new MinecraftKitError(

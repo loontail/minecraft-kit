@@ -8,13 +8,13 @@ import {
   ASSETS_RESOURCES_DIR,
   ASSETS_VIRTUAL_DIR,
   FORGE_INSTALLERS_DIR,
+  forgeInstallerFilename,
   JAVA_EXECUTABLE,
   LIBRARIES_DIR,
   MAC_RUNTIME_PREFIX,
   NATIVES_DIR_NAME,
   RUNTIMES_DIR,
   VERSIONS_DIR,
-  forgeInstallerFilename,
 } from "../constants/files";
 import type { OperatingSystem } from "../types/system";
 
@@ -75,12 +75,21 @@ export const targetPaths = {
     component: string,
     os: OperatingSystem,
     installRoot?: string,
-  ): string => {
-    const runtime = targetPaths.runtimeRoot(directory, component, installRoot);
-    if (os === "windows") return path.join(runtime, JAVA_EXECUTABLE.windows);
-    if (os === "osx") return path.join(runtime, MAC_RUNTIME_PREFIX, JAVA_EXECUTABLE.osx);
-    return path.join(runtime, JAVA_EXECUTABLE.linux);
-  },
+  ): string => javaExecutableUnder(targetPaths.runtimeRoot(directory, component, installRoot), os),
   forgeInstaller: (root: string, mavenVersion: string): string =>
     path.join(root, FORGE_INSTALLERS_DIR, forgeInstallerFilename(mavenVersion)),
 } as const;
+
+/**
+ * Java executable inside an already-resolved runtime root. The single definition of the
+ * per-OS layout: `targetPaths.runtimeJavaExecutable` derives the root and delegates here, and
+ * target discovery — which probes a root it already holds — calls it directly instead of
+ * re-spelling the three layouts.
+ *
+ * @internal
+ */
+export const javaExecutableUnder = (runtimeRoot: string, os: OperatingSystem): string => {
+  if (os === "windows") return path.join(runtimeRoot, JAVA_EXECUTABLE.windows);
+  if (os === "osx") return path.join(runtimeRoot, MAC_RUNTIME_PREFIX, JAVA_EXECUTABLE.osx);
+  return path.join(runtimeRoot, JAVA_EXECUTABLE.linux);
+};

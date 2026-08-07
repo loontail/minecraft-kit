@@ -14,7 +14,7 @@ const kit = new MinecraftKit();
 |---|---|
 | `kit.versions.{minecraft,fabric,forge,runtime}` | `list`, `resolve` (and `latest` / `get` on `minecraft`) |
 | `kit.targets` | `create`, `resolve`, `list` |
-| `kit.install` | `plan`, `run`, `runtime.{plan,run,standalonePlan}` |
+| `kit.install` | `plan`, `run`, `runtime.{plan,run,planStandalone}` |
 | `kit.verify.{minecraft,fabric,forge,runtime,targetReady}` | `run` |
 | `kit.repair.{minecraft,fabric,forge,runtime}` | `plan`, `run` (plus `kit.repair.all`) |
 | `kit.launch` | `compose`, `run` |
@@ -39,10 +39,15 @@ Replace dependencies for tests, custom transport, logging, or process supervisio
 ## Symmetric versions API
 
 ```ts
-import { MinecraftChannels, VersionPreference, RuntimePreference } from "@loontail/minecraft-kit";
+import {
+  asMinecraftVersionId,
+  MinecraftChannels,
+  RuntimePreference,
+  VersionPreference,
+} from "@loontail/minecraft-kit";
 
 await kit.versions.minecraft.list({ channel: MinecraftChannels.RELEASE });
-await kit.versions.minecraft.resolve({ version: "1.20.1" });
+await kit.versions.minecraft.resolve({ version: asMinecraftVersionId("1.20.1") });
 
 await kit.versions.fabric.list({ minecraftVersion: "1.20.1" });
 await kit.versions.fabric.resolve({
@@ -88,7 +93,12 @@ The facade composes these with the injected dependencies.
 Pass a `Logger` to the constructor for trace output. The kit ships three implementations:
 
 ```ts
-import { consoleLogger, silentLogger, scopedLogger } from "@loontail/minecraft-kit";
+import {
+  consoleLogger,
+  MinecraftKit,
+  scopedLogger,
+  silentLogger,
+} from "@loontail/minecraft-kit";
 
 const kit = new MinecraftKit({ logger: scopedLogger(consoleLogger, "launcher") });
 ```

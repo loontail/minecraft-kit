@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { consoleLogger, scopedLogger, silentLogger } from "../../src/core/logger";
-import type { LogLevel, Logger } from "../../src/types/logger";
+import type { Logger, LogLevel } from "../../src/types/logger";
 
 describe("logger", () => {
   describe("silentLogger", () => {

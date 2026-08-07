@@ -22,7 +22,7 @@ and Forge.
 npm install @loontail/minecraft-kit
 ```
 
-Requires Node ≥ 20.11.
+Requires Node ≥ 22.12.
 
 ## Usage
 

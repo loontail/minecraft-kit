@@ -1,13 +1,13 @@
 import {
   AuthModes,
   type AzureClientId,
+  asAzureClientId,
+  assertNever,
   CLIENT_ID_ENV_VAR,
+  isMinecraftKitError,
   type MojangSession,
   type OfflineAuth,
   type OnlineAuth,
-  asAzureClientId,
-  assertNever,
-  isMinecraftKitError,
   toOnlineAuth,
 } from "../../index";
 import { formatUserError } from "../error-format";

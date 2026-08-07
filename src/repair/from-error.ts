@@ -1,5 +1,5 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
-import { withOptionalSignal } from "../core/optional";
+import { withOptionalHostAllowList, withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
 import { planInstall } from "../install/planner";
 import type { MetadataCache } from "../types/cache";
@@ -22,8 +22,6 @@ import { buildRepairPlan } from "./helpers";
  * Adding a new entry here is non-breaking. Removing or relaxing one is breaking — callers
  * may have written narrow `catch` blocks that rely on `INVALID_INPUT` for the unsupported
  * codes.
- *
- * @internal
  */
 export const RepairFromErrorSupportedCodes = {
   INTEGRITY_HASH_MISMATCH: MinecraftKitErrorCodes.INTEGRITY_HASH_MISMATCH,
@@ -36,8 +34,6 @@ export const RepairFromErrorSupportedCodes = {
 
 /**
  * Union of error codes supported by {@link planRepairFromError}.
- *
- * @internal
  */
 export type RepairFromErrorSupportedCode =
   (typeof RepairFromErrorSupportedCodes)[keyof typeof RepairFromErrorSupportedCodes];
@@ -51,6 +47,8 @@ export type RepairFromErrorSupportedCode =
 export type PlanRepairFromErrorInput = RepairFromErrorInput & {
   readonly http: HttpClient;
   readonly cache: MetadataCache;
+  /** Host allow-list for the downloads planning performs (the Forge installer JAR). */
+  readonly hostAllowList?: readonly string[];
 };
 
 /**
@@ -64,8 +62,6 @@ export type PlanRepairFromErrorInput = RepairFromErrorInput & {
  * regular `verify → plan → run` flow is the correct fallback there.
  *
  * Prefer `kit.repair.fromError({ error, target })` over importing this directly.
- *
- * @internal
  */
 export const planRepairFromError = async (input: PlanRepairFromErrorInput): Promise<RepairPlan> => {
   const { error, target, http, cache, signal } = input;
@@ -75,6 +71,7 @@ export const planRepairFromError = async (input: PlanRepairFromErrorInput): Prom
     http,
     cache,
     ...withOptionalSignal(signal),
+    ...withOptionalHostAllowList(input.hostAllowList),
   });
   const actions = deriveRepairActionsFromError(error, installPlan);
   if (actions.length === 0) {
@@ -84,7 +81,7 @@ export const planRepairFromError = async (input: PlanRepairFromErrorInput): Prom
       { context: { code: error.code, errorContext: error.context } },
     );
   }
-  return buildRepairPlan(target, actions);
+  return buildRepairPlan(target, actions, installPlan.runtimeManifest);
 };
 
 const assertSupportedCode: (
@@ -204,11 +201,11 @@ const actionMatchesAnyUrl = (action: DownloadAction, errorUrls: readonly string[
 };
 
 /**
- * Collect the entire Forge processor stage from an install plan: every forge-installer /
- * forge-library download (processors need their classpath on disk), the forge version
- * JSON write (processors regenerate it), and every `RUN_FORGE_PROCESSOR` action. We do
- * not try to pinpoint a single processor by `mainClass` — the processor chain is
- * sequential and one failure usually invalidates everything downstream.
+ * Collect the entire Forge processor stage from an install plan: every forge-library download
+ * (processors need their classpath on disk), the forge version JSON write (processors
+ * regenerate it), and every `RUN_FORGE_PROCESSOR` action. We do not try to pinpoint a single
+ * processor by `mainClass` — the processor chain is sequential and one failure usually
+ * invalidates everything downstream.
  *
  * The vanilla-side version JSON write is intentionally excluded: vanilla writes complete
  * before any processor runs, so a processor failure cannot have invalidated them.
@@ -222,10 +219,7 @@ const collectForgeProcessorStage = (installPlan: InstallPlan): InstallAction[] =
       continue;
     }
     if (action.kind === InstallActionKinds.DOWNLOAD_FILE) {
-      if (
-        action.category === DownloadCategories.FORGE_LIBRARY ||
-        action.category === DownloadCategories.FORGE_INSTALLER
-      ) {
+      if (action.category === DownloadCategories.FORGE_LIBRARY) {
         stage.push(action);
       }
       continue;

@@ -46,14 +46,18 @@ export default defineConfig({
   base: "/minecraft-kit/",
   cleanUrls: true,
   lastUpdated: false,
-  ignoreDeadLinks: true,
+  ignoreDeadLinks: false,
   markdown: {
     lineNumbers: false,
     theme: { light: "github-light", dark: "github-dark" },
   },
   themeConfig: {
     nav: [
-      { text: "Getting Started", link: "/getting-started/", activeMatch: "^/getting-started/" },
+      {
+        text: "Getting Started",
+        link: "/getting-started/installation",
+        activeMatch: "^/getting-started/",
+      },
       { text: "Guides", link: "/guides/library-usage", activeMatch: "^/guides/" },
       { text: "API", link: "/api/" },
     ],
@@ -62,7 +66,6 @@ export default defineConfig({
         {
           text: "Getting Started",
           items: [
-            { text: "Overview", link: "/getting-started/" },
             { text: "Installation", link: "/getting-started/installation" },
             { text: "Quickstart", link: "/getting-started/quickstart" },
           ],

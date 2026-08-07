@@ -4,16 +4,16 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { HTTP_RETRY_MAX } from "../constants/defaults";
+import { DOWNLOAD_IDLE_TIMEOUT_MS, HTTP_RETRY_MAX } from "../constants/defaults";
 import { type CheckpointSources, checkpoint } from "../core/abort";
-import { MinecraftKitError, MinecraftKitErrorCodes, isMinecraftKitError } from "../core/errors";
+import { isMinecraftKitError, MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { ensureDir } from "../core/fs";
 import { sha1OfFile } from "../core/hash";
 import { withOptionalPauseController, withOptionalSignal } from "../core/optional";
 import type { PauseController } from "../core/pause-controller";
 import { isHttpRetryable, withRetry } from "../core/retry";
-import { EventTypes } from "../types/events";
 import type { ProgressListener } from "../types/events";
+import { EventTypes } from "../types/events";
 import type { HttpClient } from "../types/http";
 
 /**
@@ -116,7 +116,7 @@ export type NonEmptyUrlList = readonly [string, ...string[]];
  *
  * @internal
  */
-export const normalizeDownloadUrls = (url: string | readonly string[]): NonEmptyUrlList => {
+const normalizeDownloadUrls = (url: string | readonly string[]): NonEmptyUrlList => {
   if (typeof url === "string") return [url];
   if (url.length === 0) {
     throw new MinecraftKitError(
@@ -173,97 +173,115 @@ const streamOneAttempt = async (
   const startedAt = Date.now();
   let bytesDownloaded = 0;
   const hash = crypto.createHash("sha1");
+  // why: this attempt owns the request, so it also owns tearing it down. The controller is chained
+  // into the request next to the caller's signal and aborted by the `finally` below on every exit
+  // that leaves the body undrained, so undici releases the socket instead of keeping a half-open
+  // body with a locked reader.
+  const teardown = new AbortController();
   const response = await http.request(url, {
-    ...withOptionalSignal(input.signal),
+    signal:
+      input.signal === undefined
+        ? teardown.signal
+        : AbortSignal.any([input.signal, teardown.signal]),
   });
-  assertSafeRedirectTarget(url, response.url, input.hostAllowList);
-  const contentLength = Number(response.headers["content-length"] ?? "0");
-  const total = input.expectedSize ?? (Number.isFinite(contentLength) ? contentLength : 0);
-  const checkpointSources: CheckpointSources = {
-    ...withOptionalSignal(input.signal),
-    ...withOptionalPauseController(input.pauseController),
-  };
-  const counting = countingByteStream(response.stream(), checkpointSources, (chunk) => {
-    bytesDownloaded += chunk.byteLength;
-    hash.update(chunk);
-    input.onEvent?.({
-      type: EventTypes.DOWNLOAD_PROGRESS,
-      file: fileRef,
-      bytesDownloaded,
-      totalBytes: total,
-    });
-  });
+  let completed = false;
   try {
-    await pipeline(Readable.from(counting), createWriteStream(tmp));
-  } catch (cause) {
-    await safeUnlink(tmp);
-    throw new MinecraftKitError(
-      MinecraftKitErrorCodes.FILESYSTEM_WRITE_ERROR,
-      `Failed to write download: ${input.target}`,
-      { cause, context: { filePath: input.target, url } },
-    );
-  }
-  const computedSha1 = hash.digest("hex");
-  if (input.expectedSize !== undefined && bytesDownloaded !== input.expectedSize) {
-    await safeUnlink(tmp);
-    throw new MinecraftKitError(
-      MinecraftKitErrorCodes.INTEGRITY_SIZE_MISMATCH,
-      `Size mismatch for ${url}`,
-      {
-        context: {
-          url,
-          expectedSize: input.expectedSize,
-          actualSize: bytesDownloaded,
-        },
-      },
-    );
-  }
-  if (input.expectedSha1 !== undefined && computedSha1 !== input.expectedSha1) {
-    await safeUnlink(tmp);
-    input.onEvent?.({
-      type: EventTypes.INTEGRITY_MISMATCH,
-      file: fileRef,
-      algorithm: "sha1",
-      expected: input.expectedSha1,
-      actual: computedSha1,
+    assertSafeRedirectTarget(url, response.url, input.hostAllowList);
+    const contentLength = Number(response.headers["content-length"] ?? "0");
+    const total = input.expectedSize ?? (Number.isFinite(contentLength) ? contentLength : 0);
+    const checkpointSources: CheckpointSources = {
+      ...withOptionalSignal(input.signal),
+      ...withOptionalPauseController(input.pauseController),
+    };
+    const counting = countingByteStream(response.stream(), checkpointSources, (chunk) => {
+      bytesDownloaded += chunk.byteLength;
+      hash.update(chunk);
+      input.onEvent?.({
+        type: EventTypes.DOWNLOAD_PROGRESS,
+        file: fileRef,
+        bytesDownloaded,
+        totalBytes: total,
+      });
     });
-    throw new MinecraftKitError(
-      MinecraftKitErrorCodes.INTEGRITY_HASH_MISMATCH,
-      `SHA-1 mismatch for ${url}`,
-      {
-        context: {
-          url,
-          expectedHash: input.expectedSha1,
-          actualHash: computedSha1,
+    try {
+      await pipeline(Readable.from(counting), createWriteStream(tmp));
+    } catch (cause) {
+      await safeUnlink(tmp);
+      // why: the source side of the pipeline raises domain errors of its own (the idle-timeout
+      // NETWORK_TIMEOUT, an abort's LAUNCH_ABORTED). Re-wrapping them as FILESYSTEM_WRITE_ERROR
+      // would make a retryable stall un-retryable and an abort look like a disk fault.
+      if (isMinecraftKitError(cause)) throw cause;
+      throw new MinecraftKitError(
+        MinecraftKitErrorCodes.FILESYSTEM_WRITE_ERROR,
+        `Failed to write download: ${input.target}`,
+        { cause, context: { filePath: input.target, url } },
+      );
+    }
+    const computedSha1 = hash.digest("hex");
+    if (input.expectedSize !== undefined && bytesDownloaded !== input.expectedSize) {
+      await safeUnlink(tmp);
+      throw new MinecraftKitError(
+        MinecraftKitErrorCodes.INTEGRITY_SIZE_MISMATCH,
+        `Size mismatch for ${url}`,
+        {
+          context: {
+            url,
+            expectedSize: input.expectedSize,
+            actualSize: bytesDownloaded,
+          },
         },
-      },
-    );
-  }
-  try {
-    await fs.rename(tmp, input.target);
-  } catch (cause) {
-    await safeUnlink(tmp);
-    throw new MinecraftKitError(
-      MinecraftKitErrorCodes.FILESYSTEM_WRITE_ERROR,
-      `Failed to finalize download: ${input.target}`,
-      { cause, context: { filePath: input.target } },
-    );
-  }
-  input.onEvent?.({
-    type: EventTypes.DOWNLOAD_COMPLETED,
-    file: fileRef,
-    durationMs: Date.now() - startedAt,
-    bytes: bytesDownloaded,
-  });
-  if (input.expectedSha1 !== undefined) {
+      );
+    }
+    if (input.expectedSha1 !== undefined && computedSha1 !== input.expectedSha1) {
+      await safeUnlink(tmp);
+      input.onEvent?.({
+        type: EventTypes.INTEGRITY_MISMATCH,
+        file: fileRef,
+        algorithm: "sha1",
+        expected: input.expectedSha1,
+        actual: computedSha1,
+      });
+      throw new MinecraftKitError(
+        MinecraftKitErrorCodes.INTEGRITY_HASH_MISMATCH,
+        `SHA-1 mismatch for ${url}`,
+        {
+          context: {
+            url,
+            expectedHash: input.expectedSha1,
+            actualHash: computedSha1,
+          },
+        },
+      );
+    }
+    try {
+      await fs.rename(tmp, input.target);
+    } catch (cause) {
+      await safeUnlink(tmp);
+      throw new MinecraftKitError(
+        MinecraftKitErrorCodes.FILESYSTEM_WRITE_ERROR,
+        `Failed to finalize download: ${input.target}`,
+        { cause, context: { filePath: input.target } },
+      );
+    }
     input.onEvent?.({
-      type: EventTypes.INTEGRITY_VERIFIED,
+      type: EventTypes.DOWNLOAD_COMPLETED,
       file: fileRef,
-      algorithm: "sha1",
-      hash: computedSha1,
+      durationMs: Date.now() - startedAt,
+      bytes: bytesDownloaded,
     });
+    if (input.expectedSha1 !== undefined) {
+      input.onEvent?.({
+        type: EventTypes.INTEGRITY_VERIFIED,
+        file: fileRef,
+        algorithm: "sha1",
+        hash: computedSha1,
+      });
+    }
+    completed = true;
+    return { bytesDownloaded, sha1: computedSha1, skipped: false };
+  } finally {
+    if (!completed) teardown.abort();
   }
-  return { bytesDownloaded, sha1: computedSha1, skipped: false };
 };
 
 /**
@@ -359,12 +377,75 @@ async function* countingByteStream(
   sources: CheckpointSources,
   onChunk: (chunk: Uint8Array) => void,
 ): AsyncGenerator<Uint8Array> {
-  for await (const chunk of source) {
-    await checkpoint(sources, "Download aborted by signal");
-    onChunk(chunk);
-    yield chunk;
+  const iterator = source[Symbol.asyncIterator]();
+  let drained = false;
+  try {
+    for (;;) {
+      // why: pause and abort are awaited BEFORE the idle deadline is armed, so a transfer parked
+      // at a chunk boundary is never timed at all, and no further chunk is pulled from the socket
+      // until resume().
+      await checkpoint(sources, "Download aborted by signal");
+      const result = await readWithIdleDeadline(iterator);
+      if (result.done === true) {
+        drained = true;
+        return;
+      }
+      // why: and again before the chunk is handed on, so a pause issued while this read was
+      // already in flight still freezes the download at the byte count the caller last saw.
+      await checkpoint(sources, "Download aborted by signal");
+      onChunk(result.value);
+      yield result.value;
+    }
+  } finally {
+    if (!drained) closeAbandonedSource(iterator);
   }
 }
+
+/**
+ * Close a source this generator is abandoning mid-stream. This is the AsyncIteratorClose step
+ * `for await` performs on your behalf; the loop above drives the iterator by hand, so it has to
+ * do it itself.
+ *
+ * This is what runs the source's own `finally` (in `FetchHttpResponse.stream`, the
+ * `reader.releaseLock()`). It is not awaited: `iterator.return()` is queued behind any pending
+ * `next()`, so a half-open body would block this `finally` forever and swallow the error the caller
+ * must see. That case is covered by the attempt-level teardown in {@link streamOneAttempt}, which
+ * cancels the request and thereby settles the pending read.
+ */
+const closeAbandonedSource = (iterator: AsyncIterator<Uint8Array>): void => {
+  void iterator.return?.().catch(() => {
+    /* best-effort close; the attempt-level abort is the real teardown */
+  });
+};
+
+/**
+ * Await one chunk, failing with a retryable `NETWORK_TIMEOUT` when the body delivers nothing
+ * for {@link DOWNLOAD_IDLE_TIMEOUT_MS}. See that constant for why the header timeout in
+ * {@link "./client"} cannot cover this. Closing the abandoned read is the caller's job — see
+ * {@link closeAbandonedSource}; this function only races the deadline.
+ */
+const readWithIdleDeadline = async (
+  iterator: AsyncIterator<Uint8Array>,
+): Promise<IteratorResult<Uint8Array>> => {
+  let timer: NodeJS.Timeout | undefined;
+  const deadline = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      reject(
+        new MinecraftKitError(
+          MinecraftKitErrorCodes.NETWORK_TIMEOUT,
+          `Download stalled: no data received for ${DOWNLOAD_IDLE_TIMEOUT_MS}ms`,
+          { context: { timeoutMs: DOWNLOAD_IDLE_TIMEOUT_MS } },
+        ),
+      );
+    }, DOWNLOAD_IDLE_TIMEOUT_MS);
+    timer.unref();
+  });
+  try {
+    return await Promise.race([iterator.next(), deadline]);
+  } finally {
+    clearTimeout(timer);
+  }
+};
 
 /**
  * Reject download URLs that aren't plain HTTP(S) — and optionally, hosts outside an

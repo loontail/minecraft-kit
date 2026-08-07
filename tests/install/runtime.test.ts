@@ -51,4 +51,32 @@ describe("planRuntimeDownloads", () => {
       }),
     ).rejects.toMatchObject({ code: "MANIFEST_INVALID" });
   });
+
+  // A `file` entry with no `downloads` is dereferenced three levels deep by the planner; it
+  // has to be caught at the boundary rather than escaping as a raw TypeError, otherwise
+  // `repair.all`'s error classification (which switches on MinecraftKitError codes) can't
+  // see it.
+  it("rejects a file entry with no downloads as MANIFEST_INVALID, not a TypeError", async () => {
+    const http = new FakeHttpClient().on("https://m/", {
+      body: '{"files":{"bin/javaw.exe":{"type":"file","executable":true}}}',
+    });
+    const error = await planRuntimeDownloads({
+      runtime,
+      directory: "/r",
+      http,
+      cache: createMemoryCache(),
+    }).catch((cause: unknown) => cause);
+
+    expect(error).not.toBeInstanceOf(TypeError);
+    expect(error).toMatchObject({ code: "MANIFEST_INVALID" });
+  });
+
+  it("rejects a link entry with no target as MANIFEST_INVALID", async () => {
+    const http = new FakeHttpClient().on("https://m/", {
+      body: '{"files":{"link":{"type":"link"}}}',
+    });
+    await expect(
+      planRuntimeDownloads({ runtime, directory: "/r", http, cache: createMemoryCache() }),
+    ).rejects.toMatchObject({ code: "MANIFEST_INVALID" });
+  });
 });

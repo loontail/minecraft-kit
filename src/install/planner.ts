@@ -1,4 +1,8 @@
-import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
+import {
+  withOptionalHostAllowList,
+  withOptionalOnEvent,
+  withOptionalSignal,
+} from "../core/optional";
 import { targetPaths } from "../core/paths";
 import type { MetadataCache } from "../types/cache";
 import type { ProgressListener } from "../types/events";
@@ -30,6 +34,12 @@ export type PlanInstallInput = {
   readonly cache: MetadataCache;
   readonly signal?: AbortSignal;
   readonly onEvent?: ProgressListener;
+  /**
+   * Host allow-list for the downloads planning itself performs. Only the Forge path
+   * downloads during planning (the installer JAR); every other download happens in the
+   * install runner, which takes its own allow-list.
+   */
+  readonly hostAllowList?: readonly string[];
 };
 
 /**
@@ -155,13 +165,16 @@ const planLoaderExtras = async (input: PlanInstallInput): Promise<readonly Insta
       cache: input.cache,
       ...withOptionalSignal(input.signal),
       ...withOptionalOnEvent(input.onEvent),
+      ...withOptionalHostAllowList(input.hostAllowList),
     });
-    return [
-      plan.installerDownload,
-      ...plan.libraryDownloads,
-      plan.versionJson,
-      ...plan.processorActions,
-    ];
+    // why: the installer JAR is a planning *input*, not a launch artifact, so it is deliberately
+    // not a plan action — re-emitting it would have `install.run` re-download bytes planning
+    // already fetched, and Forge publishes no hash, so skip-on-correct could never suppress it.
+    // The invariant that buys, and its limit: a Forge plan is only replayable while the installer
+    // planning materialised is still on disk. `{INSTALLER}` is substituted into processor args
+    // (see `forge-processor-plan`), and no action in the plan puts the JAR back. Re-plan after the
+    // installer has been swept; do not re-run a stale plan.
+    return [...plan.libraryDownloads, plan.versionJson, ...plan.processorActions];
   }
   return [];
 };

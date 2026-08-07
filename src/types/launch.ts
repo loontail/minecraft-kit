@@ -1,16 +1,9 @@
 import type { LaunchAuth } from "./auth";
 import type { ProgressEvent } from "./events";
+import type { TargetReadinessIssue, TargetReadinessResult } from "./verify";
 
 /**
  * Optional memory configuration.
- *
- * @example
- * ```ts
- * import type { LaunchMemoryOptions } from "@loontail/minecraft-kit";
- *
- * const memory: LaunchMemoryOptions = { minMb: 2048, maxMb: 4096 };
- * await kit.launch.compose(target, { auth, memory });
- * ```
  */
 export type LaunchMemoryOptions = {
   readonly minMb?: number;
@@ -19,14 +12,6 @@ export type LaunchMemoryOptions = {
 
 /**
  * Optional resolution / window configuration.
- *
- * @example
- * ```ts
- * import type { LaunchResolutionOptions } from "@loontail/minecraft-kit";
- *
- * const resolution: LaunchResolutionOptions = { width: 1280, height: 720 };
- * await kit.launch.compose(target, { auth, resolution });
- * ```
  */
 export type LaunchResolutionOptions = {
   readonly width: number;
@@ -35,19 +20,6 @@ export type LaunchResolutionOptions = {
 
 /**
  * Inputs for `kit.launch.compose` (and the lower-level `composeLaunch` helper).
- *
- * @example
- * ```ts
- * import { AuthModes, type LaunchOptions } from "@loontail/minecraft-kit";
- *
- * const options: LaunchOptions = {
- *   auth: { mode: AuthModes.OFFLINE, username: "Steve" },
- *   memory: { maxMb: 4096 },
- *   launcherName: "MyLauncher",
- *   launcherVersion: "1.0.0",
- * };
- * const composition = await kit.launch.compose(target, options);
- * ```
  */
 export type LaunchOptions = {
   readonly auth: LaunchAuth;
@@ -68,15 +40,6 @@ export type LaunchOptions = {
 
 /**
  * Fully composed launch command, ready to be passed to `kit.launch.run`.
- *
- * @example
- * ```ts
- * import type { LaunchComposition } from "@loontail/minecraft-kit";
- *
- * const composition: LaunchComposition = await kit.launch.compose(target, { auth });
- * console.log(`${composition.javaPath} ${composition.mainClass} (${composition.classpath.length} jars)`);
- * const session = kit.launch.run(composition);
- * ```
  */
 export type LaunchComposition = {
   readonly targetId: string;
@@ -97,33 +60,26 @@ export type LaunchComposition = {
 /**
  * Result of a network-free `kit.launch.preflight(target)` check.
  *
- * @example
- * ```ts
- * import type { LaunchPreflightResult } from "@loontail/minecraft-kit";
- *
- * const preflight: LaunchPreflightResult = await kit.launch.preflight(target);
- * if (!preflight.ok) console.warn(`cannot launch — missing:\n${preflight.missing.join("\n")}`);
- * ```
+ * `preflight` is the network-free subset of `kit.verify.targetReady.run`: it checks existence
+ * only, never fetches a manifest and never hashes a file. It reports the same field names and
+ * the same issue shape as {@link TargetReadinessResult}, so one renderer covers both and a
+ * caller can upgrade from the cheap gate to the thorough one without rewriting its branches.
  */
 export type LaunchPreflightResult = {
+  readonly targetId: string;
   /** True when every launch-critical file is present on disk. */
-  readonly ok: boolean;
-  /** Absolute paths of the launch-critical files that are missing (empty when `ok`). */
-  readonly missing: readonly string[];
+  readonly isReady: boolean;
+  /**
+   * The launch-critical files that are absent, every one with
+   * `status: VerifyFileStatuses.MISSING` — preflight cannot report corruption because it does
+   * not hash. Empty when `isReady`.
+   */
+  readonly issues: readonly TargetReadinessIssue[];
+  readonly durationMs: number;
 };
 
 /**
  * Live handle for a running game process.
- *
- * @example
- * ```ts
- * import type { LaunchSession } from "@loontail/minecraft-kit";
- *
- * const session: LaunchSession = kit.launch.run(composition);
- * console.log("game pid:", session.pid);
- * process.once("SIGINT", () => session.abort("user-interrupt"));
- * const exit = await session.exited;
- * ```
  */
 export type LaunchSession = {
   /** Operating-system process id. */
@@ -136,15 +92,6 @@ export type LaunchSession = {
 
 /**
  * Outcome of a finished launch.
- *
- * @example
- * ```ts
- * import type { LaunchExit } from "@loontail/minecraft-kit";
- *
- * const exit: LaunchExit = await session.exited;
- * if (exit.aborted) console.log("aborted by caller");
- * else if (exit.code !== 0) console.error(`crashed with code ${exit.code}, signal ${exit.signal}`);
- * ```
  */
 export type LaunchExit = {
   readonly code: number | null;
@@ -154,19 +101,6 @@ export type LaunchExit = {
 
 /**
  * Options for `kit.launch.run` (and the lower-level `runLaunch` helper).
- *
- * @example
- * ```ts
- * import { EventTypes, type LaunchRunOptions } from "@loontail/minecraft-kit";
- *
- * const options: LaunchRunOptions = {
- *   onEvent: (e) => {
- *     if (e.type === EventTypes.LAUNCH_STDOUT) console.log("[game]", e.line);
- *   },
- *   killGracePeriodMs: 5000,
- * };
- * const session = kit.launch.run(composition, options);
- * ```
  */
 export type LaunchRunOptions = {
   readonly signal?: AbortSignal;

@@ -8,6 +8,7 @@
  */
 
 import {
+  withOptionalHostAllowList,
   withOptionalOnEvent,
   withOptionalPauseController,
   withOptionalSignal,
@@ -54,6 +55,12 @@ export type InstallRunOptions = OperationOptions & {
    * Filter the run to a subset of action categories. Useful for partial reinstalls
    * (e.g. assets-only). When omitted, every action in the plan runs.
    *
+   * Dependent post-download steps are filtered too: native extraction is skipped unless
+   * `LIBRARY` is included, Forge processors unless `FORGE_LIBRARY` is included, and the runtime
+   * stage unless `RUNTIME_FILE` is included. Version-JSON and logging-config writes always run
+   * — they are cheap and idempotent, and running them is what leaves a partial run with a
+   * coherent tree on disk.
+   *
    * @example
    * ```ts
    * import { DownloadCategories } from "@loontail/minecraft-kit";
@@ -79,17 +86,20 @@ export type InstallAspect = {
   /**
    * Build the install plan for a target. Side-effect-free for vanilla and Fabric.
    *
-   * **Forge is the exception**: planning downloads the Forge installer JAR and extracts its
+   * **Forge is the exception**: planning materialises the Forge installer JAR and extracts its
    * embedded Maven artifacts to `libraries/`, because the per-library and processor actions
    * can only be enumerated after reading the installer's `install_profile.json` from disk.
-   * Do not treat `plan(forgeTarget)` as a pure/offline dry-run — it requires network + disk.
+   * Do not treat `plan(forgeTarget)` as a pure dry-run — it requires disk, and network on the
+   * first call for a given Forge version. Repeat calls reuse the installer already on disk and
+   * skip the Maven flush, so `plan` is cheap to call again; the installer is never emitted as a
+   * plan action, so `run` never re-downloads it.
    */
   plan(target: Target, options?: OperationOptions): Promise<InstallPlan>;
   run(plan: InstallPlan, options?: InstallRunOptions): Promise<InstallReport>;
   readonly runtime: {
     plan(target: Target, options?: OperationOptions): Promise<InstallPlan>;
     run(plan: InstallPlan, options?: InstallRunOptions): Promise<InstallReport>;
-    standalonePlan(
+    planStandalone(
       input: Omit<PlanStandaloneRuntimeInstallInput, "http" | "cache">,
     ): Promise<InstallPlan>;
   };
@@ -128,23 +138,25 @@ export type InstallAspectDeps = {
  */
 export const buildInstallAspect = (deps: InstallAspectDeps): InstallAspect => {
   const { http, cache, spawner, hostAllowList } = deps;
+  const withHostAllowList = withOptionalHostAllowList(hostAllowList);
   const runInstallPlan = (plan: InstallPlan, opts?: InstallRunOptions) =>
     runInstall({
       plan,
       http,
       cache,
       spawner,
-      ...(hostAllowList !== undefined ? { hostAllowList } : {}),
+      ...withHostAllowList,
       ...forwardInstallRunOptions(opts),
     });
   return {
-    plan: (target, opts) => planInstall({ target, http, cache, ...forwardSignalAndEvent(opts) }),
+    plan: (target, opts) =>
+      planInstall({ target, http, cache, ...withHostAllowList, ...forwardSignalAndEvent(opts) }),
     run: runInstallPlan,
     runtime: {
       plan: (target, opts) =>
         planRuntimeInstall({ target, http, cache, ...forwardSignalAndEvent(opts) }),
       run: runInstallPlan,
-      standalonePlan: (input) => planStandaloneRuntimeInstall({ ...input, http, cache }),
+      planStandalone: (input) => planStandaloneRuntimeInstall({ ...input, http, cache }),
     },
   };
 };

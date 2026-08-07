@@ -6,10 +6,10 @@ import type { MinecraftProfile, SkinVariant } from "../types/auth";
 import type { HttpClient, HttpResponse } from "../types/http";
 import {
   MINECRAFT_KIT_USER_AGENT,
-  type RawProfileResponse,
   parseProfileResponse,
+  type RawProfileResponse,
 } from "./minecraft";
-import { type SkinVariantInput, SkinVariantInputs, detectSkinVariant } from "./skin-variant-detect";
+import { detectSkinVariant, type SkinVariantInput, SkinVariantInputs } from "./skin-variant-detect";
 
 const PROFILE_URL = "https://api.minecraftservices.com/minecraft/profile";
 const SKIN_URL = `${PROFILE_URL}/skins`;

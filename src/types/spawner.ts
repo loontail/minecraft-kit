@@ -1,16 +1,5 @@
 /**
  * Stream-of-text channel exposed by spawned processes.
- *
- * @example
- * ```ts
- * import type { ProcessStream } from "@loontail/minecraft-kit";
- *
- * const collect = (stream: ProcessStream): Promise<string[]> => {
- *   const lines: string[] = [];
- *   stream.on("data", (line) => lines.push(line));
- *   return Promise.resolve(lines);
- * };
- * ```
  */
 export type ProcessStream = {
   on(event: "data", listener: (chunk: string) => void): void;
@@ -18,22 +7,20 @@ export type ProcessStream = {
 
 /**
  * Live handle for a child process.
- *
- * @example
- * ```ts
- * import type { SpawnedProcess } from "@loontail/minecraft-kit";
- *
- * const proc: SpawnedProcess = mySpawner.spawn("java", ["-version"], { cwd: process.cwd() });
- * proc.stderr.on("data", (line) => console.log(line));
- * const exit = await proc.exited;
- * console.log("exit code:", exit.code);
- * ```
  */
 export type SpawnedProcess = {
   readonly pid: number;
   readonly stdout: ProcessStream;
   readonly stderr: ProcessStream;
-  /** Resolves when the process exits with its exit info. */
+  /**
+   * Resolves when the process exits with its exit info.
+   *
+   * @remarks
+   * Implementations MUST also settle this promise when the process could not be spawned at
+   * all, by rejecting with a `MinecraftKitError` whose code is `LAUNCH_JAVA_NOT_FOUND`
+   * (binary missing) or `LAUNCH_PROCESS_FAILED` (any other spawn failure). Leaving it
+   * pending hangs `launch.run` and the Forge processor stage forever.
+   */
   readonly exited: Promise<{
     readonly code: number | null;
     readonly signal: NodeJS.Signals | null;
@@ -44,16 +31,6 @@ export type SpawnedProcess = {
 
 /**
  * Options accepted by the spawner.
- *
- * @example
- * ```ts
- * import type { SpawnOptions } from "@loontail/minecraft-kit";
- *
- * const options: SpawnOptions = {
- *   cwd: target.directory,
- *   env: { MINECRAFT_LAUNCHER: "my-launcher" },
- * };
- * ```
  */
 export type SpawnOptions = {
   readonly cwd: string;
@@ -63,20 +40,6 @@ export type SpawnOptions = {
 /**
  * Pluggable process spawner. The default implementation uses `node:child_process`; tests
  * inject a fake to avoid spawning real processes.
- *
- * @example
- * ```ts
- * import { MinecraftKit, type Spawner } from "@loontail/minecraft-kit";
- *
- * const fakeSpawner: Spawner = {
- *   spawn: () => ({
- *     pid: 1, stdout: { on() {} }, stderr: { on() {} },
- *     exited: Promise.resolve({ code: 0, signal: null }),
- *     kill: () => true,
- *   }),
- * };
- * const kit = new MinecraftKit({ spawner: fakeSpawner });
- * ```
  */
 export type Spawner = {
   spawn(command: string, args: readonly string[], options: SpawnOptions): SpawnedProcess;

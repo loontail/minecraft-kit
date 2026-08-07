@@ -11,7 +11,8 @@
  * // Pause from a UI button click:
  * pauseController.pause();
  *
- * // Resume later — in-flight downloads finish; queued actions wait for resume():
+ * // Resume later — the transfer continues from the chunk it parked on. There is no HTTP range
+ * // resume: if the idle connection was dropped while paused, the file restarts from byte 0.
  * pauseController.resume();
  *
  * await runPromise;

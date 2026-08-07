@@ -81,7 +81,7 @@ export const planRuntimeInstall = async (input: PlanRuntimeInstallInput): Promis
  *   directory: "/opt/minecraft/runtimes",
  *   runtime,
  * };
- * const plan = await kit.install.runtime.standalonePlan(input);
+ * const plan = await kit.install.runtime.planStandalone(input);
  * ```
  */
 export type PlanStandaloneRuntimeInstallInput = {
@@ -101,7 +101,7 @@ export type PlanStandaloneRuntimeInstallInput = {
  * {@link RuntimeOnlyInstallTarget} that carries only the runtime + directory — the runner skips
  * Minecraft/loader-specific stages because they have no actions in this plan.
  *
- * Prefer `kit.install.runtime.standalonePlan(input)` over importing this directly.
+ * Prefer `kit.install.runtime.planStandalone(input)` over importing this directly.
  *
  * @example
  * ```ts
@@ -109,7 +109,7 @@ export type PlanStandaloneRuntimeInstallInput = {
  *
  * const kit = new MinecraftKit();
  * const runtime = await kit.versions.runtime.resolve({ system: detectSystem() });
- * const plan = await kit.install.runtime.standalonePlan({
+ * const plan = await kit.install.runtime.planStandalone({
  *   id: "shared-jre-21",
  *   directory: "/opt/minecraft/runtimes",
  *   runtime,

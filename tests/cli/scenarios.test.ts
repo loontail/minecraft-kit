@@ -1,5 +1,6 @@
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import type { AuthRef } from "../../src/cli/scenarios";
 import {
   scenarioInspect,
   scenarioInstallMinecraft,
@@ -8,7 +9,6 @@ import {
   scenarioRepair,
   scenarioVerify,
 } from "../../src/cli/scenarios";
-import type { AuthRef } from "../../src/cli/scenarios";
 import { createStubUi } from "../../src/cli/ui";
 import { MinecraftKitError } from "../../src/core/errors";
 import { asMinecraftVersionId } from "../../src/core/version-id";

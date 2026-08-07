@@ -1,8 +1,11 @@
 name: Release
 
-# Runs on every push to `main`. Auto-bumps the patch version, pushes a
-# `chore(release): vX.Y.Z` commit + matching `vX.Y.Z` tag back to main, publishes
-# to npm with provenance, and creates a GitHub Release.
+# Runs on every push to `main`. Bumps the version at the level the conventional commits since
+# the last tag call for, pushes a `chore(release): vX.Y.Z` commit + matching `vX.Y.Z` tag back
+# to main, publishes to npm with provenance, and creates a GitHub Release.
+#
+# Bump level (see the `level` job step): `!` / `BREAKING CHANGE` → minor while 0.x, major from
+# 1.0.0 on; `feat` → minor; anything else → patch.
 #
 # Required secrets:
 #   NPM_TOKEN      — npm automation token with publish scope on @loontail/minecraft-kit.
@@ -14,14 +17,24 @@ name: Release
 # again; the guard job short-circuits when the commit message begins with
 # `chore(release):` so the release does not chain into itself.
 #
-# To ship something other than a patch (minor / major), bump the version locally
-# with `npm version minor --no-git-tag-version`, commit as `chore(release): vX.Y.Z`,
-# push — the workflow guard treats it as a release commit (skips), and the next
-# regular commit on `main` triggers the auto-bump from that baseline.
+# To override the derived level, bump the version locally with
+# `npm version <level> --no-git-tag-version`, commit as `chore(release): vX.Y.Z`, push — the
+# workflow guard treats it as a release commit (skips), and the next regular commit on `main`
+# releases from that baseline.
+#
+# Token shape: `bump` holds RELEASE_TOKEN and runs no third-party code (no
+# `npm ci`). `release` runs the dev tree and holds `contents: write` +
+# `id-token: write`, so any package in that tree could in principle edit releases
+# or mint an OIDC token to forge npm provenance — the residual risk that only a
+# build/publish split with an intermediate artifact would remove. It is kept here
+# because npm publish must run from the built tree.
 
 on:
   push:
     branches: [main]
+
+permissions:
+  contents: read
 
 concurrency:
   group: release-${{ github.ref }}
@@ -68,16 +81,17 @@ jobs:
       version: ${{ steps.bump.outputs.version }}
       tag: ${{ steps.bump.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
           # PAT belongs to a repo admin (bypass list), so the push below bypasses
-          # the "Require pull request" ruleset on main.
+          # the "Require pull request" ruleset on main. This job deliberately runs
+          # no `npm ci` — nothing third-party executes while the PAT is on disk.
           token: ${{ secrets.RELEASE_TOKEN }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: "20.11"
+          node-version: "22.12"
           cache: npm
 
       - name: Configure git
@@ -85,10 +99,32 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Bump patch version
+      # The level comes from the conventional commits since the last release tag, not from a
+      # hard-coded `patch`: a `feat!:` that removed exported names used to ship as a patch, so a
+      # consumer on a caret range was handed a compile break. `!` / `BREAKING CHANGE` is a minor
+      # while the package is 0.x (0.x has no major channel) and a major from 1.0.0 on.
+      - name: Resolve bump level
+        id: level
+        run: |
+          last_tag=$(git tag --list 'v*' --sort=-v:refname | head -n1)
+          range="HEAD"
+          [ -n "$last_tag" ] && range="${last_tag}..HEAD"
+          log=$(git log --format='%s%n%b%n--' "$range")
+          major=$(node -p "require('./package.json').version.split('.')[0]")
+          if printf '%s' "$log" | grep -qE '^[a-z]+(\([^)]*\))?!:|^BREAKING[ -]CHANGE'; then
+            if [ "$major" = "0" ]; then level=minor; else level=major; fi
+          elif printf '%s' "$log" | grep -qE '^feat(\([^)]*\))?:'; then
+            level=minor
+          else
+            level=patch
+          fi
+          echo "Commits in ${range} resolve to a ${level} bump."
+          echo "level=${level}" >> "$GITHUB_OUTPUT"
+
+      - name: Bump version
         id: bump
         run: |
-          version=$(npm version patch --no-git-tag-version)
+          version=$(npm version "${{ steps.level.outputs.level }}" --no-git-tag-version)
           plain="${version#v}"
           tag="v${plain}"
           git add package.json package-lock.json
@@ -109,15 +145,16 @@ jobs:
       contents: write
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # Build and publish from the bump tag exactly. If anything else lands on
           # main while this job is queued, we still ship the version we tagged.
           ref: ${{ needs.bump.outputs.tag }}
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: "20.11"
+          node-version: "22.12"
           registry-url: "https://registry.npmjs.org"
           cache: npm
 
@@ -135,7 +172,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: ${{ needs.bump.outputs.tag }}
           name: ${{ needs.bump.outputs.tag }}

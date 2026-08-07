@@ -1,19 +1,10 @@
 import type { MetadataCache } from "./cache";
-import type { ProgressListener } from "./events";
+import type { OperationOptions } from "./events";
 import type { HttpClient } from "./http";
 import type { Target } from "./target";
 
 /**
  * Aspect of an installation a verification result describes.
- *
- * @example
- * ```ts
- * import { VerificationKinds } from "@loontail/minecraft-kit";
- *
- * const report = await kit.repair.all(target);
- * const fixedAspects = [...report.repairs.keys()];
- * if (fixedAspects.includes(VerificationKinds.FORGE)) console.log("forge was repaired");
- * ```
  */
 export const VerificationKinds = {
   MINECRAFT: "minecraft",
@@ -24,27 +15,11 @@ export const VerificationKinds = {
 
 /**
  * Verification kind literal.
- *
- * @example
- * ```ts
- * import { VerificationKinds, type VerificationKind } from "@loontail/minecraft-kit";
- *
- * const isLoader = (k: VerificationKind) =>
- *   k === VerificationKinds.FABRIC || k === VerificationKinds.FORGE;
- * ```
  */
 export type VerificationKind = (typeof VerificationKinds)[keyof typeof VerificationKinds];
 
 /**
  * Status of an individual file checked during verification.
- *
- * @example
- * ```ts
- * import { VerifyFileStatuses } from "@loontail/minecraft-kit";
- *
- * const result = await kit.verify.minecraft.run(target);
- * const missing = result.issues.filter((i) => i.status === VerifyFileStatuses.MISSING);
- * ```
  */
 export const VerifyFileStatuses = {
   OK: "ok",
@@ -55,26 +30,11 @@ export const VerifyFileStatuses = {
 
 /**
  * File status literal.
- *
- * @example
- * ```ts
- * import { VerifyFileStatuses, type VerifyFileStatus } from "@loontail/minecraft-kit";
- *
- * const isBroken = (status: VerifyFileStatus) => status !== VerifyFileStatuses.OK;
- * ```
  */
 export type VerifyFileStatus = (typeof VerifyFileStatuses)[keyof typeof VerifyFileStatuses];
 
 /**
  * Categories assigned to each verified file for easier filtering.
- *
- * @example
- * ```ts
- * import { VerifyFileCategories } from "@loontail/minecraft-kit";
- *
- * const result = await kit.verify.minecraft.run(target);
- * const brokenAssets = result.issues.filter((i) => i.category === VerifyFileCategories.ASSET);
- * ```
  */
 export const VerifyFileCategories = {
   CLIENT_JAR: "client-jar",
@@ -85,32 +45,21 @@ export const VerifyFileCategories = {
   LOADER_LIBRARY: "loader-library",
   RUNTIME_FILE: "runtime-file",
   LOGGING_CONFIG: "logging-config",
+  /**
+   * A file a Forge processor generates locally (srg/slim/extra/patched client JARs). Nothing
+   * downloads these, so a repair has to re-run the processor that produces them rather than
+   * fetch a URL.
+   */
+  FORGE_PROCESSOR_OUTPUT: "forge-processor-output",
 } as const;
 
 /**
  * Verification file category literal.
- *
- * @example
- * ```ts
- * import { VerifyFileCategories, type VerifyFileCategory } from "@loontail/minecraft-kit";
- *
- * const isRuntime = (c: VerifyFileCategory) => c === VerifyFileCategories.RUNTIME_FILE;
- * ```
  */
 export type VerifyFileCategory = (typeof VerifyFileCategories)[keyof typeof VerifyFileCategories];
 
 /**
  * A single verified file.
- *
- * @example
- * ```ts
- * import { VerifyFileStatuses, type VerificationFileResult } from "@loontail/minecraft-kit";
- *
- * const issues: readonly VerificationFileResult[] = result.issues;
- * for (const i of issues) {
- *   if (i.status === VerifyFileStatuses.CORRUPT) console.warn(`corrupt: ${i.path}`);
- * }
- * ```
  */
 export type VerificationFileResult = {
   readonly path: string;
@@ -126,14 +75,6 @@ export type VerificationFileResult = {
 
 /**
  * Aggregate verification result returned by each `verify.<kind>.run` API.
- *
- * @example
- * ```ts
- * import type { VerificationResult } from "@loontail/minecraft-kit";
- *
- * const result: VerificationResult = await kit.verify.minecraft.run(target);
- * console.log(`${result.kind}: ${result.isValid ? "ok" : `${result.issues.length} issues`}`);
- * ```
  */
 export type VerificationResult = {
   readonly targetId: string;
@@ -146,14 +87,6 @@ export type VerificationResult = {
 
 /**
  * A verification issue annotated with the aspect that produced it.
- *
- * @example
- * ```ts
- * import type { TargetReadinessIssue } from "@loontail/minecraft-kit";
- *
- * const runtimeIssues = (issues: readonly TargetReadinessIssue[]) =>
- *   issues.filter((issue) => issue.kind === "runtime");
- * ```
  */
 export type TargetReadinessIssue = VerificationFileResult & {
   readonly kind: VerificationKind;
@@ -161,12 +94,6 @@ export type TargetReadinessIssue = VerificationFileResult & {
 
 /**
  * Aggregate launch-readiness report for every aspect that applies to a target.
- *
- * @example
- * ```ts
- * const readiness = await kit.verify.targetReady.run(target);
- * if (!readiness.isReady) console.warn(readiness.issues.map((i) => i.path));
- * ```
  */
 export type TargetReadinessResult = {
   readonly targetId: string;
@@ -178,24 +105,8 @@ export type TargetReadinessResult = {
 
 /**
  * Options accepted by every `verify.<kind>.run`.
- *
- * @example
- * ```ts
- * import { EventTypes, type VerifyOperationOptions } from "@loontail/minecraft-kit";
- *
- * const options: VerifyOperationOptions = {
- *   signal: AbortSignal.timeout(60_000),
- *   onEvent: (e) => {
- *     if (e.type === EventTypes.VERIFY_FILE_CHECKED) reportProgress(e.file.path);
- *   },
- * };
- * const result = await kit.verify.minecraft.run(target, options);
- * ```
  */
-export type VerifyOperationOptions = {
-  readonly signal?: AbortSignal;
-  readonly onEvent?: ProgressListener;
-};
+export type VerifyOperationOptions = OperationOptions;
 
 /**
  * Inputs shared by every per-aspect verifier (`verifyMinecraft`, `verifyRuntime`,

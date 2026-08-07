@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
-import { ensureDir } from "../core/fs";
+import { assertWithinRoot, ensureDir } from "../core/fs";
 import { targetPaths } from "../core/paths";
 import {
   type ResolvedRuntime,
@@ -28,6 +28,9 @@ export const materializeRuntimeExtras = async (input: {
     input.runtime.installRoot,
   );
   for (const [relativePath, entry] of Object.entries(input.manifest.files)) {
+    // The manifest is remote JSON, and its keys become write destinations — a `../` key would
+    // otherwise mkdir/symlink outside the runtime root.
+    assertWithinRoot(root, relativePath);
     const fullPath = path.join(root, relativePath);
     if (entry.type === RuntimeEntryTypes.DIRECTORY) {
       await ensureDir(fullPath);

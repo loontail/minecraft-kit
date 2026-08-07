@@ -1,11 +1,11 @@
 import { withOptionalSignal } from "../core/optional";
-import { AuthModes } from "../types/auth";
 import type {
   MicrosoftRefreshToken,
   MinecraftProfile,
   MojangSession,
   OnlineAuth,
 } from "../types/auth";
+import { AuthModes } from "../types/auth";
 import type { HttpClient } from "../types/http";
 import type { Logger } from "../types/logger";
 import { resolveClientId } from "./client-id";
@@ -17,18 +17,18 @@ import type { AuthorizationCodeRunOptions, RefreshOptions } from "./options";
 import { exchangeMicrosoftToMojang } from "./pipeline";
 import {
   type ResetSkinInput,
-  type SetSkinFromUrlInput,
-  type UploadSkinInput,
   resetSkin,
+  type SetSkinFromUrlInput,
   setSkinFromUrl,
+  type UploadSkinInput,
   uploadSkin,
 } from "./profile-mutations";
 import { type ReadProfileInput, readProfile } from "./profile-read";
 
 export {
-  CLIENT_ID_ENV_VAR,
   asAzureClientId,
   asMicrosoftRefreshToken,
+  CLIENT_ID_ENV_VAR,
 } from "./client-id";
 export type { AuthorizationCodeRunOptions, RefreshOptions } from "./options";
 

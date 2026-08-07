@@ -33,7 +33,7 @@ A `catch` that is intentionally lossy must carry a one-line comment explaining *
 - Imports of types must use `import type` (Biome enforces this).
 
 ### Discriminated unions
-Discriminator field is always `kind` (loaders, install actions) or `type` (events). Do not invent new discriminator names.
+The discriminator field is `kind` on install actions (`InstallActionKinds`) and unions shaped like them, and `type` on loaders (`Loaders`) and events (`EventTypes`). Do not invent new discriminator names, and do not switch a union to the other field.
 
 ### Error types
 All thrown errors are `MinecraftKitError` with a stable `code`. New codes are added to `src/types/errors.ts`. Wrapping a lower-level error preserves it as `cause`.

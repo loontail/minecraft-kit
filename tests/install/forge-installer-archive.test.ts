@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  isForgeInstallProfileShape,
   isForgeInstallerProfileShape,
+  isForgeInstallProfileShape,
   isForgeVersionJsonShape,
   isLegacyForgeInstallProfileShape,
 } from "../../src/install/forge-installer-archive";

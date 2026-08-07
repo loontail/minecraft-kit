@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MinecraftKitError, isErrorCode } from "../../src/core/errors";
+import { isErrorCode, MinecraftKitError } from "../../src/core/errors";
 import { parseJsonAs, parseJsonOrUndefined, parseJsonStrict } from "../../src/core/json";
 
 describe("parseJsonStrict", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MinecraftKitError, isErrorCode, isMinecraftKitError } from "../../src/core/errors";
+import { isErrorCode, isMinecraftKitError, MinecraftKitError } from "../../src/core/errors";
 
 describe("MinecraftKitError", () => {
   it("captures code and context", () => {

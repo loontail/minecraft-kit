@@ -5,8 +5,8 @@ import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { isMojangJavaRuntimesShape } from "../core/guards";
 import { withOptionalSignal } from "../core/optional";
 import { fetchJson } from "../http/metadata";
-import { RuntimePreference, type RuntimePreferenceKind } from "../types/runtime";
 import type { ResolvedRuntime, RuntimeIndex, RuntimeIndexEntry } from "../types/runtime";
+import { RuntimePreference, type RuntimePreferenceKind } from "../types/runtime";
 import type { RuntimeSystem } from "../types/system";
 import type { ResolverContext } from "./context";
 
@@ -211,7 +211,7 @@ const toResolved = (
  */
 export const parseMajorVersion = (versionName: string): number | undefined => {
   const match = /^(\d+)/.exec(versionName);
-  if (!match || !match[1]) return undefined;
+  if (!match?.[1]) return undefined;
   const parsed = Number.parseInt(match[1], 10);
   return Number.isFinite(parsed) ? parsed : undefined;
 };

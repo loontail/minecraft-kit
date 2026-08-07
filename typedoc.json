@@ -23,6 +23,8 @@
     "PlanRuntimeInstallInput",
     "RepairAllInput",
     "RunRepairInput",
-    "ResolverContext"
+    "ResolverContext",
+    "PlanRepairFromErrorInput",
+    "RuntimeFileEntry"
   ]
 }

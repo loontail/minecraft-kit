@@ -1,3 +1,5 @@
+import pLimit from "p-limit";
+import { VERIFY_CONCURRENCY } from "../constants/defaults";
 import { assertNotAborted } from "../core/abort";
 import { fileExists, fileSize, listChildDirectories, readText } from "../core/fs";
 import { sha1OfFile } from "../core/hash";
@@ -5,8 +7,8 @@ import { parseJsonOrUndefined } from "../core/json";
 import { targetPaths } from "../core/paths";
 import { pickPrimaryDownloadUrl } from "../http/download";
 import type { LibraryPlan } from "../install/libraries";
-import { EventTypes } from "../types/events";
 import type { ProgressListener } from "../types/events";
+import { EventTypes } from "../types/events";
 import {
   type VerificationFileResult,
   type VerificationKind,
@@ -56,17 +58,26 @@ export const runVerification = async (
 };
 
 /**
- * Verify a file by existence + optional size + optional sha1.
+ * Inputs accepted by {@link verifyHashedFile} / {@link verifyHashedFiles}.
  *
  * @internal
  */
-export const verifyHashedFile = async (input: {
+export type VerifyHashedFileInput = {
   readonly path: string;
   readonly expectedSha1?: string;
   readonly expectedSize?: number;
   readonly url?: string;
   readonly category: VerificationFileResult["category"];
-}): Promise<VerificationFileResult> => {
+};
+
+/**
+ * Verify a file by existence + optional size + optional sha1.
+ *
+ * @internal
+ */
+export const verifyHashedFile = async (
+  input: VerifyHashedFileInput,
+): Promise<VerificationFileResult> => {
   if (!(await fileExists(input.path))) {
     return {
       path: input.path,
@@ -116,6 +127,49 @@ export const verifyHashedFile = async (input: {
 };
 
 /**
+ * Hash-verify many files through a {@link VERIFY_CONCURRENCY}-wide pool, recording results in
+ * input order as the pool lands them.
+ *
+ * Order is what consumers (the tests here, and the launcher's progress adapter) key off, so each
+ * completed task only flushes the prefix of results that is already complete: a file waits for the
+ * files before it, never for the whole pool. Waiting for the pool to drain would be simpler but
+ * turns the largest bucket in the kit (~4,000 asset objects) into multi-second silence followed by
+ * one burst of 4,000 `verify:file-checked` events on a single tick.
+ *
+ * The signal is re-checked inside each pooled task so an abort stops the queue from draining
+ * instead of only being noticed at the next `record()`.
+ *
+ * @internal
+ */
+export const verifyHashedFiles = async (
+  record: VerificationRecorder,
+  inputs: readonly VerifyHashedFileInput[],
+  signal?: AbortSignal,
+): Promise<void> => {
+  if (inputs.length === 0) return;
+  const limit = pLimit(VERIFY_CONCURRENCY);
+  const slots: (VerificationFileResult | undefined)[] = Array.from({ length: inputs.length });
+  let flushed = 0;
+  const flushCompletedPrefix = (): void => {
+    for (;;) {
+      const result = slots[flushed];
+      if (result === undefined) return;
+      flushed++;
+      record(result);
+    }
+  };
+  await Promise.all(
+    inputs.map((input, index) =>
+      limit(async () => {
+        assertNotAborted(signal, "Verification aborted by signal");
+        slots[index] = await verifyHashedFile(input);
+        flushCompletedPrefix();
+      }),
+    ),
+  );
+};
+
+/**
  * Record a {@link verifyHashedFile} result for every library download in a plan under the
  * given category. Shared by the Minecraft, Fabric, and Forge verifiers — the loop body and
  * the `pickPrimaryDownloadUrl` mirror-selection are identical across all three.
@@ -126,18 +180,19 @@ export const recordLibraryDownloads = async (
   record: VerificationRecorder,
   plan: LibraryPlan,
   category: VerifyFileCategory,
+  signal?: AbortSignal,
 ): Promise<void> => {
-  for (const action of plan.downloads) {
-    record(
-      await verifyHashedFile({
-        path: action.target,
-        ...(action.expectedSha1 !== undefined ? { expectedSha1: action.expectedSha1 } : {}),
-        ...(action.expectedSize !== undefined ? { expectedSize: action.expectedSize } : {}),
-        url: pickPrimaryDownloadUrl(action.url),
-        category,
-      }),
-    );
-  }
+  await verifyHashedFiles(
+    record,
+    plan.downloads.map((action) => ({
+      path: action.target,
+      ...(action.expectedSha1 !== undefined ? { expectedSha1: action.expectedSha1 } : {}),
+      ...(action.expectedSize !== undefined ? { expectedSize: action.expectedSize } : {}),
+      url: pickPrimaryDownloadUrl(action.url),
+      category,
+    })),
+    signal,
+  );
 };
 
 /**

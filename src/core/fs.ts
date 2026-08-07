@@ -175,14 +175,25 @@ export const chmodExecutable = async (filePath: string): Promise<void> => {
 
 /**
  * Verify that `child` is contained in `root`. Used to defeat zip-slip and absolute-path
- * traversal during archive extraction.
+ * traversal during archive extraction, and to contain the destinations named by a remote
+ * runtime manifest.
+ *
+ * The comparison is case-insensitive on win32 because NTFS is: a caller that hands in an
+ * absolute child differing from `root` only in case (or through an 8.3 short name, which
+ * `resolve` does not expand) means the same directory, and rejecting it fails a legitimate
+ * install. Lowercasing cannot admit an escape — a path that leaves `root` differs by more than
+ * case. The check stays purely lexical: `realpath` would cost an fs round-trip per archive entry
+ * and cannot be applied to a destination that does not exist yet, and nothing in the kit follows
+ * a symlink it did not itself create from a hash-verified manifest.
  *
  * @throws `FILESYSTEM_PATH_TRAVERSAL` when `child` escapes `root`.
  * @internal
  */
 export const assertWithinRoot = (root: string, child: string): void => {
-  const normalizedRoot = path.resolve(root);
-  const normalizedChild = path.resolve(root, child);
+  const compare = (value: string): string =>
+    process.platform === "win32" ? value.toLowerCase() : value;
+  const normalizedRoot = compare(path.resolve(root));
+  const normalizedChild = compare(path.resolve(root, child));
   const sep = path.sep;
   if (normalizedChild !== normalizedRoot && !normalizedChild.startsWith(normalizedRoot + sep)) {
     throw new MinecraftKitError(

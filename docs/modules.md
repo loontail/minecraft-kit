@@ -1,22 +1,57 @@
 # Modules (internal)
 
-One-paragraph orientation per source module. For deep dives read the source — these notes
-exist so you don't have to grep for "where does X live".
+Orientation for the modules whose ownership is not obvious from the filename, so you don't
+have to grep for "where does X live". It is deliberately **not** a full file inventory —
+per-file upkeep is what made the previous version drift. Every directory under `src/` has a
+section here (`tests/docs-modules.test.ts` enforces that); within a section, self-describing
+files may be summarised as a group.
+
+## `src/index.ts`, `src/kit.ts`, `src/kit/`
+
+- `index.ts` — the public surface. Explicit re-exports only, no `export *`; anything absent
+  from here is internal and may be renamed without a release note.
+- `kit.ts` — the `MinecraftKit` facade. Resolves every injectable dependency
+  (`httpClient`, `cache`, `logger`, `system`, `spawner`, `hostAllowList`) to its default in
+  the constructor and threads them into the four aspect builders.
+- `kit/{install,verify,repair,launch}-aspect.ts` — one builder per `kit.<aspect>` surface.
+  These are the only files that bind the injected dependencies to the standalone domain
+  functions, so a new facade method is added here, not in `kit.ts`.
+
+## `src/types/`
+
+Public type declarations plus the `as const` discriminator maps they derive from
+(`InstallActionKinds`, `DownloadCategories`, `EventTypes`, `Loaders`, `VerifyFileStatuses`,
+`InstallPhases`, `MinecraftKitErrorCodes`, …). One file per domain, named after it. Types
+consumed by exactly one internal module stay co-located with that module instead.
+
+## `src/constants/`
+
+Values with business meaning, one file per concern: `api.ts` (`ApiEndpoints` +
+`DEFAULT_DOWNLOAD_HOST_ALLOWLIST` — no hard-coded URLs at call sites), `defaults.ts`
+(timing, concurrency), `limits.ts` (archive/zip-bomb caps), `files.ts` (path segments used by
+`core/paths.ts`), `launch.ts`, `platform.ts`, `runtime.ts`, `maven.ts`.
 
 ## `src/cli/`
 
 Interactive `mckit` CLI built on Clack prompts. **Must not import from domain modules** — calls
-only `kit.*` and types.
+only `kit.*` and types. Two sub-trees: `src/cli/ui/` (the prompt port and its
+implementations) and `src/cli/scenarios/` + `src/cli/scenarios/pickers/` (one flow per menu
+entry). Paths below are relative to `src/cli/`.
 
 - `index.ts` — bin entry; calls `bin()` from `main.ts`.
 - `main.ts` — `runCli` dispatcher and `MAIN_MENU` list.
-- `ui.ts` — `Ui` abstraction with `select`, `text`, `confirm`, `spinner`, `note`, `log`, plus
-  `searchableSelect`. Has a `createStubUi` factory used by tests.
+- `ui.ts` — assembly point: builds the `Ui` port (`select`, `text`, `confirm`, `spinner`,
+  `note`, `log`, `searchableSelect`) from the pieces under `ui/`.
+- `ui/*` — `types.ts` (the `Ui` port), `clack-bootstrap.ts` (loads the optional
+  `@clack/prompts` dependency), `select.ts` / `text.ts` / `spinner.ts` (the real
+  implementations), `stub.ts` (`createStubUi`, the scripted implementation tests drive).
 - `progress.ts` — `ProgressRenderer` consumes `ProgressEvent`s and prints a bar. Also exports
   `formatBytes` / `formatDuration` (the only copies in the codebase).
 - `error-format.ts` — `MinecraftKitError` → user-facing text. Domain code never formats
   user strings.
-- `scenarios.ts` — thin re-export hub over `scenarios/`.
+- `open-browser.ts` — the one sanctioned `child_process.spawn` outside `Spawner`: opens a
+  validated `http(s)` URL with platform-native commands, never through a shell.
+- `scenarios/index.ts` — thin re-export hub over `scenarios/`.
 - `scenarios/types.ts` — `ScenarioContext`, `ScenarioOutcome`, `InstallSelection`,
   `CHANNEL_OPTIONS`, `InstallWizardSteps` + `InstallRunResults` (as-const step/result names
   shared between `install.ts` and `install-helpers.ts`).
@@ -47,7 +82,9 @@ Cross-cutting utilities. Bottom of the dependency graph.
   message)`. The "check signal → await pause → check signal again" dance lives here once;
   install runner and `downloadFile`'s retry loop call into it.
 - `archive.ts` — zip/jar reading with zip-bomb guards (entry count, file size, total size,
-  compression ratio). `readJarMainClass` parses `META-INF/MANIFEST.MF` with line-fold handling.
+  compression ratio). `resolveContainedDestination(root, relativePath)` is the single
+  containment primitive every archive/manifest-driven write resolves through.
+  `readJarMainClass` parses `META-INF/MANIFEST.MF` with line-fold handling.
 - `assert-never.ts` — `assertNever(value)` exhaustiveness sentinel for `switch` on
   discriminated unions.
 - `collections.ts` — `dedupe` / `dedupeBy` helpers (used by Forge install planner).
@@ -75,12 +112,19 @@ Cross-cutting utilities. Bottom of the dependency graph.
 - `maven.ts` — `parseMavenCoordinate`, `mavenRelativePath`, and `mavenRelativePathFor`.
 - `pause-controller.ts` — caller-driven pause/resume primitive consumed by `downloadFile`
   and the install runner.
-- `paths.ts` — `targetPaths.*` — every per-target directory layout helper. Hard-coded path
-  segments live in `src/constants/files.ts`.
+- `paths.ts` — `targetPaths.*` — every per-target directory layout helper, plus
+  `javaExecutableUnder(runtimeRoot, os)`: the single definition of the per-OS Java executable
+  layout, which `targetPaths.runtimeJavaExecutable` and target discovery both go through. Hard-coded
+  path segments live in `src/constants/files.ts`.
 - `retry.ts` — `withRetry` (full-jitter exponential backoff) and `isHttpRetryable`.
 - `rules.ts` — `evaluateRules` (Mojang OS/feature rule semantics) and `resolveArchPlaceholder`.
 - `system.ts` — `detectSystem` (host OS / arch detection).
-- `throttle.ts` — wrap a `ProgressListener` to rate-limit `download:progress` events.
+- `deferred.ts` — `deferred<T>()` (promise plus its resolve/reject handles).
+- `optional.ts` — `withOptionalSignal` / `withOptionalOnEvent` / `withOptionalPauseController`
+  / `withOptionalHostAllowList`. `exactOptionalPropertyTypes` makes `{ signal: undefined }` a
+  type error, so option objects are spread through these instead of assigned conditionally.
+- `version-id.ts` — `asMinecraftVersionId`, the brand constructor callers use to pass a raw
+  version string into the versions / targets APIs.
 - `uuid.ts` — `offlineUuidFor` (Mojang's `MD5("OfflinePlayer:" + name)`) and
   `stripUuidDashes`.
 - `xml.ts` — `parseMavenMetadataVersions` (regex-based; Maven metadata is rigid enough).
@@ -90,15 +134,22 @@ Cross-cutting utilities. Bottom of the dependency graph.
 - `client.ts` — `FetchHttpClient` (the default `HttpClient`). Uses a `Symbol` sentinel to tell
   timer-driven aborts apart from parent-signal aborts.
 - `download.ts` — `downloadFile`: streaming sha1, atomic temp + rename, skip-on-correct,
-  retry-with-backoff, `download:*` events. Validates the URL scheme (`http(s)` only) and an
-  optional caller-supplied `hostAllowList` before touching the network — closes the
-  manifest-injection attack class. Accepts `url: string | readonly string[]`: mirror URLs
+  retry-with-backoff, `download:*` events. Validates the URL scheme (`http(s)` only) and the
+  `hostAllowList` before touching the network, then re-validates the final `response.url`
+  after redirects — this closes the manifest-injection attack class. The allow-list is
+  default-on (see `docs-site/guides/security.md`). Accepts `url: string | readonly string[]`: mirror URLs
   are tried sequentially, each with a full retry budget, and the next URL is only
   consulted when the previous one's retries are exhausted; an empty array throws
-  `INVALID_INPUT`. Exports `normalizeDownloadUrls` and `pickPrimaryDownloadUrl` helpers so
-  the verify layer can record the primary URL of a multi-URL action.
+  `INVALID_INPUT`. Exports `pickPrimaryDownloadUrl` so the verify layer can record the primary
+  URL of a multi-URL action.
 - `cache.ts` — `createMemoryCache` (LRU-backed `MetadataCache`).
+- `persistent-cache.ts` — `createPersistentMetadataCache`: a disk-backed `MetadataCache` so a
+  consumer can resolve versions offline after one online run.
 - `metadata.ts` — `fetchJson` and `fetchText` (cached GET helpers).
+- `manifests.ts` — `fetchAssetIndex`, `fetchRuntimeManifest`, and the `uniqueAssetObjects`
+  generator that both the asset planner and `verifyMinecraft` dedupe through.
+- `postForm.ts` — `postFormUrlEncoded`, used only by the OAuth `/token` grants.
+- `status.ts` — `isHttpOk`.
 
 ## `src/install/`
 
@@ -119,12 +170,28 @@ Cross-cutting utilities. Bottom of the dependency graph.
 - `fabric-install.ts` — `planFabricInstall` (profile JSON write + libraries).
 - `forge-install.ts` — `planForgeInstall` (download installer, parse modern or legacy
   `install_profile.json`, extract embedded Maven/universal artifacts, resolve tokens for
-  modern profiles, build processor actions when processors exist).
+  modern profiles, build processor actions when processors exist) and
+  `listExtractedInstallerArtifacts` (the embedded artifacts the last flush wrote, read from the
+  sentinel so `verify.forge` can existence-check them).
 - `runtime.ts` — `planRuntimeDownloads` (file-type entries of a runtime manifest).
 - `runtime-extras.ts` — `materializeRuntimeExtras` (directory placeholders + symlinks; falls
   back to `copyFile` when symlinks are forbidden; throws if both fail).
 - `runtime-install.ts` — `planRuntimeInstall` (target-bound) and
   `planStandaloneRuntimeInstall` (no Minecraft target needed).
+- `forge-installer-archive.ts` — reads `install_profile.json` / the version JSON out of the
+  installer JAR, with the Forge-specific shape guards.
+- `forge-processor-plan.ts` — `resolveProfileData` + `buildProcessorActions` (token
+  resolution for modern processor profiles). `entryExtraction` decides whether an embedded
+  `data[*]` entry is extracted, reused, or only resolved to a path (`skip`, for `verify`).
+- `forge-processor-outputs.ts` — `listForgeProcessorOutputs`: the files the processors are
+  expected to generate, with the SHA-1s `install_profile.json` declares, read off the installer
+  JAR already on disk. Offline and side-effect-free, which is what lets `verify.forge` check
+  generated artifacts (`<mc>-srg.jar` and friends) that no `DownloadAction` covers.
+- `forge-data-value.ts` — `decodeForgeDataValue`: Forge's `[coord]` / `'literal'` / path
+  encoding for `install_profile.json` data entries.
+- `progress-tracker.ts` — `createInstallProgressTracker`: folds fine-grained
+  `InstallPhases` + download events into the five coarse `ProgressStages` as throttled UI
+  snapshots. This is the kit's only progress-throttling primitive.
 
 ## `src/launch/`
 
@@ -143,29 +210,52 @@ Cross-cutting utilities. Bottom of the dependency graph.
   `doAbort()` guards both the signal listener and the manual abort method.
 - `spawner.ts` — `ChildProcessSpawner` (the default). Bounds line buffers at
   `SPAWNER_MAX_LINE_BYTES` to keep launcher memory flat under pathological output.
+- `jvm-compat.ts` — `filterArgsForJava`: drops manifest JVM args the resolved Java major
+  does not accept.
+- `preflight.ts` — `launchPreflight`, the network-free subset of `verify.targetReady`.
 
 ## `src/verify/`
 
-- `helpers.ts` — `runVerification` boilerplate, `verifyHashedFile`, `verifyExistence`,
+- `helpers.ts` — `runVerification` boilerplate, `verifyHashedFile`, the pooled
+  `verifyHashedFiles` (bounded by `VERIFY_CONCURRENCY`, records in input order as results land, so
+  events stream while the pool works and `issues` ordering stays deterministic),
+  `recordLibraryDownloads`, `verifyExistence`,
   `findForgeVersionJsonPath`.
+- `aspects.ts` — `VERIFIERS` (kind → verifier) and `aspectsForTarget`. Owned by `verify/` so a
+  readiness check does not have to import `src/repair/`; `repair/aspects.ts` composes its
+  `ASPECTS` map over `VERIFIERS`. Do not move this back — the reverse direction is an import
+  cycle (`tests/verify/layering.test.ts` guards it).
 - `minecraft.ts`, `fabric.ts`, `forge.ts`, `runtime.ts` — per-aspect verifiers.
+- `target-readiness.ts` — `verifyTargetReadiness`, the aggregate launch gate over Minecraft +
+  runtime + the active loader.
+- `index.ts` — the verify barrel.
 
 ## `src/repair/`
 
 - `helpers.ts` — `IssueIndex`, `selectRepairActions`, `buildRepairPlan`,
-  `planAspectRepair` (the shared template used by every aspect planner).
-- `minecraft.ts`, `fabric.ts`, `forge.ts`, `runtime.ts` — per-aspect repair planners (each
-  ~30 LOC after the M6 refactor).
+  `planAspectRepair` (the shared template used by every aspect planner). `planAspectRepair`
+  reuses `input.installPlan` when the caller passes one — `repairAll` builds the install plan
+  once and shares it across aspects, because they all filter the same plan and planning a Forge
+  target is expensive.
+- `aspects.ts` — `ASPECTS` (kind → `{ verify, plan }`), composed over `verify/aspects`.
+- `all.ts` — `repairAll`: verify every applicable aspect, build one install plan, repair each
+  broken aspect from it, and return that plan on the report so the caller can reuse it.
+- `index.ts` — the repair barrel (`planXxxRepair`, `runRepair`, `repairAll`,
+  `verifyAndRepair`, `planRepairFromError`).
+- `minecraft.ts`, `fabric.ts`, `forge.ts`, `runtime.ts` — per-aspect repair planners; each is
+  a thin `planAspectRepair` call plus the aspect's action filter.
 - `from-error.ts` — `planRepairFromError` and the pure `deriveRepairActionsFromError`
   mapper. Derives a minimal `RepairPlan` from a typed `MinecraftKitError` thrown by a
   previous install. Wired onto the kit facade as `kit.repair.fromError({ error, target })`.
   Supported codes live in `RepairFromErrorSupportedCodes`; unsupported codes throw
   `INVALID_INPUT` so the caller falls back to the regular `verify → plan → run` path.
-- `run-with-diagnose.ts` — `runVerifyAndRepair(deps, { aspect, target, mode? })`. Wraps the
+- `verify-and-repair.ts` — `verifyAndRepair(deps, { aspect, target, mode? })`. Wraps the
   `verify → plan → run` cycle for a single aspect into one call. `RepairModes.FIX`
   (default) repairs on detection; `RepairModes.REPORT` runs verify only and never touches
-  disk. Wired onto the facade as `kit.repair.runVerifyAndRepair(input)`.
-- `runner.ts` — `runRepair` is a thin wrapper that calls `runInstall` on the repair plan.
+  disk. Wired onto the facade as `kit.repair.verifyAndRepair(input)`.
+- `runner.ts` — `runRepair` is a thin wrapper that calls `runInstall` on the repair plan. It
+  forwards the full install control set (`signal`, `pauseController`, `actionCategories`,
+  `hostAllowList`) and reports `actionsSkipped` alongside `actionsCompleted`.
 
 ## `src/auth/`
 
@@ -190,6 +280,16 @@ code.
 - `minecraft.ts` — `loginWithXbox`, `fetchMinecraftProfile`, `extractXuid` (decodes the
   `xuid` claim from the JWT-shaped access token). 403 + `"invalid app registration"` is
   recognised and points the user at `https://aka.ms/mce-reviewappid`.
+- `client-id.ts` — the brand constructors `asAzureClientId` / `asMicrosoftRefreshToken` and
+  `resolveClientId`, which falls back to `CLIENT_ID_ENV_VAR`
+  (`MINECRAFT_KIT_MSA_CLIENT_ID`). The kit ships no default client id by design.
+- `options.ts` — `AuthorizationCodeRunOptions` / `RefreshOptions`.
+- `pipeline.ts` — `exchangeMicrosoftToMojang`: the Microsoft-token → XBL → XSTS →
+  `login_with_xbox` → profile chain, shared by the sign-in and refresh entry points.
+- `profile-read.ts` — `readProfile` (`minecraft/profile` GET).
+- `profile-mutations.ts` — `setSkinFromUrl`, `uploadSkin`, `resetSkin`.
+- `skin-variant-detect.ts` — `detectSkinVariant`: infers `classic` / `slim` from PNG pixels
+  so `SkinVariantInputs.AUTO` can resolve without asking the user.
 - `debug.ts` — `DEBUG_ENV_VAR` (`MINECRAFT_KIT_AUTH_DEBUG`) and `buildAuthLogger(base)`
   that routes auth trace through a `Logger` interface with an env-toggled `consoleLogger`
   fallback. Auth-flow helpers (`startLoopbackServer`, `loginWithXbox`, the

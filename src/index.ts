@@ -1,7 +1,7 @@
 export {
+  type AuthorizationCodeRunOptions,
   asAzureClientId,
   asMicrosoftRefreshToken,
-  type AuthorizationCodeRunOptions,
   CLIENT_ID_ENV_VAR,
   MojangAuthApi,
   type RefreshOptions,
@@ -15,8 +15,8 @@ export type {
 export type { ReadProfileInput } from "./auth/profile-read";
 export {
   detectSkinVariant,
-  SkinVariantInputs,
   type SkinVariantInput,
+  SkinVariantInputs,
 } from "./auth/skin-variant-detect";
 export { assertNever } from "./core/assert-never";
 export {
@@ -29,12 +29,12 @@ export {
 export { consoleLogger, scopedLogger, silentLogger } from "./core/logger";
 export { targetPaths } from "./core/paths";
 export { PauseController } from "./core/pause-controller";
-export { detectSystem } from "./core/system";
 export type { DetectSystemInput } from "./core/system";
+export { detectSystem } from "./core/system";
 export { asPlayerUuid, offlineUuidFor, stripUuidDashes } from "./core/uuid";
 export { asMinecraftVersionId } from "./core/version-id";
-export { createMemoryCache } from "./http/cache";
 export type { MemoryCacheOptions } from "./http/cache";
+export { createMemoryCache } from "./http/cache";
 export { FetchHttpClient } from "./http/client";
 export {
   createPersistentMetadataCache,
@@ -50,21 +50,24 @@ export {
   type ProgressTrackerOptions,
 } from "./install/progress-tracker";
 export {
+  type PlanStandaloneRuntimeInstallInput,
   planRuntimeInstall,
   planStandaloneRuntimeInstall,
-  type PlanStandaloneRuntimeInstallInput,
 } from "./install/runtime-install";
-export { MinecraftKit } from "./kit";
 export type {
   InstallAspect,
   InstallRunOptions,
   LaunchAspect,
   MinecraftKitOptions,
+  RepairAllRunOptions,
+  RepairAspectSurface,
+  RepairRunOptions,
   RepairSurface,
   VerifyAspect,
 } from "./kit";
+export { MinecraftKit } from "./kit";
 export { ChildProcessSpawner } from "./launch/spawner";
-export { resolveLaunchVersion, type ResolvedLaunchVersion } from "./launch/version-resolution";
+export { type ResolvedLaunchVersion, resolveLaunchVersion } from "./launch/version-resolution";
 export {
   planFabricRepair,
   planForgeRepair,
@@ -77,16 +80,16 @@ export {
   RepairFromErrorSupportedCodes,
   repairAll,
   runRepair,
-  runVerifyAndRepair,
-  type RunVerifyAndRepairDeps,
+  type VerifyAndRepairDeps,
+  verifyAndRepair,
 } from "./repair/index";
-export { TargetsApi } from "./targets/index";
 export type {
   TargetListInput,
   TargetLoaderInput,
   TargetResolveInput,
   TargetsApiContext,
 } from "./targets/index";
+export { TargetsApi } from "./targets/index";
 export {
   type AuthMode,
   AuthModes,
@@ -94,15 +97,15 @@ export {
   type LaunchAuth,
   type MicrosoftRefreshToken,
   type MinecraftProfile,
-  MojangAssetStates,
   type MojangAssetState,
+  MojangAssetStates,
   type MojangProfileSkin,
   type MojangSession,
-  SkinVariants,
-  type SkinVariant,
   type OfflineAuth,
   type OnlineAuth,
   type PlayerUuid,
+  type SkinVariant,
+  SkinVariants,
 } from "./types/auth";
 export type { MetadataCache } from "./types/cache";
 export type { MinecraftKitErrorContext } from "./types/errors";
@@ -165,7 +168,7 @@ export {
   VersionPreference,
   type VersionPreferenceKind,
 } from "./types/loader";
-export { type LogLevel, LogLevels, type Logger } from "./types/logger";
+export { type Logger, type LogLevel, LogLevels } from "./types/logger";
 export {
   type ArgumentEntry,
   type ArtifactDownload,
@@ -189,7 +192,6 @@ export {
   type AspectRepairInput,
   type RepairAllOptions,
   type RepairableErrorLike,
-  type RepairAspect,
   type RepairFromErrorInput,
   type RepairIssueFilter,
   type RepairIssueFilterInput,
@@ -214,8 +216,8 @@ export {
 export type {
   ProcessStream,
   SpawnedProcess,
-  SpawnOptions,
   Spawner,
+  SpawnOptions,
 } from "./types/spawner";
 export {
   type Architecture,
@@ -233,12 +235,12 @@ export type {
 } from "./types/target";
 export type { ResolvedVanillaLoader } from "./types/vanilla";
 export {
+  type TargetReadinessIssue,
+  type TargetReadinessResult,
   type VerificationFileResult,
   type VerificationKind,
   VerificationKinds,
   type VerificationResult,
-  type TargetReadinessIssue,
-  type TargetReadinessResult,
   VerifyFileCategories,
   type VerifyFileCategory,
   type VerifyFileStatus,
@@ -252,24 +254,24 @@ export {
   verifyRuntime,
   verifyTargetReadiness,
 } from "./verify/index";
-export { FabricVersionsApi } from "./versions/fabric";
 export type {
   FabricGameVersionEntry,
   FabricGameVersionsInput,
   FabricListInput,
   FabricResolveInput,
 } from "./versions/fabric";
-export { ForgeVersionsApi } from "./versions/forge";
+export { FabricVersionsApi } from "./versions/fabric";
 export type { ForgeListInput, ForgeResolveInput } from "./versions/forge";
-export { MinecraftVersionsApi } from "./versions/minecraft";
+export { ForgeVersionsApi } from "./versions/forge";
 export type {
   MinecraftGetInput,
   MinecraftLatestInput,
   MinecraftListInput,
 } from "./versions/minecraft";
-export { RuntimeVersionsApi } from "./versions/runtime";
+export { MinecraftVersionsApi } from "./versions/minecraft";
 export type {
   RuntimeListEntry,
   RuntimeListInput,
   RuntimeResolveInput,
 } from "./versions/runtime";
+export { RuntimeVersionsApi } from "./versions/runtime";

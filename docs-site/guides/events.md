@@ -76,8 +76,10 @@ tracker.finish();
 unsubscribe();
 ```
 
-The snapshot carries `stage`, `stagePercent`, `overallPercent`, `bytesDownloaded`,
-`totalBytes`, and `currentFile`.
+The snapshot carries `stage`, `stagePercent`, `overallPercent`, `currentFile`, and two
+byte pairs that each share a denominator: `bytesDownloaded` / `totalBytes` for the current
+stage, `overallBytesDownloaded` / `overallTotalBytes` for the whole run. Divide within a
+pair, never across them.
 
 `ProgressStages` are deliberately separate from `InstallPhases`: the latter is the
 fine-grained sequence the install runner walks through (`PLANNING`,

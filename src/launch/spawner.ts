@@ -1,7 +1,8 @@
 import { Buffer } from "node:buffer";
 import { spawn } from "node:child_process";
 import { SPAWNER_MAX_LINE_BYTES } from "../constants/defaults";
-import type { ProcessStream, SpawnOptions, SpawnedProcess, Spawner } from "../types/spawner";
+import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
+import type { ProcessStream, SpawnedProcess, Spawner, SpawnOptions } from "../types/spawner";
 
 /**
  * Default spawner backed by `node:child_process.spawn`.
@@ -27,8 +28,12 @@ export class ChildProcessSpawner implements Spawner {
     const exited = new Promise<{
       readonly code: number | null;
       readonly signal: NodeJS.Signals | null;
-    }>((resolve) => {
+    }>((resolve, reject) => {
       child.once("exit", (code, signal) => resolve({ code, signal }));
+      // Without this listener a spawn failure (missing/unexecutable binary) is re-raised as
+      // a process-level 'error' event — an uncaught exception in the host — and `exited`
+      // never settles, hanging every awaiting caller.
+      child.once("error", (cause: NodeJS.ErrnoException) => reject(toSpawnError(command, cause)));
     });
     return {
       pid: child.pid ?? -1,
@@ -41,6 +46,26 @@ export class ChildProcessSpawner implements Spawner {
     };
   }
 }
+
+/**
+ * Translate a `child_process` spawn failure into the kit error taxonomy. `ENOENT` means the
+ * java binary itself is absent (`LAUNCH_JAVA_NOT_FOUND`, which consumers already classify as
+ * "runtime needs repair"); everything else (`EACCES`, `EPERM`, `ENOEXEC`, `EMFILE`, …) is a
+ * generic `LAUNCH_PROCESS_FAILED`.
+ */
+const toSpawnError = (command: string, cause: NodeJS.ErrnoException): MinecraftKitError => {
+  const code =
+    cause.code === "ENOENT"
+      ? MinecraftKitErrorCodes.LAUNCH_JAVA_NOT_FOUND
+      : MinecraftKitErrorCodes.LAUNCH_PROCESS_FAILED;
+  return new MinecraftKitError(code, `Failed to spawn process: ${command}`, {
+    cause,
+    context: {
+      filePath: command,
+      ...(cause.code === undefined ? {} : { errno: cause.code }),
+    },
+  });
+};
 
 const streamFromBuffer = (stream: NodeJS.ReadableStream | null): ProcessStream => {
   if (!stream) {

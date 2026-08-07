@@ -18,6 +18,11 @@ import { createInPlaceSpinner } from "./ui/spinner";
 import { runConfirm, runText } from "./ui/text";
 import type { Ui } from "./ui/types";
 
+export { DEFAULT_SEARCH_THRESHOLD, MAX_VISIBLE_OPTIONS } from "./ui/select";
+export type { InPlaceSpinnerInput } from "./ui/spinner";
+export { createInPlaceSpinner } from "./ui/spinner";
+export type { StubUi, StubUiCall } from "./ui/stub";
+export { createStubUi } from "./ui/stub";
 export type {
   ConfirmInput,
   SearchableSelectInput,
@@ -31,11 +36,6 @@ export type {
   WizardOutcomeKind,
 } from "./ui/types";
 export { WizardOutcomes } from "./ui/types";
-export type { InPlaceSpinnerInput } from "./ui/spinner";
-export { createInPlaceSpinner } from "./ui/spinner";
-export type { StubUi, StubUiCall } from "./ui/stub";
-export { createStubUi } from "./ui/stub";
-export { DEFAULT_SEARCH_THRESHOLD, MAX_VISIBLE_OPTIONS } from "./ui/select";
 
 /**
  * Build a {@link Ui} from any module that implements the clack contract. Exposed for tests

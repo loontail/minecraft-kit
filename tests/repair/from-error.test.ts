@@ -2,10 +2,10 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ApiEndpoints } from "../../src/constants/api";
 import {
-  MinecraftKitError,
-  MinecraftKitErrorCodes,
   isErrorCode,
   isMinecraftKitError,
+  MinecraftKitError,
+  MinecraftKitErrorCodes,
 } from "../../src/core/errors";
 import { silentLogger } from "../../src/core/logger";
 import { targetPaths } from "../../src/core/paths";
@@ -292,11 +292,6 @@ describe("deriveRepairActionsFromError", () => {
       }),
       writeVersionJson(path.join("/forge-root", "versions", "1.20.1", "1.20.1.json")),
       download({
-        url: "https://forge/installer/",
-        target: "/forge-root/libraries/net/minecraftforge/forge/installer.jar",
-        category: DownloadCategories.FORGE_INSTALLER,
-      }),
-      download({
         url: "https://forge/lib/a.jar",
         target: "/forge-root/libraries/forge-a.jar",
         category: DownloadCategories.FORGE_LIBRARY,
@@ -328,7 +323,6 @@ describe("deriveRepairActionsFromError", () => {
       [
         InstallActionKinds.DOWNLOAD_FILE,
         InstallActionKinds.DOWNLOAD_FILE,
-        InstallActionKinds.DOWNLOAD_FILE,
         InstallActionKinds.RUN_FORGE_PROCESSOR,
         InstallActionKinds.RUN_FORGE_PROCESSOR,
         InstallActionKinds.WRITE_VERSION_JSON,
@@ -339,13 +333,10 @@ describe("deriveRepairActionsFromError", () => {
       .filter((a): a is DownloadAction => a.kind === InstallActionKinds.DOWNLOAD_FILE)
       .map((a) => a.category)
       .sort();
-    expect(downloadCategories).toEqual(
-      [
-        DownloadCategories.FORGE_INSTALLER,
-        DownloadCategories.FORGE_LIBRARY,
-        DownloadCategories.FORGE_LIBRARY,
-      ].sort(),
-    );
+    expect(downloadCategories).toEqual([
+      DownloadCategories.FORGE_LIBRARY,
+      DownloadCategories.FORGE_LIBRARY,
+    ]);
 
     const writes = actions.filter(
       (a): a is WriteVersionJsonAction => a.kind === InstallActionKinds.WRITE_VERSION_JSON,

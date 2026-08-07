@@ -16,7 +16,7 @@ const SPAWN_TIMEOUT_MS = 1500;
  * child has actually started (`'spawn'` event), `false` on failure. The child is detached
  * + unref'd so the CLI can exit independently of the browser process.
  *
- * Implementation notes (every one of these used to be a bug):
+ * Implementation notes — each one is load-bearing:
  *
  * - On Windows we invoke `rundll32 url.dll,FileProtocolHandler <url>`, NOT
  *   `cmd /c start`. The cmd path interprets `&` in OAuth URLs as a command

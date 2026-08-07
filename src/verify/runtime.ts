@@ -10,7 +10,12 @@ import {
   VerifyFileCategories,
   VerifyFileStatuses,
 } from "../types/verify";
-import { type VerificationRecorder, runVerification, verifyHashedFile } from "./helpers";
+import {
+  runVerification,
+  type VerificationRecorder,
+  type VerifyHashedFileInput,
+  verifyHashedFiles,
+} from "./helpers";
 
 /**
  * Verify the Java runtime files. Honours `target.runtime.installRoot` when set so a
@@ -54,18 +59,18 @@ export const verifyRuntime = async (input: VerifyAspectInput): Promise<Verificat
         input.target.runtime.component,
         input.target.runtime.installRoot,
       );
+      const checks: VerifyHashedFileInput[] = [];
       for (const [relative, entry] of Object.entries(manifest.files)) {
         if (entry.type !== RuntimeEntryTypes.FILE) continue;
-        record(
-          await verifyHashedFile({
-            path: path.join(runtimeRoot, relative),
-            expectedSha1: entry.downloads.raw.sha1,
-            expectedSize: entry.downloads.raw.size,
-            url: entry.downloads.raw.url,
-            category: VerifyFileCategories.RUNTIME_FILE,
-          }),
-        );
+        checks.push({
+          path: path.join(runtimeRoot, relative),
+          expectedSha1: entry.downloads.raw.sha1,
+          expectedSize: entry.downloads.raw.size,
+          url: entry.downloads.raw.url,
+          category: VerifyFileCategories.RUNTIME_FILE,
+        });
       }
+      await verifyHashedFiles(record, checks, input.signal);
     },
   );
 };

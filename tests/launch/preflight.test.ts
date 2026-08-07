@@ -6,6 +6,11 @@ import { targetPaths } from "../../src/core/paths";
 import { launchPreflight } from "../../src/launch/preflight";
 import { Loaders } from "../../src/types/loader";
 import type { Target } from "../../src/types/target";
+import {
+  VerificationKinds,
+  VerifyFileCategories,
+  VerifyFileStatuses,
+} from "../../src/types/verify";
 import { fakeTarget } from "../helpers/fake-kit";
 
 const writeFile = async (filePath: string): Promise<void> => {
@@ -33,19 +38,23 @@ describe("launchPreflight", () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it("reports ok when every launch-critical file is present", async () => {
+  it("reports ready when every launch-critical file is present", async () => {
     const target: Target = { ...fakeTarget, directory: tmpDir };
     for (const filePath of vanillaLaunchFiles(target)) await writeFile(filePath);
     const result = await launchPreflight(target);
-    expect(result.ok).toBe(true);
-    expect(result.missing).toEqual([]);
+    expect(result.isReady).toBe(true);
+    expect(result.issues).toEqual([]);
+    expect(result.targetId).toBe(target.id);
+    expect(result.durationMs).toBeGreaterThanOrEqual(0);
   });
 
   it("lists every missing launch-critical file when nothing is installed", async () => {
     const target: Target = { ...fakeTarget, directory: tmpDir };
     const result = await launchPreflight(target);
-    expect(result.ok).toBe(false);
-    expect(new Set(result.missing)).toEqual(new Set(vanillaLaunchFiles(target)));
+    expect(result.isReady).toBe(false);
+    expect(new Set(result.issues.map((issue) => issue.path))).toEqual(
+      new Set(vanillaLaunchFiles(target)),
+    );
   });
 
   it("reports only the missing files when the install is partial", async () => {
@@ -54,8 +63,32 @@ describe("launchPreflight", () => {
     await writeFile(files[0]);
     await writeFile(files[1]);
     const result = await launchPreflight(target);
-    expect(result.ok).toBe(false);
-    expect(result.missing).toEqual([files[2]]);
+    expect(result.isReady).toBe(false);
+    expect(result.issues.map((issue) => issue.path)).toEqual([files[2]]);
+  });
+
+  it("reports issues in the verify surface's shape so one renderer covers both gates", async () => {
+    const target: Target = { ...fakeTarget, directory: tmpDir };
+    const result = await launchPreflight(target);
+    for (const issue of result.issues) {
+      expect(issue.status).toBe(VerifyFileStatuses.MISSING);
+      expect(Object.values(VerifyFileCategories)).toContain(issue.category);
+      expect(Object.values(VerificationKinds)).toContain(issue.kind);
+    }
+    const [javaExecutable, versionJson, versionJar] = vanillaLaunchFiles(target);
+    const categoryOf = (filePath: string) => result.issues.find((issue) => issue.path === filePath);
+    expect(categoryOf(javaExecutable)).toMatchObject({
+      category: VerifyFileCategories.RUNTIME_FILE,
+      kind: VerificationKinds.RUNTIME,
+    });
+    expect(categoryOf(versionJson)).toMatchObject({
+      category: VerifyFileCategories.CLIENT_JAR,
+      kind: VerificationKinds.MINECRAFT,
+    });
+    expect(categoryOf(versionJar)).toMatchObject({
+      category: VerifyFileCategories.CLIENT_JAR,
+      kind: VerificationKinds.MINECRAFT,
+    });
   });
 
   it("surfaces the loader version JSON when resolution fails for a Forge target", async () => {
@@ -71,7 +104,9 @@ describe("launchPreflight", () => {
       },
     };
     const result = await launchPreflight(target);
-    expect(result.ok).toBe(false);
-    expect(result.missing).toContain(targetPaths.versionJson(tmpDir, "1.20.1-47.2.0"));
+    expect(result.isReady).toBe(false);
+    expect(result.issues.map((issue) => issue.path)).toContain(
+      targetPaths.versionJson(tmpDir, "1.20.1-47.2.0"),
+    );
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_VISIBLE_OPTIONS, buildUi } from "../../src/cli/ui";
+import { buildUi, MAX_VISIBLE_OPTIONS } from "../../src/cli/ui";
 
 type Recorded = {
   readonly kind: "text" | "select";

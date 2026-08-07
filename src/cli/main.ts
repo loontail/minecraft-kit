@@ -3,9 +3,9 @@ import { MinecraftKit } from "../index";
 import { formatUserError } from "./error-format";
 import {
   type AuthRef,
+  pickInitialAuth,
   type ScenarioContext,
   type ScenarioOutcome,
-  pickInitialAuth,
   scenarioInspect,
   scenarioInstallMinecraft,
   scenarioInstallRuntime,
@@ -14,7 +14,7 @@ import {
   scenarioRepair,
   scenarioVerify,
 } from "./scenarios";
-import { type Ui, createClackUi } from "./ui";
+import { createClackUi, type Ui } from "./ui";
 
 const SCENARIO_KEYS = {
   INSTALL_MC: "install-minecraft",

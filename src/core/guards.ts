@@ -18,7 +18,7 @@ import type {
   MinecraftVersionManifest,
   VersionManifestRoot,
 } from "../types/minecraft";
-import type { RuntimeFilesManifest, RuntimeIndex } from "../types/runtime";
+import { RuntimeEntryTypes, type RuntimeFilesManifest, type RuntimeIndex } from "../types/runtime";
 
 const MOJANG_ASSET_STATES: ReadonlySet<MojangAssetState> = new Set(
   Object.values(MojangAssetStates),
@@ -118,13 +118,14 @@ export const isMojangProfileSkin = (value: unknown): value is MojangProfileSkin 
  * Light-touch guard for Mojang per-version manifests.
  *
  * @remarks
- * Verifies only the fields the launcher reads at the boundary
- * (`id`, `mainClass`, `assetIndex`, `downloads.client`). Optional and
- * loader-specific fields (`libraries`, `arguments`, `javaVersion`,
- * `inheritsFrom`, …) are validated downstream where each field is actually
- * consumed. The predicate widens to {@link MinecraftVersionManifest} so call
- * sites do not need an `as unknown as` cast; the widening is type-system
- * trade-off, not a runtime guarantee.
+ * Verifies every field the kit dereferences without a further check: `id`,
+ * `mainClass`, `assetIndex`, `downloads.client`, and `libraries` (the install
+ * planner and the verifier both iterate it unguarded). Genuinely optional
+ * fields (`arguments`, `javaVersion`, `inheritsFrom`, `logging`, …) are guarded
+ * at their own use sites. The predicate widens to
+ * {@link MinecraftVersionManifest} so call sites do not need an
+ * `as unknown as` cast; the widening is a type-system trade-off, not a runtime
+ * guarantee.
  *
  * @internal
  */
@@ -134,6 +135,7 @@ export const isMinecraftVersionManifestShape = (
   if (!isPlainObject(value)) return false;
   if (!isNonEmptyString(value.id)) return false;
   if (!isNonEmptyString(value.mainClass)) return false;
+  if (!Array.isArray(value.libraries)) return false;
   if (!isPlainObject(value.assetIndex)) return false;
   if (
     !isNonEmptyString(value.assetIndex.id) ||
@@ -226,8 +228,14 @@ const isRuntimeIndexEntryShape = (value: unknown): boolean => {
 /**
  * Light-touch guard for the per-component runtime files manifest. Requires
  * `files` to be an object whose values each carry a string `type` discriminator
- * (`"file" | "directory" | "link"`); the discriminant value itself is checked
- * by consumers that switch on it.
+ * (`"file" | "directory" | "link"`) plus the payload that discriminant implies:
+ * `downloads.raw` for `file` entries, `target` for `link` entries. A `directory`
+ * entry legitimately carries neither, and an empty `files` map is legal.
+ *
+ * The per-variant checks are not optional politeness: the install planner and the
+ * verifier both reach straight into `entry.downloads.raw.url` / `entry.target`
+ * with no further guard, so a manifest that passed a `type`-only check would fail
+ * as a raw `TypeError` instead of `MANIFEST_INVALID`.
  *
  * @internal
  */
@@ -237,6 +245,11 @@ export const isJavaRuntimeManifestShape = (value: unknown): value is RuntimeFile
   for (const entry of Object.values(value.files)) {
     if (!isPlainObject(entry)) return false;
     if (typeof entry.type !== "string") return false;
+    if (entry.type === RuntimeEntryTypes.FILE) {
+      if (!isPlainObject(entry.downloads)) return false;
+      if (!isArtifactDownload(entry.downloads.raw)) return false;
+    }
+    if (entry.type === RuntimeEntryTypes.LINK && !isNonEmptyString(entry.target)) return false;
   }
   return true;
 };

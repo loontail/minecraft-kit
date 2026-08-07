@@ -1,9 +1,9 @@
 import path from "node:path";
 import {
+  assertNever,
   Loaders,
   type MinecraftChannel,
   type MinecraftVersionSummary,
-  assertNever,
 } from "../../index";
 import { formatUserError } from "../error-format";
 import {

@@ -13,11 +13,12 @@ import {
   VerifyFileStatuses,
 } from "../types/verify";
 import {
-  type VerificationRecorder,
   recordLibraryDownloads,
   runVerification,
+  type VerificationRecorder,
   verifyExistence,
   verifyHashedFile,
+  verifyHashedFiles,
 } from "./helpers";
 
 /**
@@ -47,7 +48,7 @@ export const verifyMinecraft = async (input: VerifyAspectInput): Promise<Verific
     async (record) => {
       await recordClientJarAndVersionJson(record, input.target);
       await recordLoggingConfig(record, input.target);
-      const libraryPlan = await recordLibrariesAndReturnPlan(record, input.target);
+      const libraryPlan = await recordLibrariesAndReturnPlan(record, input);
       await recordAssetIndexAndObjects(record, input);
       await recordNativesIssuesWhenDirectoryMissing(record, input.target, libraryPlan);
     },
@@ -92,8 +93,9 @@ const recordLoggingConfig = async (record: VerificationRecorder, target: Target)
 
 const recordLibrariesAndReturnPlan = async (
   record: VerificationRecorder,
-  target: Target,
+  input: VerifyAspectInput,
 ): Promise<ReturnType<typeof planLibraryDownloads>> => {
+  const { target } = input;
   const libraryPlan = planLibraryDownloads({
     libraries: target.minecraft.manifest.libraries,
     directory: target.directory,
@@ -101,7 +103,7 @@ const recordLibrariesAndReturnPlan = async (
     versionId: target.minecraft.version,
     category: DownloadCategories.LIBRARY,
   });
-  await recordLibraryDownloads(record, libraryPlan, VerifyFileCategories.LIBRARY);
+  await recordLibraryDownloads(record, libraryPlan, VerifyFileCategories.LIBRARY, input.signal);
   return libraryPlan;
 };
 
@@ -133,16 +135,16 @@ const recordAssetIndexAndObjects = async (
     recordAssetIndexUnusable(record, indexUrl);
     return;
   }
-  for (const entry of uniqueAssetObjects(indexDocument.objects)) {
-    record(
-      await verifyHashedFile({
-        path: targetPaths.assetObject(directory, entry.hash),
-        expectedSha1: entry.hash,
-        expectedSize: entry.size,
-        category: VerifyFileCategories.ASSET,
-      }),
-    );
-  }
+  await verifyHashedFiles(
+    record,
+    [...uniqueAssetObjects(indexDocument.objects)].map((entry) => ({
+      path: targetPaths.assetObject(directory, entry.hash),
+      expectedSha1: entry.hash,
+      expectedSize: entry.size,
+      category: VerifyFileCategories.ASSET,
+    })),
+    input.signal,
+  );
 };
 
 /**

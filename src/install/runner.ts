@@ -5,6 +5,7 @@ import { extractAllToDir } from "../core/archive";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { atomicWrite } from "../core/fs";
 import {
+  withOptionalHostAllowList,
   withOptionalOnEvent,
   withOptionalPauseController,
   withOptionalSignal,
@@ -13,8 +14,8 @@ import { targetPaths } from "../core/paths";
 import type { PauseController } from "../core/pause-controller";
 import { downloadFile } from "../http/download";
 import type { MetadataCache } from "../types/cache";
-import { EventTypes } from "../types/events";
 import type { ProgressListener } from "../types/events";
+import { EventTypes } from "../types/events";
 import type { HttpClient } from "../types/http";
 import {
   type DownloadAction,
@@ -23,13 +24,14 @@ import {
   type ExtractNativeAction,
   type InstallAction,
   InstallActionKinds,
+  type InstallPhase,
+  InstallPhases,
   type InstallPlan,
   type InstallReport,
   type RunForgeProcessorAction,
   type WriteLoggingConfigAction,
   type WriteVersionJsonAction,
 } from "../types/install";
-import { type InstallPhase, InstallPhases } from "../types/install";
 import { Loaders } from "../types/loader";
 import type { Spawner } from "../types/spawner";
 import type { OperatingSystem } from "../types/system";
@@ -50,9 +52,17 @@ export type RunInstallInput = {
   readonly signal?: AbortSignal;
   readonly onEvent?: ProgressListener;
   readonly concurrency?: number;
-  /** Checkpoint between top-level actions and group transitions. Does not interrupt in-flight downloads. */
+  /**
+   * Cooperative pause. Checked at every stage/group boundary and between download chunks — an
+   * in-flight download pauses mid-stream without aborting.
+   */
   readonly pauseController?: PauseController;
-  /** When set, only download actions in this set run; post-download steps that depend on them are skipped too. */
+  /**
+   * Restricts the run to the listed download categories. Native extraction is skipped unless
+   * `LIBRARY` is included; Forge processors unless `FORGE_LIBRARY` is included; the runtime
+   * stage unless `RUNTIME_FILE` is included. Version-JSON and logging-config writes always run
+   * — they are cheap, idempotent, and are what makes a partial run still leave a coherent tree.
+   */
   readonly actionCategories?: ReadonlySet<DownloadAction["category"]>;
   /** Host allow-list enforced on every download (including redirect targets). */
   readonly hostAllowList?: readonly string[];
@@ -113,7 +123,7 @@ export const runInstall = async (input: RunInstallInput): Promise<InstallReport>
   await runDownloadsStage(ctx, plannedActions.downloads);
   await runWritesStage(ctx, plannedActions.writes);
   await runNativesStage(ctx, plannedActions.natives);
-  await runRuntimeStage(ctx);
+  await runRuntimeStage(ctx, plannedActions);
   await runProcessorsStage(ctx, plannedActions.processors);
 
   ctx.enterPhase(InstallPhases.COMPLETED);
@@ -151,17 +161,29 @@ const createContext = (input: RunInstallInput, counters: InstallCounters): Insta
   };
 };
 
+/**
+ * Split the plan into the four buckets each stage consumes, honouring `actionCategories`.
+ *
+ * The filter is not download-only: a post-download step whose inputs were filtered out must
+ * not run either. Native extraction derives from `LIBRARY` jars and Forge processors from the
+ * `FORGE_LIBRARY` classpath, so each is gated on its source category. Writes are deliberately
+ * unconditional — see {@link RunInstallInput.actionCategories}.
+ */
 const partitionActions = (input: RunInstallInput): PlannedActions => {
   const allowedCategories = input.actionCategories;
+  const allows = (category: DownloadCategory): boolean =>
+    allowedCategories === undefined || allowedCategories.has(category);
   const allDownloads = input.plan.actions.filter(isDownload);
   return {
     downloads:
       allowedCategories === undefined
         ? allDownloads
         : allDownloads.filter((a) => allowedCategories.has(a.category)),
-    natives: input.plan.actions.filter(isNative),
+    natives: allows(DownloadCategories.LIBRARY) ? input.plan.actions.filter(isNative) : [],
     writes: input.plan.actions.filter(isWrite),
-    processors: input.plan.actions.filter(isProcessor),
+    processors: allows(DownloadCategories.FORGE_LIBRARY)
+      ? input.plan.actions.filter(isProcessor)
+      : [],
   };
 };
 
@@ -214,9 +236,7 @@ const runDownloadGroup = async (
           ...(action.expectedSha1 !== undefined ? { expectedSha1: action.expectedSha1 } : {}),
           ...(action.expectedSize !== undefined ? { expectedSize: action.expectedSize } : {}),
           ...(action.category !== undefined ? { category: action.category } : {}),
-          ...(ctx.input.hostAllowList !== undefined
-            ? { hostAllowList: ctx.input.hostAllowList }
-            : {}),
+          ...withOptionalHostAllowList(ctx.input.hostAllowList),
           ...withOptionalSignal(ctx.input.signal),
           ...withOptionalOnEvent(ctx.input.onEvent),
           ...withOptionalPauseController(ctx.input.pauseController),
@@ -265,9 +285,27 @@ const runNativesStage = async (
   }
 };
 
-const runRuntimeStage = async (ctx: InstallRunnerContext): Promise<void> => {
+/**
+ * Materialize the runtime's directory/symlink entries — but only when the run actually touched
+ * runtime files.
+ *
+ * The gate is "at least one `RUNTIME_FILE` download survived `partitionActions`", which folds
+ * two requirements into one predicate: an `actionCategories` filter that excludes
+ * `RUNTIME_FILE` skips the stage, and so does a plan with no runtime work at all (every repair
+ * plan that isn't a runtime repair). Without it, an assets-only repair paid a runtime-manifest
+ * fetch plus a full `materializeRuntimeExtras` pass — which on Windows without symlink
+ * privilege is a real file copy per `link` entry — and failed offline *after* its downloads had
+ * already landed on disk.
+ */
+const runRuntimeStage = async (
+  ctx: InstallRunnerContext,
+  plannedActions: PlannedActions,
+): Promise<void> => {
   const runtime = ctx.input.plan.target.runtime;
   if (runtime === undefined) return;
+  if (!plannedActions.downloads.some((a) => a.category === DownloadCategories.RUNTIME_FILE)) {
+    return;
+  }
   await ctx.checkpoint();
   ctx.enterPhase(InstallPhases.INSTALLING_RUNTIME);
   const manifest =

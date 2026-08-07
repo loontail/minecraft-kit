@@ -25,10 +25,16 @@ import type { Target } from "../types/target";
  */
 export type LaunchAspect = {
   compose(target: Target, options: LaunchOptions): Promise<LaunchComposition>;
+  /**
+   * Spawn the game. The only `run` in the library that is **not** async: it returns the live
+   * {@link LaunchSession} synchronously so the caller holds `pid` and `abort()` immediately.
+   * `await`ing it yields the session, not the exit — wait on `session.exited` for that.
+   */
   run(composition: LaunchComposition, options?: LaunchRunOptions): LaunchSession;
   /**
    * Cheap, network-free readiness gate: reports whether every launch-critical file (java
-   * executable, version JSON, client jar, classpath entries) is present on disk.
+   * executable, version JSON, client jar, classpath entries) is present on disk. The
+   * network-free subset of `verify.targetReady.run`, reporting the same shape.
    */
   preflight(target: Target): Promise<LaunchPreflightResult>;
 };

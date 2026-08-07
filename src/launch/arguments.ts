@@ -1,4 +1,4 @@
-import { type RuleEvaluationContext, evaluateRules } from "../core/rules";
+import { evaluateRules, type RuleEvaluationContext } from "../core/rules";
 import type { ArgumentEntry, MinecraftArguments } from "../types/minecraft";
 
 /**

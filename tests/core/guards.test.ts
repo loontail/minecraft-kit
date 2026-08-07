@@ -96,6 +96,7 @@ describe("isMinecraftVersionManifestShape", () => {
     mainClass: "net.minecraft.client.main.Main",
     assetIndex: { id: "5", sha1: "x", size: 1, url: "https://a/" },
     downloads: { client: { sha1: "x", size: 1, url: "https://c/" } },
+    libraries: [],
   };
 
   it("accepts a well-shaped manifest", () => {
@@ -139,6 +140,25 @@ describe("isMinecraftVersionManifestShape", () => {
     expect(isMinecraftVersionManifestShape({ ...validShape, downloads: {} })).toBe(false);
     const { downloads: _dl, ...withoutDownloads } = validShape;
     expect(isMinecraftVersionManifestShape(withoutDownloads)).toBe(false);
+  });
+
+  // The install planner and the verifier both iterate `libraries` without a further check,
+  // so a manifest missing it has to be rejected at the boundary rather than blowing up as a
+  // TypeError deep inside planning.
+  it("rejects a manifest whose libraries are missing or not an array", () => {
+    const { libraries: _libs, ...withoutLibraries } = validShape;
+    expect(isMinecraftVersionManifestShape(withoutLibraries)).toBe(false);
+    expect(isMinecraftVersionManifestShape({ ...validShape, libraries: {} })).toBe(false);
+    expect(isMinecraftVersionManifestShape({ ...validShape, libraries: null })).toBe(false);
+  });
+
+  it("accepts a manifest with populated libraries", () => {
+    expect(
+      isMinecraftVersionManifestShape({
+        ...validShape,
+        libraries: [{ name: "com.example:lib:1.0" }],
+      }),
+    ).toBe(true);
   });
 });
 
@@ -339,6 +359,33 @@ describe("isJavaRuntimeManifestShape", () => {
 
   it("rejects a null entry", () => {
     expect(isJavaRuntimeManifestShape({ files: { x: null } })).toBe(false);
+  });
+
+  // `src/install/runtime.ts` reads `entry.downloads.raw.{url,sha1,size}` straight off a
+  // `file` entry, so a `type`-only check would let a malformed 200 through as a TypeError.
+  it("rejects a file entry without downloads.raw", () => {
+    expect(isJavaRuntimeManifestShape({ files: { x: { type: "file" } } })).toBe(false);
+    expect(isJavaRuntimeManifestShape({ files: { x: { type: "file", downloads: {} } } })).toBe(
+      false,
+    );
+    expect(
+      isJavaRuntimeManifestShape({
+        files: { x: { type: "file", downloads: { raw: { sha1: "x", size: 1 } } } },
+      }),
+    ).toBe(false);
+  });
+
+  it("rejects a link entry without target", () => {
+    expect(isJavaRuntimeManifestShape({ files: { x: { type: "link" } } })).toBe(false);
+    expect(isJavaRuntimeManifestShape({ files: { x: { type: "link", target: "" } } })).toBe(false);
+  });
+
+  it("accepts a directory entry carrying neither downloads nor target", () => {
+    expect(isJavaRuntimeManifestShape({ files: { x: { type: "directory" } } })).toBe(true);
+  });
+
+  it("accepts an unknown entry type without demanding a payload", () => {
+    expect(isJavaRuntimeManifestShape({ files: { x: { type: "something-new" } } })).toBe(true);
   });
 });
 

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFile, readdir, rm } from "node:fs/promises";
+import { readdir, readFile, rm } from "node:fs/promises";
 import path from "node:path";
 import { PERSISTENT_CACHE_TTL_MS } from "../constants/defaults";
 import { atomicWrite } from "../core/fs";

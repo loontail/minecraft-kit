@@ -1,4 +1,4 @@
-import type { LogLevel, Logger } from "../types/logger";
+import type { Logger, LogLevel } from "../types/logger";
 
 type ConsoleSink = (...args: unknown[]) => void;
 

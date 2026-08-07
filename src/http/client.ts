@@ -22,6 +22,8 @@ export class FetchHttpClient implements HttpClient {
     const controller = new AbortController();
     const timeoutMs = options.timeoutMs ?? HTTP_TIMEOUT_MS;
     const onParentAbort = (): void => controller.abort(options.signal?.reason);
+    const stopForwardingAbort = (): void =>
+      options.signal?.removeEventListener("abort", onParentAbort);
     if (options.signal) {
       if (options.signal.aborted) {
         controller.abort(options.signal.reason);
@@ -50,6 +52,7 @@ export class FetchHttpClient implements HttpClient {
       }
       response = await fetch(url, init);
     } catch (cause) {
+      stopForwardingAbort();
       if (controller.signal.reason === TIMEOUT_REASON) {
         throw new MinecraftKitError(
           MinecraftKitErrorCodes.NETWORK_TIMEOUT,
@@ -80,9 +83,9 @@ export class FetchHttpClient implements HttpClient {
       );
     } finally {
       clearTimeout(timer);
-      options.signal?.removeEventListener("abort", onParentAbort);
     }
     if (!response.ok && options.acceptNonOk !== true) {
+      stopForwardingAbort();
       throw new MinecraftKitError(
         MinecraftKitErrorCodes.NETWORK_HTTP_ERROR,
         `HTTP ${response.status} for ${url}`,
@@ -91,7 +94,12 @@ export class FetchHttpClient implements HttpClient {
         },
       );
     }
-    return new FetchHttpResponse(response, url);
+    // why: the caller-signal -> request abort forwarding has to outlive this call. Headers arriving
+    // is not the end of the request: an abort raised while the body streams — a cancelled install,
+    // or `downloadFile`'s per-attempt teardown after an idle deadline — must still reach fetch, or
+    // the body stays half-open with its reader locked and the connection pinned. The response owns
+    // the teardown from here and drops the listener once the body is consumed or abandoned.
+    return new FetchHttpResponse(response, url, stopForwardingAbort);
   }
 }
 
@@ -103,6 +111,8 @@ class FetchHttpResponse implements HttpResponse {
   constructor(
     private readonly response: Response,
     url: string,
+    /** Drops the caller-signal -> request abort forwarding; called once the body is done with. */
+    private readonly stopForwardingAbort: () => void,
   ) {
     this.status = response.status;
     this.url = response.url !== "" ? response.url : url;
@@ -114,16 +124,28 @@ class FetchHttpResponse implements HttpResponse {
   }
 
   async text(): Promise<string> {
-    return this.response.text();
+    try {
+      return await this.response.text();
+    } finally {
+      this.stopForwardingAbort();
+    }
   }
 
   async json<T = unknown>(): Promise<T> {
-    return (await this.response.json()) as T;
+    try {
+      return (await this.response.json()) as T;
+    } finally {
+      this.stopForwardingAbort();
+    }
   }
 
   async bytes(): Promise<Uint8Array> {
-    const buf = await this.response.arrayBuffer();
-    return new Uint8Array(buf);
+    try {
+      const buf = await this.response.arrayBuffer();
+      return new Uint8Array(buf);
+    } finally {
+      this.stopForwardingAbort();
+    }
   }
 
   async *stream(): AsyncIterable<Uint8Array> {
@@ -142,6 +164,7 @@ class FetchHttpResponse implements HttpResponse {
       }
     } finally {
       reader.releaseLock();
+      this.stopForwardingAbort();
     }
   }
 }

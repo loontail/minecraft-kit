@@ -156,14 +156,12 @@ describe("mergeManifest", () => {
     expect(result.libraries.map((l) => l.name)).toEqual(["a:b:1", "not-a-coord"]);
   });
 
-  // ---------------------------------------------------------------------------
   // Vanilla 1.16-1.18 LWJGL shape: two entries per LWJGL module share `name`
   // — one is the primary jar (no `natives` field), one is the natives carrier
   // (`natives: {windows: "natives-windows", …}`). Both must survive the merge,
   // or the primary jar gets clobbered, `buildClasspath` skips the natives
   // entry, and Forge launch crashes with
   // `ClassNotFoundException: org.lwjgl.system.MemoryUtil` during Mixin transform.
-  // ---------------------------------------------------------------------------
   const lwjglPrimary: MinecraftLibrary = {
     name: "org.lwjgl:lwjgl:3.2.2",
     downloads: {
@@ -199,10 +197,10 @@ describe("mergeManifest", () => {
   };
 
   it("preserves both primary AND natives entries when vanilla ships dual entries (LWJGL pattern)", () => {
-    // Regression: previously the dedupe key was `group:artifact[:classifier]`,
-    // so both entries collapsed into one slot and the natives one won by
-    // arriving last. buildClasspath would then drop LWJGL off the classpath
-    // entirely. The new key splits primary vs natives so both survive.
+    // The dedupe key must split primary from natives. A key of
+    // `group:artifact[:classifier]` collapses both entries into one slot, the natives
+    // one wins by arriving last, and buildClasspath drops LWJGL off the classpath
+    // entirely.
     const parentWithLwjgl: MinecraftVersionManifest = {
       ...parent,
       libraries: [lwjglPrimary, lwjglNatives],

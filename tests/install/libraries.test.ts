@@ -109,4 +109,40 @@ describe("planLibraryDownloads", () => {
     });
     expect(plan.downloads.length).toBe(1);
   });
+
+  // `downloads.artifact.path` and the Maven coordinate both come straight from network JSON
+  // and are joined onto `libraries/`, so they are the same write-outside-the-root primitive
+  // as a zip entry name.
+  it("rejects a manifest-supplied artifact path that escapes libraries/", () => {
+    const libs: MinecraftLibrary[] = [
+      {
+        name: "x:y:1",
+        downloads: {
+          artifact: { path: "../../../evil.bat", sha1: "x", size: 0, url: "https://x" },
+        },
+      },
+    ];
+    expect(() =>
+      planLibraryDownloads({
+        libraries: libs,
+        directory: "/r",
+        system,
+        versionId: "1",
+        category: "library",
+      }),
+    ).toThrowError(/Archive entry rejected/);
+  });
+
+  it("rejects a coordinate whose extension escapes libraries/", () => {
+    const libs: MinecraftLibrary[] = [{ name: "a:b:c@../../../evil.bat", url: "https://m/" }];
+    expect(() =>
+      planLibraryDownloads({
+        libraries: libs,
+        directory: "/r",
+        system,
+        versionId: "1",
+        category: "library",
+      }),
+    ).toThrowError(/Archive entry rejected/);
+  });
 });

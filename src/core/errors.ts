@@ -4,8 +4,8 @@ import {
   type MinecraftKitErrorContext,
 } from "../types/errors";
 
-export { MinecraftKitErrorCodes };
 export type { MinecraftKitErrorCode };
+export { MinecraftKitErrorCodes };
 
 /**
  * The single error class thrown by every public API in `@loontail/minecraft-kit`.

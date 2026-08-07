@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ProgressRenderer, formatBytes, formatDuration } from "../../src/cli/progress";
+import { formatBytes, formatDuration, ProgressRenderer } from "../../src/cli/progress";
 import { createStubUi } from "../../src/cli/ui";
 
 describe("formatBytes", () => {

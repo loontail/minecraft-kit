@@ -1,5 +1,5 @@
-import path from "node:path";
 import { DEFAULT_LIBRARY_REPOSITORY } from "../constants/maven";
+import { resolveContainedDestination } from "../core/archive";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { mavenRelativePathFor, parseMavenCoordinate } from "../core/maven";
 import { targetPaths } from "../core/paths";
@@ -48,7 +48,7 @@ export const planLibraryDownloads = (input: {
 
     const artifact = pickPrimaryArtifact(library);
     if (artifact) {
-      const targetPath = path.join(
+      const targetPath = resolveContainedDestination(
         targetPaths.librariesDir(input.directory),
         artifact.relativePath,
       );
@@ -70,7 +70,10 @@ export const planLibraryDownloads = (input: {
 
     const native = pickNative(library, input.system);
     if (native) {
-      const targetPath = path.join(targetPaths.librariesDir(input.directory), native.relativePath);
+      const targetPath = resolveContainedDestination(
+        targetPaths.librariesDir(input.directory),
+        native.relativePath,
+      );
       if (!seenPaths.has(targetPath)) {
         seenPaths.add(targetPath);
         if (hasDownloadableUrl(native)) {

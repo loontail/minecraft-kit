@@ -3,20 +3,10 @@ import type { MinecraftLibrary } from "./minecraft";
 
 /**
  * A Forge build entry derived from the Maven metadata XML.
- *
- * @example
- * ```ts
- * import type { ForgeBuildSummary } from "@loontail/minecraft-kit";
- *
- * const builds: readonly ForgeBuildSummary[] = await kit.versions.forge.list({ minecraftVersion: "1.20.1" });
- * const recommended = builds.find((b) => b.isRecommended);
- * console.log(recommended?.fullVersion); // e.g. "1.20.1-47.2.0"
- * ```
  */
 export type ForgeBuildSummary = {
   /** Full Maven version string e.g. `"1.20.1-47.2.0"`. */
   readonly fullVersion: string;
-  /** Minecraft version e.g. `"1.20.1"`. */
   readonly minecraftVersion: string;
   /** The portion after the first dash, including any branch suffix. */
   readonly forgeVersion: string;
@@ -120,16 +110,6 @@ export type ForgeVersionJson = {
 
 /**
  * Resolved Forge loader.
- *
- * @example
- * ```ts
- * import { Loaders, type ResolvedForgeLoader } from "@loontail/minecraft-kit";
- *
- * const forge: ResolvedForgeLoader = await kit.versions.forge.resolve({
- *   minecraftVersion: "1.20.1",
- * });
- * console.log(forge.type === Loaders.FORGE, forge.installerUrl);
- * ```
  */
 export type ResolvedForgeLoader = {
   readonly type: typeof Loaders.FORGE;

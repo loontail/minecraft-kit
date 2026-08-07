@@ -1,11 +1,11 @@
 import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
-import { ASPECTS, aspectsForTarget } from "../repair/aspects";
 import type {
   TargetReadinessIssue,
   TargetReadinessResult,
   VerificationResult,
   VerifyAspectInput,
 } from "../types/verify";
+import { aspectsForTarget, VERIFIERS } from "./aspects";
 
 /**
  * Verify every launch-critical aspect that applies to the target.
@@ -35,7 +35,7 @@ export const verifyTargetReadiness = async (
 
   const verifications: VerificationResult[] = [];
   for (const kind of aspectsForTarget(input.target)) {
-    verifications.push(await ASPECTS[kind].verify(ctx));
+    verifications.push(await VERIFIERS[kind](ctx));
   }
 
   const issues: TargetReadinessIssue[] = verifications.flatMap((verification) =>

@@ -31,10 +31,24 @@ interface VerificationResult {
 
 Each issue carries `status` (`missing`, `corrupt`, `wrong-size`), `category` (`client-jar`,
 `library`, `asset`, `asset-index`, `native`, `loader-library`, `runtime-file`,
-`logging-config`), and — when known — `expectedSha1`, `actualSha1`, `expectedSize`,
+`logging-config`, `forge-processor-output`), and — when known — `expectedSha1`, `actualSha1`, `expectedSize`,
 `actualSize`, and `url` (where to re-download from).
 
-Pass `onEvent` to receive a `verify:file-checked` event per file.
+Pass `onEvent` to receive a `verify:file-checked` event per file. Events stream as the hashing pool
+lands results, in input order — a bucket does not go silent until the last file is hashed.
+
+`verify.forge` covers two classes of Forge file that no `DownloadAction` describes:
+
+- the artifacts the installer's `maven/` flush wrote (recorded in
+  `libraries/.forge-<fullVersion>.extracted`). They carry `url: ""`, so no download can restore
+  one: existence is checked, and an issue there is fixed by re-planning the install, which
+  re-extracts them.
+- the artifacts the Forge **processors generate** — the srg/slim/extra/patched client JARs.
+  `install_profile.json` declares a SHA-1 for each, so these are hash-checked and reported under
+  the `forge-processor-output` category. The expected list is read from the installer JAR already
+  on disk, so the check stays offline. Without it a truncated `<mc>-srg.jar` — what a cancelled or
+  crashed install leaves behind — read as a valid Forge install and only surfaced as a crash
+  inside Forge's bootstrap at launch.
 
 Aspect verifiers that require a specific loader throw `INVALID_INPUT` when called on the
 wrong loader (`verify.fabric.run` on a vanilla target, etc.).
@@ -66,7 +80,28 @@ await kit.repair.minecraft.run(plan, {
 ```
 
 `plan` intersects the install plan with verification issues, so only broken or missing files
-are touched. Repair uses the install runner.
+are touched. Repair uses the install runner, and `run` accepts the same controls the install
+path does — `signal`, `pauseController`, and `actionCategories`:
+
+```ts
+import { PauseController } from "@loontail/minecraft-kit";
+
+const pauseController = new PauseController();
+const report = await kit.repair.minecraft.run(plan, { pauseController, onEvent });
+```
+
+`RepairReport` carries `actionsSkipped` next to `actionsCompleted`. Read them together: a Forge
+repair deliberately re-emits every forge library (see below), so `actionsCompleted` on its own
+cannot tell "re-downloaded 400 files" from "checked 400 files, fixed 2".
+
+`kit.repair.all(target, options)` also takes a `pauseController`. It deliberately does **not**
+take `actionCategories`: it already partitions the work per aspect, so a second category filter
+on top would be ambiguous. Filter per aspect via `repair.<aspect>.run` instead.
+
+`kit.repair.all` builds the install plan once and repairs every broken aspect from it, then
+returns it as `report.installPlan` (`null` when nothing needed repairing). Reuse that plan for any
+follow-on work on the same target instead of calling `kit.install.plan` again — for a Forge target
+each extra plan means re-reading the installer archive.
 
 `from` accepts a single `VerificationResult` *or* an array — useful if you ran more than one
 aspect verifier:
@@ -79,7 +114,7 @@ const plan = await kit.repair.minecraft.plan(target, {
 
 ## One-call verify + repair
 
-`kit.repair.runVerifyAndRepair` wraps the three-step `verify → plan → run` flow for a
+`kit.repair.verifyAndRepair` wraps the three-step `verify → plan → run` flow for a
 single aspect into one call. It returns the verification result and, when a repair ran,
 the repair report. In `RepairModes.REPORT` it never writes to disk:
 
@@ -87,19 +122,19 @@ the repair report. In `RepairModes.REPORT` it never writes to disk:
 import { RepairModes } from "@loontail/minecraft-kit";
 
 // fix-on-find (default)
-const { verified, repair } = await kit.repair.runVerifyAndRepair({
+const { verification, repair } = await kit.repair.verifyAndRepair({
   aspect: "runtime",
   target,
 });
 if (repair !== null) console.log(`repaired ${repair.actionsCompleted} files`);
 
 // diagnose only — show issues, ask the user, then call again with the default mode
-const diagnosis = await kit.repair.runVerifyAndRepair({
+const diagnosis = await kit.repair.verifyAndRepair({
   aspect: "minecraft",
   target,
   mode: RepairModes.REPORT,
 });
-if (!diagnosis.verified.isValid) askUserBeforeFixing(diagnosis.verified.issues);
+if (!diagnosis.verification.isValid) askUserBeforeFixing(diagnosis.verification.issues);
 ```
 
 `repair` is `null` whenever nothing was written: the target was already valid, the planner
@@ -116,10 +151,14 @@ Use the standalone surfaces when you need to inspect or confirm before writing.
 - **`WRITE_VERSION_JSON` actions** are included when the destination path has any issue
   recorded.
 - **`EXTRACT_NATIVE` actions** are included when the source JAR has any issue recorded.
-- **Forge processors** are normally not in a repair plan, since they only need to fire on a
-  fresh install. When the Forge version JSON is missing entirely the planner adds every
-  forge-library plus all processors as a defensive sweep — `downloadFile` skips files that
-  are already correct, so the cost is bounded.
+- **`RUN_FORGE_PROCESSOR` actions** are included when a `forge-processor-output` issue names one
+  of the files that processor declares — the only way to restore a generated artifact is to
+  re-run the processor that produces it. A missing Forge version JSON pulls in *every* processor
+  instead, since without the JSON nothing could be enumerated. Either trigger also re-emits every
+  forge-library defensively: a processor's inputs and classpath are install-time libraries the
+  verify pass does not necessarily cover, and running one against a missing input fails with a
+  Java stack trace rather than a repairable issue. `downloadFile` skips files that are already
+  correct, so the sweep costs one hash per file.
 
 ## Resume from a thrown error
 
@@ -157,7 +196,7 @@ try {
 | `INTEGRITY_HASH_MISMATCH` / `INTEGRITY_SIZE_MISMATCH` | Re-download the single action whose URL matches `context.url`. |
 | `NETWORK_HTTP_ERROR` / `NETWORK_TIMEOUT` | Re-download the action whose URL (or one of its mirror URLs) matches `context.url` / `context.urls`. `NETWORK_HTTP_ERROR` also accepts `context.filePath` for the destination match. |
 | `FILESYSTEM_WRITE_ERROR` | Re-run the `DOWNLOAD_FILE`, `WRITE_VERSION_JSON`, or `WRITE_LOGGING_CONFIG` action that owns `context.filePath`. |
-| `FORGE_PROCESSOR_FAILED` | Re-run the entire Forge processor stage — every `FORGE_LIBRARY` / `FORGE_INSTALLER` download, the forge version JSON write, and every `RUN_FORGE_PROCESSOR`. We do not pinpoint a single processor by `mainClass`: the chain is sequential and one failure typically invalidates everything downstream. |
+| `FORGE_PROCESSOR_FAILED` | Re-run the entire Forge processor stage — every `FORGE_LIBRARY` download, the forge version JSON write, and every `RUN_FORGE_PROCESSOR`. We do not pinpoint a single processor by `mainClass`: the chain is sequential and one failure typically invalidates everything downstream. |
 
 Any other error code throws `INVALID_INPUT` — those failures need the regular
 `verify → plan → run` flow because their recovery is not encoded in the error context.

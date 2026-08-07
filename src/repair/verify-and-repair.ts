@@ -1,5 +1,9 @@
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
-import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
+import {
+  withOptionalHostAllowList,
+  withOptionalOnEvent,
+  withOptionalSignal,
+} from "../core/optional";
 import type { MetadataCache } from "../types/cache";
 import type { HttpClient } from "../types/http";
 import type { RepairMode, VerifyAndRepairInput, VerifyAndRepairResult } from "../types/repair";
@@ -10,9 +14,9 @@ import { ASPECTS, type AspectHandlers } from "./aspects";
 import { runRepair } from "./runner";
 
 /**
- * Dependencies for the standalone {@link runVerifyAndRepair} helper.
+ * Dependencies for the standalone {@link verifyAndRepair} helper.
  */
-export type RunVerifyAndRepairDeps = {
+export type VerifyAndRepairDeps = {
   readonly http: HttpClient;
   readonly cache: MetadataCache;
   readonly spawner: Spawner;
@@ -29,63 +33,64 @@ export type RunVerifyAndRepairDeps = {
  * planners. It exists so consumers do not have to wire three calls (`verify` → `plan` →
  * `run`) by hand for the common "find and fix this aspect" case.
  *
- * Prefer `kit.repair.runVerifyAndRepair({ aspect, target })` over importing this directly.
+ * Prefer `kit.repair.verifyAndRepair({ aspect, target })` over importing this directly.
  *
  * @example
  * ```ts
  * import { MinecraftKit, RepairModes } from "@loontail/minecraft-kit";
  *
  * const kit = new MinecraftKit();
- * const { verified, repair } = await kit.repair.runVerifyAndRepair({
+ * const { verification, repair } = await kit.repair.verifyAndRepair({
  *   aspect: "minecraft",
  *   target,
  * });
  * if (repair !== null) console.log(`repaired ${repair.actionsCompleted} files`);
  *
- * const diagnosis = await kit.repair.runVerifyAndRepair({
+ * const diagnosis = await kit.repair.verifyAndRepair({
  *   aspect: "runtime",
  *   target,
  *   mode: RepairModes.REPORT,
  * });
- * if (!diagnosis.verified.isValid) console.warn("runtime broken, ask user to repair");
+ * if (!diagnosis.verification.isValid) console.warn("runtime broken, ask user to repair");
  * ```
  */
-export const runVerifyAndRepair = async (
-  deps: RunVerifyAndRepairDeps,
+export const verifyAndRepair = async (
+  deps: VerifyAndRepairDeps,
   input: VerifyAndRepairInput,
 ): Promise<VerifyAndRepairResult> => {
   const handlers = aspectHandlersOrThrow(input.aspect);
   const mode: RepairMode = input.mode ?? RepairModes.FIX;
-  const verified = await handlers.verify({
+  const verification = await handlers.verify({
     target: input.target,
     http: deps.http,
     cache: deps.cache,
     ...withOptionalSignal(input.signal),
     ...withOptionalOnEvent(input.onEvent),
   });
-  if (mode === RepairModes.REPORT || verified.isValid) {
-    return { verified, repair: null };
+  if (mode === RepairModes.REPORT || verification.isValid) {
+    return { verification, repair: null };
   }
   const plan = await handlers.plan({
     target: input.target,
-    from: verified,
+    from: verification,
     http: deps.http,
     cache: deps.cache,
+    ...withOptionalHostAllowList(deps.hostAllowList),
     ...withOptionalSignal(input.signal),
   });
   if (plan.totalActions === 0) {
-    return { verified, repair: null };
+    return { verification, repair: null };
   }
   const repair = await runRepair({
     plan,
     http: deps.http,
     cache: deps.cache,
     spawner: deps.spawner,
-    ...(deps.hostAllowList !== undefined ? { hostAllowList: deps.hostAllowList } : {}),
+    ...withOptionalHostAllowList(deps.hostAllowList),
     ...withOptionalSignal(input.signal),
     ...withOptionalOnEvent(input.onEvent),
   });
-  return { verified, repair };
+  return { verification, repair };
 };
 
 const aspectHandlersOrThrow = (aspect: VerificationKind): AspectHandlers => {
@@ -98,7 +103,7 @@ const aspectHandlersOrThrow = (aspect: VerificationKind): AspectHandlers => {
 const unsupportedAspect = (aspect: string): MinecraftKitError => {
   return new MinecraftKitError(
     MinecraftKitErrorCodes.INVALID_INPUT,
-    `repair.runVerifyAndRepair: unknown aspect "${aspect}"`,
+    `repair.verifyAndRepair: unknown aspect "${aspect}"`,
     { context: { aspect } },
   );
 };

@@ -45,7 +45,6 @@ export const forgeInstallerFilename = (mavenVersion: string): string =>
  */
 export const JAVA_EXECUTABLE = {
   windows: "bin/javaw.exe",
-  windowsConsole: "bin/java.exe",
   linux: "bin/java",
   /** Note: macOS uses an extra `jre.bundle/Contents/Home/` prefix above this. */
   osx: "bin/java",

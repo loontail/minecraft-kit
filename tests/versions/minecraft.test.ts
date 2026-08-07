@@ -86,6 +86,22 @@ describe("MinecraftVersionsApi", () => {
     expect(resolved.manifest.mainClass).toBe("net.minecraft.client.main.Main");
   });
 
+  it("rejects a manifest with no libraries array as MANIFEST_INVALID", async () => {
+    const { libraries: _libs, ...withoutLibraries } = versionManifest;
+    const http = new FakeHttpClient()
+      .on(ApiEndpoints.mojang.versionManifest(), { body: JSON.stringify(manifestRoot) })
+      .on("https://manifests/1.20.1", { body: JSON.stringify(withoutLibraries) });
+    const api = new MinecraftVersionsApi({
+      http,
+      cache: createMemoryCache(),
+      logger: silentLogger,
+    });
+
+    await expect(api.resolve({ version: MC_1_20_1 })).rejects.toMatchObject({
+      code: "MANIFEST_INVALID",
+    });
+  });
+
   it("rejects manifests with missing fields", async () => {
     const http = new FakeHttpClient()
       .on(ApiEndpoints.mojang.versionManifest(), { body: JSON.stringify(manifestRoot) })

@@ -1,5 +1,5 @@
-import { EventTypes } from "../types/events";
 import type { ProgressEvent, ProgressListener } from "../types/events";
+import { EventTypes } from "../types/events";
 import {
   DownloadCategories,
   type DownloadCategory,
@@ -51,12 +51,17 @@ export type ProgressStage = (typeof ProgressStages)[keyof typeof ProgressStages]
 /**
  * Snapshot pushed to {@link InstallProgressTracker} subscribers.
  *
+ * Two matched byte pairs, so a ratio is always self-consistent: `bytesDownloaded` / `totalBytes`
+ * describe the current `stage`, `overallBytesDownloaded` / `overallTotalBytes` the whole run.
+ * Never divide across the pairs.
+ *
  * @example
  * ```ts
  * import type { ProgressSnapshot } from "@loontail/minecraft-kit";
  *
  * const render = (s: ProgressSnapshot) => {
- *   console.log(`${s.stage} ${s.stagePercent.toFixed(0)}% (overall ${s.overallPercent.toFixed(0)}%)`);
+ *   console.log(`${s.stage} ${s.bytesDownloaded}/${s.totalBytes} bytes (${s.stagePercent.toFixed(0)}%)`);
+ *   console.log(`overall ${s.overallBytesDownloaded}/${s.overallTotalBytes} (${s.overallPercent.toFixed(0)}%)`);
  *   if (s.currentFile) console.log(`  ${s.currentFile}`);
  * };
  * ```
@@ -65,8 +70,14 @@ export type ProgressSnapshot = {
   readonly stage: ProgressStage;
   readonly stagePercent: number;
   readonly overallPercent: number;
+  /** Bytes downloaded so far in the current stage. Denominator is {@link totalBytes}. */
   readonly bytesDownloaded: number;
+  /** Expected bytes of the current stage. */
   readonly totalBytes: number;
+  /** Bytes downloaded so far across every stage. Denominator is {@link overallTotalBytes}. */
+  readonly overallBytesDownloaded: number;
+  /** Expected bytes of the whole run. */
+  readonly overallTotalBytes: number;
   readonly currentFile?: string;
 };
 
@@ -227,8 +238,10 @@ export const createInstallProgressTracker = (
       stage: currentStage,
       stagePercent: stageTotal > 0 ? clamp((stageBytes / stageTotal) * 100) : 0,
       overallPercent: overallTotal > 0 ? clamp((overallBytes / overallTotal) * 100) : 0,
-      bytesDownloaded: overallBytes,
+      bytesDownloaded: stageBytes,
       totalBytes: stageTotal,
+      overallBytesDownloaded: overallBytes,
+      overallTotalBytes: overallTotal,
       ...(currentFile !== undefined ? { currentFile } : {}),
     };
   };

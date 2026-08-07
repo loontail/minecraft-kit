@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  MojangAuthApi,
   asAzureClientId,
   asMicrosoftRefreshToken,
+  MojangAuthApi,
   toOnlineAuth,
 } from "../../src/auth/index";
 import { asPlayerUuid } from "../../src/core/uuid";
@@ -35,7 +35,11 @@ const simulateBrowserCallbackHittingLoopback = async (authorizeUrl: string): Pro
   const parsed = new URL(authorizeUrl);
   const redirectUri = parsed.searchParams.get("redirect_uri");
   const state = parsed.searchParams.get("state");
-  return fetch(`${redirectUri}?code=FAKE-CODE&state=${state}`);
+  const callback = new URL(`${redirectUri}?code=FAKE-CODE&state=${state}`);
+  // why: the loopback server binds 127.0.0.1 only, and `fetch("localhost")` reaches ::1 first
+  // on Node 22 (no happy-eyeballs fallback before Node 24), so pin the simulated browser to IPv4.
+  callback.hostname = "127.0.0.1";
+  return fetch(callback);
 };
 
 const assertAuthorizeUrlWellFormed = (authorizeUrl: string, expectedClientId: string): void => {

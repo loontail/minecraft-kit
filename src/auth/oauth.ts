@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { AzureClientId } from "../types/auth";
+import { MICROSOFT_SCOPE } from "./microsoftToken";
 
 /**
  * Authorization Code + PKCE helpers (RFC 7636) for the Microsoft Identity Platform.
@@ -17,13 +18,6 @@ const AUTHORIZE_URL = `https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/a
 
 /** Authorize prompt that forces Microsoft to show the account picker even on a signed-in browser. */
 const MICROSOFT_PROMPT_SELECT_ACCOUNT = "select_account";
-
-/**
- * Scopes consumed by the Minecraft pipeline. Must match the device-code flow's scope
- * (see `auth/microsoft.ts`) so the refresh token Microsoft hands back works against
- * both flows interchangeably.
- */
-const SCOPE = "XboxLive.signin offline_access";
 
 /**
  * PKCE verifier + S256 challenge. Length matches the RFC 7636 maximum (128 chars).
@@ -94,7 +88,7 @@ export const buildAuthorizeUrl = (options: BuildAuthorizeUrlOptions): string => 
     response_type: "code",
     redirect_uri: options.redirectUri,
     response_mode: "query",
-    scope: SCOPE,
+    scope: MICROSOFT_SCOPE,
     state: options.state,
     code_challenge: options.codeChallenge,
     code_challenge_method: "S256",

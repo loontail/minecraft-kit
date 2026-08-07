@@ -4,7 +4,7 @@
 npm install @loontail/minecraft-kit
 ```
 
-ESM-only. Node ≥ 20.11.
+ESM-only. Node ≥ 22.12.
 
 The `mckit` binary is available after install:
 
@@ -14,7 +14,7 @@ npx mckit
 
 ## Requirements
 
-- Node ≥ 20.11.
+- Node ≥ 22.12.
 - Network access to `piston-meta.mojang.com`, `meta.fabricmc.net`,
   `maven.minecraftforge.net`, `files.minecraftforge.net`.
 - ~1.5 GB per vanilla install (client jar + assets); ~150 MB per Java runtime.

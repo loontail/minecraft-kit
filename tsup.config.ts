@@ -1,8 +1,8 @@
-import { type Options, defineConfig } from "tsup";
+import { defineConfig, type Options } from "tsup";
 import pkg from "./package.json";
 
 const shared: Omit<Options, "entry" | "format" | "clean" | "banner"> = {
-  target: "node20",
+  target: "node22",
   platform: "node",
   dts: true,
   sourcemap: true,

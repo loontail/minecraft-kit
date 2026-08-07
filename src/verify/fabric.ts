@@ -60,7 +60,12 @@ export const verifyFabric = async (input: VerifyAspectInput): Promise<Verificati
         versionId: input.target.minecraft.version,
         category: DownloadCategories.FABRIC_LIBRARY,
       });
-      await recordLibraryDownloads(record, fabricLibraries, VerifyFileCategories.LOADER_LIBRARY);
+      await recordLibraryDownloads(
+        record,
+        fabricLibraries,
+        VerifyFileCategories.LOADER_LIBRARY,
+        input.signal,
+      );
     },
   );
 };

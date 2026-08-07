@@ -98,7 +98,7 @@ describe("FabricVersionsApi", () => {
 
   it("lists game versions with branded ids", async () => {
     const { api } = buildKit();
-    const entries = await api.gameVersions();
+    const entries = await api.listGameVersions();
     expect(entries.length).toBe(2);
     expect(entries[0]).toEqual({ version: "1.20.1", stable: true });
     expect(entries[1]).toEqual({ version: "24w14a", stable: false });
@@ -106,8 +106,8 @@ describe("FabricVersionsApi", () => {
 
   it("caches game versions across calls", async () => {
     const { api, http } = buildKit();
-    await api.gameVersions();
-    await api.gameVersions();
+    await api.listGameVersions();
+    await api.listGameVersions();
     const hits = http.requests.filter((r) => r.url === ApiEndpoints.fabric.gameVersions());
     expect(hits.length).toBe(1);
   });

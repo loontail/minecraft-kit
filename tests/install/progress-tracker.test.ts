@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  createInstallProgressTracker,
   type InstallProgressTracker,
   ProgressStages,
-  createInstallProgressTracker,
 } from "../../src/install/progress-tracker";
 import {
   type DownloadAction,
@@ -109,6 +109,58 @@ describe("createInstallProgressTracker", () => {
       bytes: 1000,
     });
     expect(tracker.snapshot().bytesDownloaded).toBe(1000);
+  });
+
+  // KIT-P6: `bytesDownloaded` used to be install-wide while `totalBytes` was the current stage's
+  // total, so `bytesDownloaded / totalBytes` exceeded 100% on any run with more than one stage.
+  it("keeps each byte pair on one denominator across stages", () => {
+    const tracker = createInstallProgressTracker(
+      planOf([download("/rt/a", "runtime-file", 100), download("/mc/a", "client-jar", 200)]),
+      { throttleMs: 0 },
+    );
+    drive(tracker);
+    tracker.onEvent({
+      type: "download:completed",
+      file: { url: "x", target: "/rt/a" },
+      durationMs: 1,
+      bytes: 100,
+    });
+    tracker.onEvent({
+      type: "install:phase-changed",
+      phase: InstallPhases.DOWNLOADING_CLIENT_JAR,
+      previous: InstallPhases.INSTALLING_RUNTIME,
+    });
+    tracker.onEvent({
+      type: "download:started",
+      file: { url: "x", target: "/mc/a" },
+      expectedSize: 200,
+    });
+    tracker.onEvent({
+      type: "download:progress",
+      file: { url: "x", target: "/mc/a" },
+      bytesDownloaded: 50,
+      totalBytes: 200,
+    });
+
+    const snap = tracker.snapshot();
+    expect(snap.bytesDownloaded).toBe(50);
+    expect(snap.totalBytes).toBe(200);
+    expect(snap.overallBytesDownloaded).toBe(150);
+    expect(snap.overallTotalBytes).toBe(300);
+  });
+
+  it("reports both pairs complete after finish()", () => {
+    const tracker = createInstallProgressTracker(
+      planOf([download("/rt/a", "runtime-file", 100), download("/mc/a", "client-jar", 200)]),
+      { throttleMs: 0 },
+    );
+
+    tracker.finish();
+
+    const snap = tracker.snapshot();
+    expect(snap.bytesDownloaded).toBe(snap.totalBytes);
+    expect(snap.overallBytesDownloaded).toBe(snap.overallTotalBytes);
+    expect(snap.overallTotalBytes).toBe(300);
   });
 
   it("uses aspect metadata for verification-only repair events", () => {

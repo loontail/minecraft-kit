@@ -9,8 +9,9 @@
  */
 
 import path from "node:path";
-import { extractSingleEntry } from "../core/archive";
+import { extractSingleEntry, resolveContainedDestination } from "../core/archive";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
+import { fileExists } from "../core/fs";
 import { mavenRelativePathFor } from "../core/maven";
 import { targetPaths } from "../core/paths";
 import type { ForgeInstallProfile, ForgeProcessor } from "../types/forge";
@@ -43,9 +44,23 @@ export type ResolvedProfileData = {
 };
 
 /**
+ * How {@link resolveProfileData} treats an embedded `/path/inside.ext` `data[*]` entry.
+ *
+ *  - `force` — always extract it (a fresh install).
+ *  - `reuse` — extract only when the destination is absent. Set by the planner when the
+ *    installer's `maven/` flush sentinel matched, so a repeated `planForgeInstall` resolves
+ *    tokens without touching the archive again.
+ *  - `skip` — never extract; resolve the destination path only. For callers that need the token
+ *    table but must not write to disk, i.e. `verify`.
+ *
+ * @internal
+ */
+export type ForgeEntryExtraction = "force" | "reuse" | "skip";
+
+/**
  * Resolve every `data[key].client` entry from `install_profile.json`. May extract files
  * from the installer JAR (`/path/inside.ext` entries) so the function is async and
- * touches the disk under `libraries/forge-data/`.
+ * touches the disk under `libraries/forge-data/` — unless `entryExtraction` says otherwise.
  *
  * @internal
  */
@@ -53,42 +68,59 @@ export const resolveProfileData = async (input: {
   readonly profile: ForgeInstallProfile;
   readonly installerPath: string;
   readonly directory: string;
+  /** Defaults to `force`. */
+  readonly entryExtraction?: ForgeEntryExtraction;
 }): Promise<ResolvedProfileData> => {
   const tokens: Record<string, ResolvedTokenValue> = {};
   for (const [key, sided] of Object.entries(input.profile.data)) {
-    tokens[key] = await resolveDataValue(sided.client, input.installerPath, input.directory);
+    tokens[key] = await resolveDataValue(sided.client, input);
   }
   return { tokens };
 };
 
 const resolveDataValue = async (
   raw: string,
-  installerPath: string,
-  directory: string,
+  input: {
+    readonly installerPath: string;
+    readonly directory: string;
+    readonly entryExtraction?: ForgeEntryExtraction;
+  },
 ): Promise<ResolvedTokenValue> => {
   const decoded = decodeForgeDataValue(raw);
   switch (decoded.kind) {
     case "maven": {
       const relativePath = mavenRelativePathFor(decoded.coord);
       return {
-        value: path.join(targetPaths.librariesDir(directory), relativePath),
+        value: path.join(targetPaths.librariesDir(input.directory), relativePath),
         isPath: true,
       };
     }
     case "literal":
       return { value: decoded.value, isPath: false };
     case "extract": {
-      const destination = path.join(
-        targetPaths.librariesDir(directory),
-        "forge-data",
-        decoded.entryName,
-      );
-      await extractSingleEntry(installerPath, decoded.entryName, destination);
+      const root = path.join(targetPaths.librariesDir(input.directory), "forge-data");
+      // why: resolve through the containment guard before the reuse check, so an escaping
+      // entry name is still rejected on a plan that would otherwise skip the extraction.
+      const destination = resolveContainedDestination(root, decoded.entryName);
+      if (await shouldExtractEntry(input.entryExtraction, destination)) {
+        await extractSingleEntry(input.installerPath, decoded.entryName, root, decoded.entryName);
+      }
       return { value: destination, isPath: true };
     }
     case "raw":
       return { value: decoded.value, isPath: false };
   }
+};
+
+const shouldExtractEntry = async (
+  mode: ForgeEntryExtraction | undefined,
+  destination: string,
+): Promise<boolean> => {
+  if (mode === "skip") return false;
+  if (mode !== "reuse") return true;
+  // why: the existence check is what makes `reuse` safe — a hand-deleted processor input
+  // re-extracts even when the caller believes the flush already happened.
+  return !(await fileExists(destination));
 };
 
 /**

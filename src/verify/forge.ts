@@ -3,6 +3,11 @@ import { readText } from "../core/fs";
 import { parseJsonOrUndefined } from "../core/json";
 import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
 import { targetPaths } from "../core/paths";
+import { listExtractedInstallerArtifacts } from "../install/forge-install";
+import {
+  type ForgeProcessorOutput,
+  listForgeProcessorOutputs,
+} from "../install/forge-processor-outputs";
 import { planLibraryDownloads } from "../install/libraries";
 import type { ForgeVersionJson } from "../types/forge";
 import { DownloadCategories } from "../types/install";
@@ -18,13 +23,18 @@ import {
   findForgeVersionJsonPath,
   recordLibraryDownloads,
   runVerification,
+  type VerificationRecorder,
   verifyExistence,
+  verifyHashedFiles,
 } from "./helpers";
 
 /**
- * Verify the Forge loader slice: the on-disk Forge version JSON and every library it
- * declares. Libraries can only be enumerated once the JSON is present *and parsable*; a
+ * Verify the Forge loader slice: the on-disk Forge version JSON, every library it declares, the
+ * artifacts flushed out of the installer's `maven/` tree, and the files the Forge processors
+ * generate. Libraries can only be enumerated once the JSON is present *and parsable*; a
  * malformed JSON is surfaced as a CORRUPT issue so repair rewrites it before re-running.
+ *
+ * Stays offline: the processor outputs are read from the installer JAR already on disk.
  *
  * Throws `INVALID_INPUT` when the target is not a Forge install.
  *
@@ -91,7 +101,89 @@ export const verifyForge = async (input: VerifyAspectInput): Promise<Verificatio
         versionId: input.target.minecraft.version,
         category: DownloadCategories.FORGE_LIBRARY,
       });
-      await recordLibraryDownloads(record, forgeLibraries, VerifyFileCategories.LOADER_LIBRARY);
+      await recordLibraryDownloads(
+        record,
+        forgeLibraries,
+        VerifyFileCategories.LOADER_LIBRARY,
+        input.signal,
+      );
+      const generated = await listForgeProcessorOutputs({
+        directory: input.target.directory,
+        loader,
+        minecraft: input.target.minecraft,
+      });
+      const covered = new Set([
+        ...forgeLibraries.downloads.map((action) => action.target),
+        ...generated.map((output) => output.path),
+      ]);
+      await recordExtractedInstallerArtifacts({
+        record,
+        directory: input.target.directory,
+        fullVersion: loader.fullVersion,
+        covered,
+        ...withOptionalSignal(input.signal),
+      });
+      await recordProcessorOutputs({
+        record,
+        generated,
+        ...withOptionalSignal(input.signal),
+      });
     },
+  );
+};
+
+/**
+ * Existence-check the artifacts the installer's `maven/` flush put on disk.
+ *
+ * They belong to the classpath but carry `url: ""`, so `planLibraryDownloads` emits no
+ * `DownloadAction` for them and the plan-derived check above cannot see them. Without this, an
+ * antivirus quarantine of e.g. `forge-<version>-universal.jar` left `verify.forge` reporting a
+ * valid install while launch died on a missing classpath entry. Only existence is checked: Forge
+ * publishes no hash or size for embedded artifacts. Re-planning the install re-extracts whatever
+ * is reported missing here.
+ */
+const recordExtractedInstallerArtifacts = async (input: {
+  readonly record: VerificationRecorder;
+  readonly directory: string;
+  readonly fullVersion: string;
+  /** Paths already checked with a hash by another step; existence-only would be a downgrade. */
+  readonly covered: ReadonlySet<string>;
+  readonly signal?: AbortSignal;
+}): Promise<void> => {
+  const extracted = await listExtractedInstallerArtifacts(input.directory, input.fullVersion);
+  await verifyHashedFiles(
+    input.record,
+    extracted
+      .filter((filePath) => !input.covered.has(filePath))
+      .map((filePath) => ({
+        path: filePath,
+        category: VerifyFileCategories.LOADER_LIBRARY,
+      })),
+    input.signal,
+  );
+};
+
+/**
+ * Hash-check the artifacts the Forge processors generate locally.
+ *
+ * `install_profile.json` declares a SHA-1 for each one, but nothing downloads them, so they appear
+ * in no `DownloadAction` and the plan-derived scan above cannot see them. Without this, a
+ * truncated `<mc>-srg.jar` — the state a cancelled or crashed install leaves behind — read as a
+ * valid Forge install and only surfaced as a launch-time crash inside Forge's bootstrap.
+ * `repair.forge` maps an issue reported here back to the processor that produces the file.
+ */
+const recordProcessorOutputs = async (input: {
+  readonly record: VerificationRecorder;
+  readonly generated: readonly ForgeProcessorOutput[];
+  readonly signal?: AbortSignal;
+}): Promise<void> => {
+  await verifyHashedFiles(
+    input.record,
+    input.generated.map((output) => ({
+      path: output.path,
+      expectedSha1: output.sha1,
+      category: VerifyFileCategories.FORGE_PROCESSOR_OUTPUT,
+    })),
+    input.signal,
   );
 };

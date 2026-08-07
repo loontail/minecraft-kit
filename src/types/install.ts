@@ -4,19 +4,6 @@ import type { Target } from "./target";
 /**
  * Coarse-grained install phases. Used in `install:phase-changed` events so consumers can
  * render a progress bar with named steps.
- *
- * @example
- * ```ts
- * import { EventTypes, InstallPhases } from "@loontail/minecraft-kit";
- *
- * await kit.install.run(plan, {
- *   onEvent: (e) => {
- *     if (e.type !== EventTypes.INSTALL_PHASE_CHANGED) return;
- *     if (e.phase === InstallPhases.DOWNLOADING_ASSETS) setStatus("Downloading assets…");
- *     if (e.phase === InstallPhases.COMPLETED) setStatus("Done");
- *   },
- * });
- * ```
  */
 export const InstallPhases = {
   PLANNING: "planning",
@@ -36,34 +23,11 @@ export const InstallPhases = {
 
 /**
  * Install phase literal.
- *
- * @example
- * ```ts
- * import { InstallPhases, type InstallPhase } from "@loontail/minecraft-kit";
- *
- * const isRuntimePhase = (phase: InstallPhase) => phase === InstallPhases.INSTALLING_RUNTIME;
- * ```
  */
 export type InstallPhase = (typeof InstallPhases)[keyof typeof InstallPhases];
 
 /**
  * Action kinds inside an {@link InstallPlan}.
- *
- * @example
- * ```ts
- * import { assertNever, InstallActionKinds, type InstallAction } from "@loontail/minecraft-kit";
- *
- * const label = (a: InstallAction) => {
- *   switch (a.kind) {
- *     case InstallActionKinds.DOWNLOAD_FILE: return `GET ${a.url}`;
- *     case InstallActionKinds.EXTRACT_NATIVE: return `unzip ${a.source}`;
- *     case InstallActionKinds.RUN_FORGE_PROCESSOR: return `forge ${a.index}`;
- *     case InstallActionKinds.WRITE_VERSION_JSON:
- *     case InstallActionKinds.WRITE_LOGGING_CONFIG: return `write ${a.path}`;
- *     default: return assertNever(a);
- *   }
- * };
- * ```
  */
 export const InstallActionKinds = {
   DOWNLOAD_FILE: "download-file",
@@ -75,28 +39,12 @@ export const InstallActionKinds = {
 
 /**
  * Discriminator for an install action.
- *
- * @example
- * ```ts
- * import { InstallActionKinds, type InstallActionKind } from "@loontail/minecraft-kit";
- *
- * const isDownload = (kind: InstallActionKind) => kind === InstallActionKinds.DOWNLOAD_FILE;
- * ```
  */
 export type InstallActionKind = (typeof InstallActionKinds)[keyof typeof InstallActionKinds];
 
 /**
  * Categorisation tag on every {@link DownloadAction}. Drives the install-phase mapping
  * and lets consumers filter the plan to a subset (e.g. "runtime only").
- *
- * @example
- * ```ts
- * import { DownloadCategories } from "@loontail/minecraft-kit";
- *
- * await kit.install.run(plan, {
- *   actionCategories: new Set([DownloadCategories.ASSET, DownloadCategories.ASSET_INDEX]),
- * });
- * ```
  */
 export const DownloadCategories = {
   CLIENT_JAR: "client-jar",
@@ -107,19 +55,16 @@ export const DownloadCategories = {
   FABRIC_LIBRARY: "fabric-library",
   FORGE_LIBRARY: "forge-library",
   RUNTIME_FILE: "runtime-file",
+  /**
+   * Event-only category. The Forge installer JAR is fetched during *planning* (it has to be
+   * read before the rest of the plan exists) and is never emitted as a plan action, so this
+   * value appears on `download:*` events but never on a {@link DownloadAction} in a plan.
+   */
   FORGE_INSTALLER: "forge-installer",
 } as const;
 
 /**
  * Download category literal — drives `runInstall` phase boundaries.
- *
- * @example
- * ```ts
- * import { DownloadCategories, type DownloadCategory } from "@loontail/minecraft-kit";
- *
- * const stageOf = (c: DownloadCategory): string =>
- *   c === DownloadCategories.RUNTIME_FILE ? "java" : "game";
- * ```
  */
 export type DownloadCategory = (typeof DownloadCategories)[keyof typeof DownloadCategories];
 
@@ -132,16 +77,6 @@ export type DownloadCategory = (typeof DownloadCategories)[keyof typeof Download
  * common single-source case — the runner will treat it identically to a one-element
  * array. For display, use the first array entry; progress events report the URL currently
  * being fetched.
- *
- * @example
- * ```ts
- * import { InstallActionKinds, type DownloadAction } from "@loontail/minecraft-kit";
- *
- * const downloads = plan.actions.filter(
- *   (a): a is DownloadAction => a.kind === InstallActionKinds.DOWNLOAD_FILE,
- * );
- * const totalBytes = downloads.reduce((sum, a) => sum + (a.expectedSize ?? 0), 0);
- * ```
  */
 export type DownloadAction = {
   readonly kind: typeof InstallActionKinds.DOWNLOAD_FILE;
@@ -154,16 +89,6 @@ export type DownloadAction = {
 
 /**
  * A native extraction step. Source jar must already exist on disk.
- *
- * @example
- * ```ts
- * import { InstallActionKinds, type ExtractNativeAction } from "@loontail/minecraft-kit";
- *
- * const extracts = plan.actions.filter(
- *   (a): a is ExtractNativeAction => a.kind === InstallActionKinds.EXTRACT_NATIVE,
- * );
- * for (const e of extracts) console.log(`unzip ${e.source} → ${e.destination}`);
- * ```
  */
 export type ExtractNativeAction = {
   readonly kind: typeof InstallActionKinds.EXTRACT_NATIVE;
@@ -177,16 +102,6 @@ export type ExtractNativeAction = {
  * runner reads it from `classpath[0]`'s manifest at execution time, because the JAR is
  * not guaranteed to exist on disk during planning (newer Forge versions ship some
  * processor JARs as regular Maven libraries instead of bundling them in the installer).
- *
- * @example
- * ```ts
- * import { InstallActionKinds, type RunForgeProcessorAction } from "@loontail/minecraft-kit";
- *
- * const processors = plan.actions.filter(
- *   (a): a is RunForgeProcessorAction => a.kind === InstallActionKinds.RUN_FORGE_PROCESSOR,
- * );
- * console.log(`forge install will invoke ${processors.length} processors`);
- * ```
  */
 export type RunForgeProcessorAction = {
   readonly kind: typeof InstallActionKinds.RUN_FORGE_PROCESSOR;
@@ -199,16 +114,6 @@ export type RunForgeProcessorAction = {
 
 /**
  * Write a version JSON to disk (Fabric / Forge).
- *
- * @example
- * ```ts
- * import { InstallActionKinds, type WriteVersionJsonAction } from "@loontail/minecraft-kit";
- *
- * const writes = plan.actions.filter(
- *   (a): a is WriteVersionJsonAction => a.kind === InstallActionKinds.WRITE_VERSION_JSON,
- * );
- * for (const w of writes) console.log(`will write ${w.path} (${w.content.length} bytes)`);
- * ```
  */
 export type WriteVersionJsonAction = {
   readonly kind: typeof InstallActionKinds.WRITE_VERSION_JSON;
@@ -218,15 +123,6 @@ export type WriteVersionJsonAction = {
 
 /**
  * Write a logging config (log4j XML) to disk.
- *
- * @example
- * ```ts
- * import { InstallActionKinds, type WriteLoggingConfigAction } from "@loontail/minecraft-kit";
- *
- * const logConfigs = plan.actions.filter(
- *   (a): a is WriteLoggingConfigAction => a.kind === InstallActionKinds.WRITE_LOGGING_CONFIG,
- * );
- * ```
  */
 export type WriteLoggingConfigAction = {
   readonly kind: typeof InstallActionKinds.WRITE_LOGGING_CONFIG;
@@ -236,14 +132,6 @@ export type WriteLoggingConfigAction = {
 
 /**
  * Discriminated union of install actions.
- *
- * @example
- * ```ts
- * import { InstallActionKinds, type InstallAction } from "@loontail/minecraft-kit";
- *
- * const onlyDownloads = (actions: readonly InstallAction[]): readonly InstallAction[] =>
- *   actions.filter((a) => a.kind === InstallActionKinds.DOWNLOAD_FILE);
- * ```
  */
 export type InstallAction =
   | DownloadAction
@@ -255,15 +143,6 @@ export type InstallAction =
 /**
  * A "runtime-only" install plan target. Used by `planStandaloneRuntimeInstall` to plan a
  * JRE-only install without a Minecraft version/loader pinned to the plan.
- *
- * @example
- * ```ts
- * import type { RuntimeOnlyInstallTarget } from "@loontail/minecraft-kit";
- *
- * const plan = await kit.install.runtime.standalonePlan({ id, directory, runtime });
- * const target = plan.target as RuntimeOnlyInstallTarget;
- * console.log(target.runtime.component); // → e.g. "java-runtime-gamma"
- * ```
  */
 export type RuntimeOnlyInstallTarget = {
   readonly id: string;
@@ -277,14 +156,6 @@ export type RuntimeOnlyInstallTarget = {
  * Shape of `InstallPlan.target`. Either a fully-resolved `Target` (from `./target`) or a
  * runtime-only stand-in. The install runner only reads `target.minecraft`/`target.loader` when
  * the plan actually contains those steps, so runtime-only plans are safe.
- *
- * @example
- * ```ts
- * import type { InstallPlanTarget } from "@loontail/minecraft-kit";
- *
- * const directoryOf = (t: InstallPlanTarget): string => t.directory;
- * console.log(directoryOf(plan.target));
- * ```
  */
 export type InstallPlanTarget = Target | RuntimeOnlyInstallTarget;
 
@@ -295,19 +166,12 @@ export type InstallPlanTarget = Target | RuntimeOnlyInstallTarget;
  * runner does not need a second target argument.
  *
  * Planning is side-effect-free for vanilla and Fabric. **Forge is the exception**: planning a
- * Forge target downloads the installer JAR and extracts its embedded Maven artifacts to
+ * Forge target materialises the installer JAR and extracts its embedded Maven artifacts to
  * `libraries/`, because the per-library/processor actions can only be enumerated after
  * reading the installer's `install_profile.json` from disk. Treat `install.plan(forgeTarget)`
- * as requiring network + disk, not a pure dry-run.
- *
- * @example
- * ```ts
- * import type { InstallPlan } from "@loontail/minecraft-kit";
- *
- * const plan: InstallPlan = await kit.install.plan(target);
- * console.log(`${plan.totalActions} actions, ${(plan.totalBytes / 1e6).toFixed(1)} MB`);
- * const report = await kit.install.run(plan);
- * ```
+ * as requiring disk (and network on the first call for a given Forge version — an installer
+ * already on disk that still parses is reused, and the Maven flush is sentinel-guarded), not
+ * a pure dry-run. The installer itself is never emitted as a plan action.
  */
 export type InstallPlan = {
   readonly targetId: string;
@@ -326,16 +190,6 @@ export type InstallPlan = {
 
 /**
  * Outcome summary returned by `install.run`.
- *
- * @example
- * ```ts
- * import type { InstallReport } from "@loontail/minecraft-kit";
- *
- * const report: InstallReport = await kit.install.run(plan);
- * console.log(
- *   `${report.actionsCompleted} done, ${report.actionsSkipped} skipped in ${report.durationMs}ms`,
- * );
- * ```
  */
 export type InstallReport = {
   readonly targetId: string;

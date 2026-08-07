@@ -7,7 +7,7 @@ import {
   type Target,
 } from "../../index";
 import { formatUserError } from "../error-format";
-import { ProgressRenderer, type ProgressSummary, formatBytes, formatDuration } from "../progress";
+import { formatBytes, formatDuration, ProgressRenderer, type ProgressSummary } from "../progress";
 import {
   type InstallRunResult,
   InstallRunResults,
@@ -24,7 +24,7 @@ import {
  *
  * @internal
  */
-export const runInstallWithProgress = async (
+const runInstallWithProgress = async (
   ctx: ScenarioContext,
   target: Target,
   label: string,
@@ -105,9 +105,9 @@ export const runStandaloneRuntimeInstallWithProgress = async (
   const label = `runtime ${input.runtime.component}`;
   const planSpinner = ctx.ui.spinner();
   planSpinner.start(`Planning ${label}…`);
-  let plan: Awaited<ReturnType<typeof ctx.kit.install.runtime.standalonePlan>>;
+  let plan: Awaited<ReturnType<typeof ctx.kit.install.runtime.planStandalone>>;
   try {
-    plan = await ctx.kit.install.runtime.standalonePlan({
+    plan = await ctx.kit.install.runtime.planStandalone({
       id: input.id,
       directory: input.directory,
       runtime: input.runtime,
@@ -136,7 +136,7 @@ export const runStandaloneRuntimeInstallWithProgress = async (
 };
 
 /** @internal */
-export const buildLoaderInput = (
+const buildLoaderInput = (
   sel: InstallSelection,
 ): {
   readonly type: InstallType;
@@ -152,7 +152,7 @@ export const buildLoaderInput = (
 };
 
 /** @internal */
-export const describeLoader = (sel: InstallSelection): string => {
+const describeLoader = (sel: InstallSelection): string => {
   const versionId = (sel.version as MinecraftVersionSummary).id;
   if (sel.installType === Loaders.VANILLA) return `Vanilla ${versionId}`;
   if (sel.installType === Loaders.FABRIC) return `Fabric ${sel.fabricLoader} on ${versionId}`;

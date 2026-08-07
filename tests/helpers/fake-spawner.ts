@@ -1,5 +1,5 @@
 import { EventEmitter } from "node:events";
-import type { ProcessStream, SpawnOptions, SpawnedProcess, Spawner } from "../../src/types/spawner";
+import type { ProcessStream, SpawnedProcess, Spawner, SpawnOptions } from "../../src/types/spawner";
 
 /** A scripted spawn outcome. */
 export type FakeSpawnSpec = {
@@ -7,6 +7,8 @@ export type FakeSpawnSpec = {
   readonly stderr?: readonly string[];
   readonly exitCode: number;
   readonly delayMs?: number;
+  /** When set, `exited` rejects with this error — the spawn-failure contract. */
+  readonly failWith?: Error;
 };
 
 /** Test-only Spawner that returns scripted child processes. */
@@ -38,8 +40,12 @@ export class FakeSpawner implements Spawner {
     const exited = new Promise<{
       readonly code: number | null;
       readonly signal: NodeJS.Signals | null;
-    }>((resolve) => {
+    }>((resolve, reject) => {
       const finish = (): void => {
+        if (spec.failWith !== undefined) {
+          reject(spec.failWith);
+          return;
+        }
         for (const line of spec.stdout ?? []) stdoutEmitter.emit("data", line);
         for (const line of spec.stderr ?? []) stderrEmitter.emit("data", line);
         resolve({ code: killed ? null : spec.exitCode, signal: killed ? "SIGTERM" : null });

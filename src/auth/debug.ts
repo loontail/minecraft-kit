@@ -9,7 +9,7 @@ import type { Logger } from "../types/logger";
  *
  * @internal
  */
-export const DEBUG_ENV_VAR = "MINECRAFT_KIT_AUTH_DEBUG";
+const DEBUG_ENV_VAR = "MINECRAFT_KIT_AUTH_DEBUG";
 
 /**
  * Build the `auth` scope's logger. Caller-supplied logger wins; otherwise we honour

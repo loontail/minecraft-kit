@@ -1,12 +1,5 @@
 /**
  * Authentication modes accepted by the launch composer.
- *
- * @example
- * ```ts
- * import { AuthModes, type LaunchAuth } from "@loontail/minecraft-kit";
- *
- * const auth: LaunchAuth = { mode: AuthModes.OFFLINE, username: "Steve" };
- * ```
  */
 export const AuthModes = {
   /** Offline-mode play with a chosen username and synthetic UUID. */
@@ -17,15 +10,6 @@ export const AuthModes = {
 
 /**
  * Auth mode literal.
- *
- * @example
- * ```ts
- * import { AuthModes, type AuthMode } from "@loontail/minecraft-kit";
- *
- * function label(mode: AuthMode): string {
- *   return mode === AuthModes.OFFLINE ? "Offline play" : "Microsoft sign-in";
- * }
- * ```
  */
 export type AuthMode = (typeof AuthModes)[keyof typeof AuthModes];
 
@@ -33,14 +17,6 @@ export type AuthMode = (typeof AuthModes)[keyof typeof AuthModes];
  * Branded Azure AD application id. Construct via `asAzureClientId` (exported from
  * the package root) — the brand prevents accidentally passing a refresh token or
  * a UUID where the kit expects a client id.
- *
- * @example
- * ```ts
- * import { asAzureClientId, type AzureClientId } from "@loontail/minecraft-kit";
- *
- * const clientId: AzureClientId = asAzureClientId(process.env.MSA_CLIENT_ID ?? "");
- * await kit.auth.authorizationCode.run({ clientId, onOpenBrowser });
- * ```
  */
 export type AzureClientId = string & { readonly __brand: "AzureClientId" };
 
@@ -49,14 +25,6 @@ export type AzureClientId = string & { readonly __brand: "AzureClientId" };
  * (exported from the package root) — the brand prevents accidentally passing
  * an access token, XSTS token, or another opaque string where a Microsoft
  * refresh token is expected.
- *
- * @example
- * ```ts
- * import { asMicrosoftRefreshToken } from "@loontail/minecraft-kit";
- *
- * const refreshToken = asMicrosoftRefreshToken(await storage.load("ms-refresh"));
- * await kit.auth.refresh(refreshToken, { clientId });
- * ```
  */
 export type MicrosoftRefreshToken = string & { readonly __brand: "MicrosoftRefreshToken" };
 
@@ -68,29 +36,11 @@ export type MicrosoftRefreshToken = string & { readonly __brand: "MicrosoftRefre
  *
  * `offlineUuidFor` already returns this brand; reach for `asPlayerUuid` when
  * loading a saved UUID from disk or when the host environment supplies one.
- *
- * @example
- * ```ts
- * import { asPlayerUuid, type PlayerUuid } from "@loontail/minecraft-kit";
- *
- * const uuid: PlayerUuid = asPlayerUuid(await storage.load("player-uuid"));
- * ```
  */
 export type PlayerUuid = string & { readonly __brand: "PlayerUuid" };
 
 /**
  * Offline authentication.
- *
- * @example
- * ```ts
- * import { AuthModes, offlineUuidFor, type OfflineAuth } from "@loontail/minecraft-kit";
- *
- * const auth: OfflineAuth = {
- *   mode: AuthModes.OFFLINE,
- *   username: "Steve",
- *   uuid: offlineUuidFor("Steve"),
- * };
- * ```
  */
 export type OfflineAuth = {
   readonly mode: typeof AuthModes.OFFLINE;
@@ -104,20 +54,10 @@ export type OfflineAuth = {
  *
  * Build via {@link toOnlineAuth} from a {@link MojangSession}; rarely constructed directly.
  *
- * @example
- * ```ts
- * import { AuthModes, type OnlineAuth } from "@loontail/minecraft-kit";
- *
- * const auth: OnlineAuth = {
- *   mode: AuthModes.ONLINE,
- *   username: session.minecraft.username,
- *   uuid: session.minecraft.uuid,
- *   accessToken: session.minecraft.accessToken,
- *   userType: "msa",
- *   clientId: session.microsoft.clientId,
- *   xuid: session.minecraft.xuid,
- * };
- * ```
+ * `clientId` and `xuid` are Microsoft-specific and optional: a launcher whose accounts come
+ * from its own auth service (Yggdrasil and friends) has no Azure application id and no XUID.
+ * Omit them rather than inventing a value — the launch placeholders resolve an absent field to
+ * the empty string, which is exactly what the offline path already passes.
  */
 export type OnlineAuth = {
   readonly mode: typeof AuthModes.ONLINE;
@@ -125,35 +65,17 @@ export type OnlineAuth = {
   readonly uuid: PlayerUuid;
   readonly accessToken: string;
   readonly userType: string;
-  readonly clientId: AzureClientId;
-  readonly xuid: string;
+  readonly clientId?: AzureClientId;
+  readonly xuid?: string;
 };
 
 /**
  * Auth shape consumed by `kit.launch.compose`. Either an {@link OfflineAuth} or {@link OnlineAuth}.
- *
- * @example
- * ```ts
- * import { AuthModes, toOnlineAuth, type LaunchAuth } from "@loontail/minecraft-kit";
- *
- * const auth: LaunchAuth = session
- *   ? toOnlineAuth(session)
- *   : { mode: AuthModes.OFFLINE, username: "Steve" };
- * await kit.launch.compose(target, { auth });
- * ```
  */
 export type LaunchAuth = OfflineAuth | OnlineAuth;
 
 /**
  * Lifecycle state of a Mojang-issued skin slot.
- *
- * @example
- * ```ts
- * import type { MojangAssetState, MojangProfileSkin } from "@loontail/minecraft-kit";
- *
- * const activeSkins = (skins: readonly MojangProfileSkin[]) =>
- *   skins.filter((s): s is MojangProfileSkin & { state: MojangAssetState } => s.state === "ACTIVE");
- * ```
  */
 export const MojangAssetStates = {
   ACTIVE: "ACTIVE",
@@ -165,13 +87,6 @@ export type MojangAssetState = (typeof MojangAssetStates)[keyof typeof MojangAss
 /**
  * Skin model variant — `"CLASSIC"` for standard 4-pixel arms (Steve) or
  * `"SLIM"` for 3-pixel arms (Alex).
- *
- * @example
- * ```ts
- * import type { SkinVariant } from "@loontail/minecraft-kit";
- *
- * const armOffset = (variant: SkinVariant): number => (variant === "SLIM" ? 3 : 4);
- * ```
  */
 export const SkinVariants = {
   CLASSIC: "CLASSIC",
@@ -182,15 +97,6 @@ export type SkinVariant = (typeof SkinVariants)[keyof typeof SkinVariants];
 
 /**
  * A single skin slot returned by `/minecraft/profile`.
- *
- * @example
- * ```ts
- * import type { MojangProfileSkin } from "@loontail/minecraft-kit";
- *
- * const active = (skins: readonly MojangProfileSkin[]) =>
- *   skins.find((s) => s.state === "ACTIVE");
- * console.log(active(session.minecraft.skins)?.url);
- * ```
  */
 export type MojangProfileSkin = {
   readonly id: string;
@@ -203,16 +109,6 @@ export type MojangProfileSkin = {
  * Snapshot of `/minecraft/profile` — uuid + display name + every skin slot
  * Mojang has issued. Returned by every `kit.auth.profile.*` mutation so
  * callers can refresh their UI without an extra round-trip.
- *
- * @example
- * ```ts
- * import type { MinecraftProfile } from "@loontail/minecraft-kit";
- *
- * const next: MinecraftProfile = await kit.auth.profile.resetSkin({
- *   accessToken: session.minecraft.accessToken,
- * });
- * console.log(next.skins.filter((s) => s.state === "ACTIVE")); // → []
- * ```
  */
 export type MinecraftProfile = {
   readonly uuid: PlayerUuid;
@@ -228,15 +124,6 @@ export type MinecraftProfile = {
  * raw `/minecraft/profile` payload so callers do not have to re-fetch it for skin/cape UI.
  * The fields under `microsoft` are needed only to refresh the session later —
  * persist them to durable storage (encrypted) alongside the user's profile.
- *
- * @example
- * ```ts
- * import { toOnlineAuth, type MojangSession } from "@loontail/minecraft-kit";
- *
- * const session: MojangSession = await kit.auth.authorizationCode.run({ onOpenBrowser });
- * await secrets.save(session.microsoft.refreshToken);
- * await kit.launch.compose(target, { auth: toOnlineAuth(session) });
- * ```
  */
 export type MojangSession = {
   readonly minecraft: {

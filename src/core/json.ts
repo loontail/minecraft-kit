@@ -1,5 +1,4 @@
-import type { MinecraftKitErrorContext } from "../types/errors";
-import type { MinecraftKitErrorCode } from "../types/errors";
+import type { MinecraftKitErrorCode, MinecraftKitErrorContext } from "../types/errors";
 import { MinecraftKitError } from "./errors";
 
 /**

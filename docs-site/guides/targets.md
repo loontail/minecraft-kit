@@ -14,10 +14,17 @@ in one call).
 ## Resolve
 
 ```ts
+import {
+  asMinecraftVersionId,
+  Loaders,
+  RuntimePreference,
+  VersionPreference,
+} from "@loontail/minecraft-kit";
+
 const target = await kit.targets.resolve({
   id: "fabric-client",
   directory: "./minecrafts/fabric-client",
-  minecraft: { version: "1.20.1" },
+  minecraft: { version: asMinecraftVersionId("1.20.1") },
   loader: { type: Loaders.FABRIC, preference: VersionPreference.LATEST },
   runtime: { preference: RuntimePreference.RECOMMENDED },
 });

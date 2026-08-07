@@ -1,10 +1,10 @@
 import {
+  asMinecraftVersionId,
   type DiscoveredTarget,
   type MinecraftChannel,
   MinecraftChannels,
   type MinecraftVersionId,
   type MinecraftVersionSummary,
-  asMinecraftVersionId,
 } from "../../../index";
 import { formatUserError } from "../../error-format";
 import type { SelectOption, Ui, WizardOutcome } from "../../ui";

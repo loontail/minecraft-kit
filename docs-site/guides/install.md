@@ -60,9 +60,19 @@ pauseController.resume();
 ```
 
 The runner checks the pause state at every stage boundary AND between chunks inside
-`downloadFile`. A pause does not interrupt an in-flight HTTP request; only the next
-checkpoint will block. Abort with `AbortSignal` is the cancellation primitive — `pause` is
-strictly "freeze and continue later".
+`downloadFile`, so an in-flight download really does stop mid-body: the reader stops pulling
+and resumes from where it left off. The HTTP request is not aborted, and the connection stays
+open for the duration of the pause — a very long pause on a CDN that resets idle bodies will
+make the read fail on resume, and the retry policy then re-issues the whole file (there is no
+range-resume). Abort with `AbortSignal` is the cancellation primitive — `pause` is strictly
+"freeze and continue later".
+
+Pausing at a chunk boundary does not trip the download idle timeout (`DOWNLOAD_IDLE_TIMEOUT_MS`,
+60s): the pause is awaited *before* the deadline is armed, so a parked transfer is never timed,
+while a genuinely stalled connection is still failed with a retryable `NETWORK_TIMEOUT`. One edge
+remains — a `pause()` issued while a read is already in flight cannot disarm that read's deadline,
+and the retry policy does not consult the `PauseController`, so a socket that goes quiet at exactly
+that moment burns the retry budget and restarts the file.
 
 ### Filtering categories
 
@@ -84,7 +94,23 @@ await kit.install.run(plan, {
 ```
 
 The available categories: `CLIENT_JAR`, `LIBRARY`, `ASSET_INDEX`, `ASSET`,
-`LOGGING_CONFIG`, `FABRIC_LIBRARY`, `FORGE_LIBRARY`, `RUNTIME_FILE`, `FORGE_INSTALLER`.
+`LOGGING_CONFIG`, `FABRIC_LIBRARY`, `FORGE_LIBRARY`, `RUNTIME_FILE`. (`FORGE_INSTALLER` also
+exists, but only ever appears on download *events* raised while planning a Forge target — no plan
+action carries it, so filtering on it does nothing.)
+
+The filter covers the post-download steps that depend on those downloads, not just the downloads
+themselves:
+
+| Step | Runs only when the set contains |
+| --- | --- |
+| Native extraction | `LIBRARY` |
+| Forge processors | `FORGE_LIBRARY` |
+| Runtime symlinks/dirs (`materializeRuntimeExtras`) | `RUNTIME_FILE` |
+| Version-JSON / logging-config writes | *always runs* |
+
+Writes are unconditional on purpose: they are cheap and idempotent, and running them is what
+leaves a partial run with a coherent tree on disk. An empty set is therefore a near-total no-op
+that still reports `COMPLETED`.
 
 ### Mirror URLs
 
@@ -111,7 +137,7 @@ const runtime = await kit.versions.runtime.resolve({
   component: "java-runtime-gamma",
 });
 
-const plan = await kit.install.runtime.standalonePlan({
+const plan = await kit.install.runtime.planStandalone({
   id: "shared-jre",
   directory: "/opt/minecraft-runtimes",
   runtime,
@@ -122,7 +148,7 @@ await kit.install.runtime.run(plan, {
 });
 ```
 
-`standalonePlan` produces a regular `InstallPlan` with only runtime `DOWNLOAD_FILE` actions.
+`planStandalone` produces a regular `InstallPlan` with only runtime `DOWNLOAD_FILE` actions.
 
 ## Updates
 

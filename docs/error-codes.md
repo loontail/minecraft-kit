@@ -48,7 +48,7 @@ typo on either side surfaces at compile time.
 |---|---|---|
 | `ARCHIVE_INVALID` | `yauzl` failed to open or read an archive; or `extractSingleEntry` could not find the entry. | `filePath`, `entryName` (when applicable) |
 | `ARCHIVE_TOO_LARGE` | Per-entry / total-size / compression-ratio / entry-count limit exceeded. | `filePath`, `entryName`, `size` |
-| `ARCHIVE_ENTRY_REJECTED` | An entry name was empty, contained a null byte, was absolute, used `..`, was a reserved Windows name, or ended in dot/whitespace. | `entryName`, `reason` |
+| `ARCHIVE_ENTRY_REJECTED` | An entry name — or any archive/manifest-derived relative destination resolved through `resolveContainedDestination`, including Maven-coordinate paths — was empty, contained a null byte, was absolute, used `..`, was a reserved Windows name, or ended in dot/whitespace. | `entryName`, `reason` |
 
 ## Manifests
 
@@ -76,8 +76,8 @@ typo on either side surfaces at compile time.
 
 | Code | Thrown when | Context fields |
 |---|---|---|
-| `LAUNCH_JAVA_NOT_FOUND` | The configured `javaPath` does not exist or is not executable. | `filePath` |
-| `LAUNCH_PROCESS_FAILED` | Minecraft exited with a non-zero code without being aborted. | `exitCode` |
+| `LAUNCH_JAVA_NOT_FOUND` | Spawning the configured `javaPath` failed with `ENOENT` — the binary does not exist. Rejects the spawned process's `exited` promise. | `filePath`, `errno` |
+| `LAUNCH_PROCESS_FAILED` | Minecraft exited with a non-zero code without being aborted; or the process could not be spawned for a reason other than `ENOENT` (`EACCES`, `EPERM`, `ENOEXEC`, …). | `exitCode`, or `filePath` + `errno` on a spawn failure |
 | `LAUNCH_ABORTED` | The install or launch was cancelled via signal. Also used by the install runner's `checkpoint()` helper when an abort is observed mid-operation. | — |
 
 ## Authentication

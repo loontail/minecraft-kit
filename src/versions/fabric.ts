@@ -60,7 +60,7 @@ export type FabricResolveInput = {
  * ```ts
  * import type { FabricGameVersionEntry } from "@loontail/minecraft-kit";
  *
- * const games: readonly FabricGameVersionEntry[] = await kit.versions.fabric.gameVersions();
+ * const games: readonly FabricGameVersionEntry[] = await kit.versions.fabric.listGameVersions();
  * const stable = games.filter((g) => g.stable).map((g) => g.version);
  * ```
  */
@@ -70,7 +70,7 @@ export type FabricGameVersionEntry = {
 };
 
 /**
- * Inputs to {@link FabricVersionsApi.gameVersions}.
+ * Inputs to {@link FabricVersionsApi.listGameVersions}.
  *
  * @example
  * ```ts
@@ -78,7 +78,7 @@ export type FabricGameVersionEntry = {
  *
  * const controller = new AbortController();
  * const input: FabricGameVersionsInput = { signal: controller.signal };
- * const games = await kit.versions.fabric.gameVersions(input);
+ * const games = await kit.versions.fabric.listGameVersions(input);
  * ```
  */
 export type FabricGameVersionsInput = OperationOptions;
@@ -111,7 +111,7 @@ export class FabricVersionsApi {
    * List the Minecraft versions Fabric supports at all, independent of any
    * specific loader. Each entry carries the upstream `stable` flag.
    */
-  async gameVersions(
+  async listGameVersions(
     input: FabricGameVersionsInput = {},
   ): Promise<readonly FabricGameVersionEntry[]> {
     const raw = await fetchJson<readonly FabricGameVersionRaw[]>(this.ctx.http, this.ctx.cache, {

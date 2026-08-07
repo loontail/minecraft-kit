@@ -42,6 +42,18 @@ describe("loginWithXbox", () => {
     }
   });
 
+  it("points the user at the browser sign-in, not a device-code page the kit never shows", async () => {
+    const http = new FakeHttpClient().on(LOGIN_URL, { status: 403, body: "FORBIDDEN" });
+    try {
+      await loginWithXbox({ http, userHash: "uhs", xstsToken: "xsts" });
+      expect.fail("expected throw");
+    } catch (error) {
+      const message = (error as Error).message;
+      expect(message).not.toMatch(/device.?code/i);
+      expect(message).toMatch(/signed in with in the browser/i);
+    }
+  });
+
   it("throws AUTH_MINECRAFT_FAILED when the success body has no access token", async () => {
     const http = new FakeHttpClient().on(LOGIN_URL, {
       body: JSON.stringify({ expires_in: 86400 }),

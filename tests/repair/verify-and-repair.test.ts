@@ -7,7 +7,7 @@ import { silentLogger } from "../../src/core/logger";
 import { targetPaths } from "../../src/core/paths";
 import { asMinecraftVersionId } from "../../src/core/version-id";
 import { createMemoryCache } from "../../src/http/cache";
-import { runVerifyAndRepair } from "../../src/repair/run-with-diagnose";
+import { verifyAndRepair } from "../../src/repair/verify-and-repair";
 import { TargetsApi } from "../../src/targets/index";
 import { Loaders } from "../../src/types/loader";
 import { RepairModes } from "../../src/types/repair";
@@ -112,7 +112,7 @@ const resolveVanillaTarget = async (http: FakeHttpClient, directory: string): Pr
   });
 };
 
-describe("runVerifyAndRepair", () => {
+describe("verifyAndRepair", () => {
   let tmpDir: string;
 
   beforeEach(async () => {
@@ -127,11 +127,11 @@ describe("runVerifyAndRepair", () => {
     const http = buildEmptyRuntimeHttp();
     const cache = createMemoryCache();
     const target = await resolveVanillaTarget(http, tmpDir);
-    const result = await runVerifyAndRepair(
+    const result = await verifyAndRepair(
       { http, cache, spawner: unusedSpawner },
       { aspect: VerificationKinds.RUNTIME, target, mode: RepairModes.REPORT },
     );
-    expect(result.verified.isValid).toBe(true);
+    expect(result.verification.isValid).toBe(true);
     expect(result.repair).toBeNull();
   });
 
@@ -139,11 +139,11 @@ describe("runVerifyAndRepair", () => {
     const http = buildEmptyRuntimeHttp();
     const cache = createMemoryCache();
     const target = await resolveVanillaTarget(http, tmpDir);
-    const result = await runVerifyAndRepair(
+    const result = await verifyAndRepair(
       { http, cache, spawner: unusedSpawner },
       { aspect: VerificationKinds.RUNTIME, target },
     );
-    expect(result.verified.isValid).toBe(true);
+    expect(result.verification.isValid).toBe(true);
     expect(result.repair).toBeNull();
   });
 
@@ -157,12 +157,12 @@ describe("runVerifyAndRepair", () => {
       "bin",
       "java",
     );
-    const result = await runVerifyAndRepair(
+    const result = await verifyAndRepair(
       { http, cache, spawner: unusedSpawner },
       { aspect: VerificationKinds.RUNTIME, target },
     );
-    expect(result.verified.isValid).toBe(false);
-    expect(result.verified.issues.map((issue) => issue.path)).toContain(expectedPath);
+    expect(result.verification.isValid).toBe(false);
+    expect(result.verification.issues.map((issue) => issue.path)).toContain(expectedPath);
     expect(result.repair).not.toBeNull();
     if (result.repair !== null) {
       expect(result.repair.bytesDownloaded).toBe(body.byteLength);
@@ -182,12 +182,12 @@ describe("runVerifyAndRepair", () => {
       "bin",
       "java",
     );
-    const result = await runVerifyAndRepair(
+    const result = await verifyAndRepair(
       { http, cache, spawner: unusedSpawner },
       { aspect: VerificationKinds.RUNTIME, target, mode: RepairModes.REPORT },
     );
-    expect(result.verified.isValid).toBe(false);
-    expect(result.verified.issues.map((issue) => issue.path)).toContain(expectedPath);
+    expect(result.verification.isValid).toBe(false);
+    expect(result.verification.issues.map((issue) => issue.path)).toContain(expectedPath);
     expect(result.repair).toBeNull();
     await expect(fs.access(expectedPath)).rejects.toThrow();
   });
@@ -197,7 +197,7 @@ describe("runVerifyAndRepair", () => {
     const cache = createMemoryCache();
     const target = await resolveVanillaTarget(http, tmpDir);
     await expect(
-      runVerifyAndRepair(
+      verifyAndRepair(
         { http, cache, spawner: unusedSpawner },
         { aspect: "bogus" as unknown as VerificationKind, target },
       ),

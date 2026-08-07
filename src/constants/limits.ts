@@ -25,10 +25,3 @@ export const EXTRACTION_MAX_COMPRESSION_RATIO = 200;
  * @internal
  */
 export const EXTRACTION_MAX_ENTRY_COUNT = 100_000;
-
-/**
- * Reasonable maximum bytes a Forge installer JAR can be.
- *
- * @internal
- */
-export const FORGE_INSTALLER_MAX_SIZE = 256 * 1024 * 1024;

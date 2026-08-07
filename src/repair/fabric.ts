@@ -2,8 +2,7 @@ import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { targetPaths } from "../core/paths";
 import { DownloadCategories, type InstallAction, InstallActionKinds } from "../types/install";
 import { Loaders } from "../types/loader";
-import type { RepairPlan } from "../types/repair";
-import type { AspectRepairInput } from "../types/repair";
+import type { AspectRepairInput, RepairPlan } from "../types/repair";
 import { planAspectRepair } from "./helpers";
 
 /**

@@ -159,6 +159,7 @@ export const buildFakeKit = (input: FakeKitInput = {}): MinecraftKit => {
     targetId: target.id,
     bytesDownloaded: 0,
     actionsCompleted: 0,
+    actionsSkipped: 0,
     durationMs: 1,
   };
   const verification: VerificationResult = input.verificationResult ?? {
@@ -230,7 +231,7 @@ export const buildFakeKit = (input: FakeKitInput = {}): MinecraftKit => {
           return fakePlan;
         },
         run: async () => fakeReport,
-        standalonePlan: async () => {
+        planStandalone: async () => {
           if (input.installError !== undefined) throw input.installError;
           return fakePlan;
         },
@@ -253,7 +254,7 @@ export const buildFakeKit = (input: FakeKitInput = {}): MinecraftKit => {
         bytesDownloaded: 0,
         durationMs: 1,
       }),
-      runVerifyAndRepair: async () => ({ verified: verification, repair: null }),
+      verifyAndRepair: async () => ({ verification, repair: null }),
     },
     launch: {
       compose: async () => composition,

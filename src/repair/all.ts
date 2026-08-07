@@ -1,18 +1,27 @@
 import {
+  isMinecraftKitError,
   type MinecraftKitError,
   type MinecraftKitErrorCode,
   MinecraftKitErrorCodes,
-  isMinecraftKitError,
 } from "../core/errors";
-import { withOptionalOnEvent, withOptionalSignal } from "../core/optional";
+import {
+  withOptionalHostAllowList,
+  withOptionalOnEvent,
+  withOptionalPauseController,
+  withOptionalSignal,
+} from "../core/optional";
+import type { PauseController } from "../core/pause-controller";
+import { planInstall } from "../install/planner";
 import type { MetadataCache } from "../types/cache";
 import type { ProgressListener } from "../types/events";
 import type { HttpClient } from "../types/http";
+import type { InstallPlan } from "../types/install";
 import type { RepairIssueFilter, RepairReport } from "../types/repair";
 import type { Spawner } from "../types/spawner";
 import type { Target } from "../types/target";
 import type { VerificationKind, VerificationResult } from "../types/verify";
-import { ASPECTS, aspectsForTarget } from "./aspects";
+import { aspectsForTarget } from "../verify/aspects";
+import { ASPECTS } from "./aspects";
 import { filterRepairIssueResults } from "./helpers";
 import { runRepair } from "./runner";
 
@@ -27,6 +36,8 @@ export type RepairAllInput = {
   readonly shouldRepairIssue?: RepairIssueFilter;
   /** Host allow-list forwarded to the repair runner's downloads. */
   readonly hostAllowList?: readonly string[];
+  /** Cooperative pause forwarded to every aspect's repair run. */
+  readonly pauseController?: PauseController;
 };
 
 /**
@@ -68,6 +79,14 @@ export type RepairAllReport = {
   readonly blockedAspects: ReadonlyMap<VerificationKind, RepairBlockedAspect>;
   readonly bytesDownloaded: number;
   readonly durationMs: number;
+  /**
+   * The single install plan every repaired aspect was derived from, or `null` when nothing
+   * needed repairing (or planning was blocked). Returned so a caller that has more work to do
+   * on the same target — re-running Forge processors, re-checking launchability — can reuse it
+   * instead of paying for another `install.plan`, which for Forge means another installer
+   * fetch and `maven/` flush.
+   */
+  readonly installPlan: InstallPlan | null;
 };
 
 /**
@@ -108,6 +127,7 @@ export const repairAll = async (input: RepairAllInput): Promise<RepairAllReport>
     http: input.http,
     cache: input.cache,
     ...withOptionalSignal(input.signal),
+    ...withOptionalHostAllowList(input.hostAllowList),
   };
   const verificationCtx = {
     ...ctx,
@@ -130,18 +150,49 @@ export const repairAll = async (input: RepairAllInput): Promise<RepairAllReport>
   const blockedAspects = new Map<VerificationKind, RepairBlockedAspect>();
   let bytesDownloaded = 0;
 
-  for (const verification of verifications) {
-    if (verification.isValid) continue;
+  const broken = verifications.filter((verification) => !verification.isValid);
+  // why: one plan for every aspect. Each aspect planner filters the *same* full install plan,
+  // so building it per aspect only repeated the expensive part (for Forge: an installer fetch
+  // plus a full `maven/` re-extract) up to three times per Repair.
+  let installPlan: InstallPlan | null = null;
+  let planError: MinecraftKitError | null = null;
+  if (broken.length > 0) {
     try {
-      const plan = await ASPECTS[verification.kind].plan({ ...ctx, from: verification });
+      installPlan = await planInstall(ctx);
+    } catch (error) {
+      if (input.signal?.aborted !== true && isNetworkBlocked(error)) {
+        planError = error;
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  for (const verification of broken) {
+    // A plan failure blocks every aspect: they all filter this one shared plan, and planning
+    // per aspect would hit the same unreachable manifest anyway.
+    if (planError !== null) {
+      blockedAspects.set(verification.kind, {
+        code: planError.code,
+        message: planError.message,
+      });
+      continue;
+    }
+    try {
+      const plan = await ASPECTS[verification.kind].plan({
+        ...ctx,
+        from: verification,
+        ...(installPlan !== null ? { installPlan } : {}),
+      });
       if (plan.totalActions === 0) continue;
       const report = await runRepair({
         plan,
         http: input.http,
         cache: input.cache,
         spawner: input.spawner,
-        ...(input.hostAllowList !== undefined ? { hostAllowList: input.hostAllowList } : {}),
+        ...withOptionalHostAllowList(input.hostAllowList),
         ...withOptionalSignal(input.signal),
+        ...withOptionalPauseController(input.pauseController),
         ...withAspectOnEvent(input.onEvent, verification.kind),
       });
       repairs.set(verification.kind, report);
@@ -161,6 +212,7 @@ export const repairAll = async (input: RepairAllInput): Promise<RepairAllReport>
     blockedAspects,
     bytesDownloaded,
     durationMs: Date.now() - startedAt,
+    installPlan,
   };
 };
 

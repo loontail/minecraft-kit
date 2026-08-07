@@ -6,7 +6,7 @@
 │                                                                          │
 │  versions: { minecraft, fabric, forge, runtime }                         │
 │  targets:  { create, resolve, list }                                     │
-│  install:  { plan, run, runtime: { plan, run, standalonePlan } }         │
+│  install:  { plan, run, runtime: { plan, run, planStandalone } }         │
 │  verify:   { minecraft, fabric, forge, runtime }                         │
 │  repair:   { minecraft, fabric, forge, runtime, all }                    │
 │  launch:   { compose, run }                                              │
@@ -34,10 +34,11 @@ lives under `auth` because it shares the Minecraft bearer token; see
 src/types/         Public type definitions and `as const` discriminator maps.
 src/constants/     URLs, defaults, limits, file-segment names.
 src/core/          Pure helpers — errors, hashing, fs, archive, retries, rules,
-                   manifest merging, throttling, UUID, abort/checkpoint,
-                   assert-never, JSON parse + shape guards, scoped logger.
+                   manifest merging, UUID, abort/checkpoint, assert-never,
+                   JSON parse + shape guards, scoped logger.
 src/http/          Transport — HttpClient, in-memory cache, streaming downloader
-                   (with URL scheme + optional host allow-list).
+                   (URL scheme check + default-on host allow-list, see
+                   [security](./security)).
 src/versions/      Version resolvers (Mojang / Fabric / Forge / runtime).
 src/targets/       Target factory + filesystem scanner.
 src/install/       Install planner + runner (split into stage functions) +

@@ -23,3 +23,7 @@ export const withOptionalPauseController = (
   pauseController: PauseController | undefined,
 ): { pauseController?: PauseController } =>
   pauseController === undefined ? {} : { pauseController };
+
+export const withOptionalHostAllowList = (
+  hostAllowList: readonly string[] | undefined,
+): { hostAllowList?: readonly string[] } => (hostAllowList === undefined ? {} : { hostAllowList });

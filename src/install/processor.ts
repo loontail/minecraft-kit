@@ -3,8 +3,8 @@ import { readJarMainClass } from "../core/archive";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { fileExists } from "../core/fs";
 import { sha1OfFile } from "../core/hash";
-import { EventTypes } from "../types/events";
 import type { ProgressListener } from "../types/events";
+import { EventTypes } from "../types/events";
 import type { RunForgeProcessorAction } from "../types/install";
 import type { Spawner } from "../types/spawner";
 

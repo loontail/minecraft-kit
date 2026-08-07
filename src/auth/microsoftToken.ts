@@ -10,8 +10,13 @@ const TOKEN_URL = `https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/token
 /**
  * Scope required for Minecraft. `XboxLive.signin` unlocks the Xbox Live token exchange and
  * `offline_access` is what causes Microsoft to return a refresh token.
+ *
+ * Exported because the authorize request in `oauth.ts` must send the identical scope string:
+ * a refresh token Microsoft issues for one scope set is not reusable against another.
+ *
+ * @internal
  */
-const SCOPE = "XboxLive.signin offline_access";
+export const MICROSOFT_SCOPE = "XboxLive.signin offline_access";
 
 /**
  * Microsoft access + refresh tokens. Internal — callers receive the higher-level
@@ -75,7 +80,7 @@ export const refreshMicrosoftToken = async (input: {
     grant_type: "refresh_token",
     client_id: input.clientId,
     refresh_token: input.refreshToken,
-    scope: SCOPE,
+    scope: MICROSOFT_SCOPE,
   });
   const result = await postTokenRequest(input.http, body, input.signal);
   if (!result.ok) {
@@ -122,7 +127,7 @@ export const exchangeAuthorizationCode = async (input: {
     code: input.code,
     redirect_uri: input.redirectUri,
     code_verifier: input.codeVerifier,
-    scope: SCOPE,
+    scope: MICROSOFT_SCOPE,
   });
   const result = await postTokenRequest(input.http, body, input.signal);
   if (!result.ok) {

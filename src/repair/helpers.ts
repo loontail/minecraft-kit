@@ -1,7 +1,8 @@
-import { withOptionalSignal } from "../core/optional";
+import { withOptionalHostAllowList, withOptionalSignal } from "../core/optional";
 import { planInstall } from "../install/planner";
 import { type InstallAction, InstallActionKinds, type InstallPlan } from "../types/install";
 import type { AspectRepairInput, RepairIssueFilter, RepairPlan } from "../types/repair";
+import type { RuntimeFilesManifest } from "../types/runtime";
 import type { Target } from "../types/target";
 import {
   type VerificationResult,
@@ -14,10 +15,12 @@ import {
  *
  * @internal
  */
-export const asResultArray = (
+const asResultArray = (
   from: VerificationResult | readonly VerificationResult[],
 ): readonly VerificationResult[] => {
-  return Array.isArray(from) ? from : [from];
+  // why: Array.isArray narrows to a mutable array, so it leaves the readonly member of the
+  // union in the else branch; discriminate on a required field of the single-result shape.
+  return "targetId" in from ? [from] : from;
 };
 
 /**
@@ -47,9 +50,7 @@ export type IssueIndex = {
  *
  * @internal
  */
-export const buildIssueIndex = (
-  from: VerificationResult | readonly VerificationResult[],
-): IssueIndex => {
+const buildIssueIndex = (from: VerificationResult | readonly VerificationResult[]): IssueIndex => {
   const map = new Map<string, Set<VerifyFileCategory>>();
   for (const v of asResultArray(from)) {
     for (const issue of v.issues) {
@@ -103,7 +104,7 @@ export const filterRepairIssueResults = (input: {
  *
  * @internal
  */
-export const sumDownloadBytes = (actions: readonly InstallAction[]): number => {
+const sumDownloadBytes = (actions: readonly InstallAction[]): number => {
   return actions.reduce((sum, action) => {
     if (action.kind === InstallActionKinds.DOWNLOAD_FILE) {
       return sum + (action.expectedSize ?? 0);
@@ -113,11 +114,17 @@ export const sumDownloadBytes = (actions: readonly InstallAction[]): number => {
 };
 
 /**
- * Wrap a list of install actions in a {@link RepairPlan} for the given target.
+ * Wrap a list of install actions in a {@link RepairPlan} for the given target. `runtimeManifest`
+ * is carried over from the install plan the actions were selected from so `runRepair` never has
+ * to refetch it — pass `undefined` when no install plan was involved.
  *
  * @internal
  */
-export const buildRepairPlan = (target: Target, actions: readonly InstallAction[]): RepairPlan => {
+export const buildRepairPlan = (
+  target: Target,
+  actions: readonly InstallAction[],
+  runtimeManifest?: RuntimeFilesManifest,
+): RepairPlan => {
   return {
     targetId: target.id,
     directory: target.directory,
@@ -125,6 +132,7 @@ export const buildRepairPlan = (target: Target, actions: readonly InstallAction[
     actions,
     totalActions: actions.length,
     totalBytes: sumDownloadBytes(actions),
+    ...(runtimeManifest !== undefined ? { runtimeManifest } : {}),
   };
 };
 
@@ -137,7 +145,7 @@ export type AspectFilter = (action: InstallAction) => boolean;
 
 /**
  * Run the boilerplate every aspect-specific repair planner shares:
- *   1. Build a full install plan.
+ *   1. Reuse `input.installPlan` when the caller supplied one, else build a full install plan.
  *   2. Index the verification issues.
  *   3. Filter install actions through the aspect-specific predicate using the standard
  *      DOWNLOAD / WRITE / EXTRACT_NATIVE selection rules.
@@ -155,12 +163,15 @@ export const planAspectRepair = async (
     issues: IssueIndex;
   }) => void,
 ): Promise<RepairPlan> => {
-  const installPlan = await planInstall({
-    target: input.target,
-    http: input.http,
-    cache: input.cache,
-    ...withOptionalSignal(input.signal),
-  });
+  const installPlan =
+    input.installPlan ??
+    (await planInstall({
+      target: input.target,
+      http: input.http,
+      cache: input.cache,
+      ...withOptionalSignal(input.signal),
+      ...withOptionalHostAllowList(input.hostAllowList),
+    }));
   const issues = buildIssueIndex(filterRepairIssueResults(input));
   const actions = selectRepairActions({
     target: input.target,
@@ -169,7 +180,7 @@ export const planAspectRepair = async (
     aspectFilter,
   });
   postprocess?.({ actions, installPlan, issues });
-  return buildRepairPlan(input.target, actions);
+  return buildRepairPlan(input.target, actions, installPlan.runtimeManifest);
 };
 
 /**
@@ -182,7 +193,7 @@ export const planAspectRepair = async (
  *
  * @internal
  */
-export const selectRepairActions = (input: {
+const selectRepairActions = (input: {
   readonly target: Target;
   readonly installPlan: InstallPlan;
   readonly issues: IssueIndex;

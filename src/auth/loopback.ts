@@ -1,4 +1,4 @@
-import { type IncomingMessage, type Server, type ServerResponse, createServer } from "node:http";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { deferred } from "../core/deferred";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";

@@ -2,8 +2,8 @@
 
 ## Setup
 
-- Node ≥ 20.11
-- npm 10+ (ships with Node 20)
+- Node ≥ 22.12
+- npm 10+ (ships with Node 22)
 
 ```bash
 git clone <your-fork>
@@ -35,6 +35,7 @@ Don't bypass with `--no-verify` — CI runs the same checks.
 | `npm run test:watch` | Vitest in watch mode. |
 | `npm run test:coverage` | Vitest with `--coverage` (v8 provider). |
 | `npm run build` | tsup bundle to `dist/` (library + CLI + sourcemaps + declarations). |
+| `npm run docs:api` | TypeDoc → `docs-site/api/`. |
 | `npm run docs:dev` | TypeDoc → VitePress dev server. |
 | `npm run docs:build` | TypeDoc → VitePress static build. |
 
@@ -51,18 +52,21 @@ Full rules: [`docs/code-guidelines.md`](./docs/code-guidelines.md). Highlights:
 - **No `any`** — narrow at the boundary.
 - **No magic strings** — finite sets live in `const` maps under `src/types/` or `src/constants/`.
 - **No silent `catch`** — inspect, log, or re-throw; lossy catches need a one-line comment.
-- **No `//` line comments** — only `/** … */` TSDoc blocks (including `@example`
-  fences) survive. Rename helpers/constants so the why is implicit. The gate:
-
-  ```bash
-  grep -rnE '//' src tests | grep -vE ':\s+\*' | grep -v '://' | grep -v '/\\/'
-  ```
-
-  Must be empty. The filters strip TSDoc lines (` * …`), URL strings (`://`), and
-  regex escapes (`/\/…`).
+- **Default to no comments** ([`docs/code-guidelines.md`](./docs/code-guidelines.md) §1). A
+  comment earns its place only when it records a non-obvious invariant or a genuine
+  workaround — a protocol quirk, an ordering constraint, an upstream bug. `// why: …` is the
+  preferred form for those; it is short and it says out loud that the line is a *why*, not a
+  restatement. Comments that restate the code, narrate deleted code ("used to", "no longer",
+  "previously"), or date themselves ("now") are deleted on sight.
+- **TSDoc is for the public surface only** — the symbols re-exported from `src/index.ts`,
+  because `npm run docs:api` publishes them. Internal modules follow the default-no-comments
+  rule. An `@example` must show something a caller cannot infer from the signature; do not
+  put one on a plain type alias.
 - **Plan / run split** for install / update / repair. Tests assert on plans.
-- **Dependency injection** — never `vi.mock("node:child_process")`. Inject `Spawner` instead.
-- **No network in tests.**
+- **Dependency injection** — never `vi.mock`. Inject `Spawner` / `HttpClient`; the fakes in
+  `tests/helpers/` exist for exactly this.
+- **No network in tests.** All HTTP is scripted, and each test owns its temp directory
+  (`mkdtemp(...)`) and cleans it up.
 
 [`docs/modules.md`](./docs/modules.md) has a one-paragraph orientation per source folder.
 
@@ -75,7 +79,8 @@ Full rules: [`docs/code-guidelines.md`](./docs/code-guidelines.md). Highlights:
 ```
 
 Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`,
-`chore`, `revert`. Suffix with `!` for breaking changes.
+`chore`, `revert`. Suffix with `!` for breaking changes — there is no CHANGELOG, so
+`git log --grep='!:'` is the breaking-change record.
 
 ```
 feat: add resolveVanillaLoader
@@ -85,7 +90,8 @@ feat!: rename ElixirMinecraftKit to MinecraftKit
 
 - One logical change per PR.
 - Update the matching guide under `docs-site/guides/` when observable behaviour changes.
-- `npm run docs:api` (TypeDoc) is manual — not required for the PR.
+- If you touched `src/types/` or the public surface in `src/index.ts`, run `npm run docs:api`
+  and check the generated pages. It is manual — not required for the PR.
 
 ## Reporting bugs
 
@@ -99,16 +105,23 @@ For new public API / loaders / CLI scenarios, open an issue first to align on sc
 
 ## Publishing
 
-The package ships with `publishConfig.provenance: true`, so every release must be cut
-from a CI workflow with an OIDC-trusted publisher configured in npm — local
-`npm publish` will fail. The release flow is:
+Releases are push-driven by [`.github/workflows/release.yml`](./.github/workflows/release.yml),
+which is authoritative — read it before changing anything here.
 
-1. Cut a release commit and tag (`chore(release)!: vX.Y.Z`).
-2. Push the tag — the GitHub Actions release workflow runs on the `release: published`
-   event, builds the kit, and runs `npm publish --access public --provenance`.
-3. The workflow uses the npm "Trusted Publishers" feature, so no `NPM_TOKEN` secret
-   is needed; npm verifies the GitHub OIDC token at publish time.
+- Every push to `main` bumps the version, pushes a `chore(release): vX.Y.Z` commit and matching
+  tag back to `main`, re-runs typecheck / lint / test / build, publishes with
+  `npm publish --provenance --access public`, and cuts a GitHub Release.
+- The **bump level is derived from your commit messages** since the last tag — which is why the
+  conventional-commit rules above are load-bearing: `!` or a `BREAKING CHANGE` footer bumps the
+  minor while the package is `0.x` (and the major from `1.0.0` on), `feat` bumps the minor,
+  anything else bumps the patch. A breaking change committed without `!` ships as a patch.
+- The bump commit would re-trigger the workflow, so a guard job short-circuits when the head
+  commit message starts with `chore(release):`.
+- **To override the level:** bump locally with `npm version <level> --no-git-tag-version`,
+  commit as `chore(release): vX.Y.Z`, and push. The guard skips that push; the next ordinary
+  commit on `main` releases from the new baseline.
+- Required secrets: `NPM_TOKEN` (npm automation token with publish scope) and `RELEASE_TOKEN`
+  (fine-grained PAT that may push to protected `main`).
 
-Manual `npm publish` from a workstation is unsupported. If you must reproduce the
-publish flow locally, build the tarball with `npm pack`, inspect the output, and rely
-on the workflow for the actual publish.
+Manual `npm publish` from a workstation is unsupported: `publishConfig.provenance: true`
+requires the workflow's OIDC token. To inspect what would ship, run `npm pack`.

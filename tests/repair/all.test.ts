@@ -13,6 +13,12 @@ import type { Target } from "../../src/types/target";
 import { VerificationKinds, VerifyFileCategories } from "../../src/types/verify";
 import { FakeHttpClient } from "../helpers/fake-http";
 import { FakeSpawner } from "../helpers/fake-spawner";
+import {
+  buildForgeTarget,
+  countRequests,
+  createForgeHttp,
+  FORGE_INSTALLER_URL,
+} from "../helpers/forge-fixture";
 import { sha1OfBytes } from "../helpers/hash";
 
 const textSize = (value: string): number => new TextEncoder().encode(value).byteLength;
@@ -217,6 +223,97 @@ describe("repairAll progress events", () => {
       expect([...report.repairs.keys()]).toEqual([VerificationKinds.MINECRAFT]);
       await expect(access(clientJarPath)).resolves.toBeUndefined();
       await expect(access(runtimePath)).rejects.toThrow();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+});
+
+// KIT-P4: every aspect planner filters the same full install plan, so repairAll must build it
+// once. Before the fix each broken aspect called planInstall itself, and for a Forge target that
+// meant a fresh installer download + a full `maven/` re-extract per aspect.
+describe("repairAll shared install plan", () => {
+  it("plans a Forge target once even when every aspect is broken", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "mckit-repair-all-forge-"));
+    try {
+      const target = buildForgeTarget(root);
+      const http = createForgeHttp();
+
+      const report = await repairAll({
+        target,
+        http,
+        cache: createMemoryCache(),
+        spawner: new FakeSpawner(),
+      });
+
+      expect([...report.repairs.keys()].sort()).toEqual(
+        [VerificationKinds.MINECRAFT, VerificationKinds.RUNTIME, VerificationKinds.FORGE].sort(),
+      );
+      expect(countRequests(http, FORGE_INSTALLER_URL)).toBe(1);
+      expect(report.installPlan).not.toBeNull();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("returns the shared plan and skips planning when nothing is broken", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "mckit-repair-all-valid-"));
+    try {
+      const target = buildRepairTarget(root);
+      await writeExistingAssetIndex(root);
+      await writeExistingVersionJson(target);
+      const http = createRepairHttp();
+      // Pre-populate everything the verifiers check so no aspect comes back broken.
+      await mkdir(path.dirname(targetPaths.versionJar(root, "1.20.1")), { recursive: true });
+      await writeFile(targetPaths.versionJar(root, "1.20.1"), "client");
+      const runtimeFile = path.join(root, "runtime", "java-runtime-gamma", "bin", "javaw.exe");
+      await mkdir(path.dirname(runtimeFile), { recursive: true });
+      await writeFile(runtimeFile, RUNTIME_BODY);
+
+      const report = await repairAll({
+        target,
+        http,
+        cache: createMemoryCache(),
+        spawner: new FakeSpawner(),
+      });
+
+      expect(report.repairs.size).toBe(0);
+      expect(report.installPlan).toBeNull();
+      expect(http.requests.some((r) => r.url === "https://client/")).toBe(false);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("blocks every broken aspect when the shared plan cannot be built offline", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "mckit-repair-all-plan-offline-"));
+    try {
+      const target = buildRepairTarget(root);
+      await writeExistingAssetIndex(root);
+      // Verification succeeds for the runtime (manifest reachable) but the asset index is dead,
+      // so the shared planInstall throws — every broken aspect must land in blockedAspects.
+      const http = createRepairHttp()
+        .on("https://idx/", {
+          error: () =>
+            new MinecraftKitError(MinecraftKitErrorCodes.NETWORK_HTTP_ERROR, "offline: idx"),
+        })
+        .on("https://client/", {
+          error: () =>
+            new MinecraftKitError(MinecraftKitErrorCodes.NETWORK_HTTP_ERROR, "offline: client"),
+        });
+
+      const report = await repairAll({
+        target,
+        http,
+        cache: createMemoryCache(),
+        spawner: new FakeSpawner(),
+      });
+
+      expect(report.repairs.size).toBe(0);
+      expect(report.installPlan).toBeNull();
+      expect([...report.blockedAspects.keys()].sort()).toEqual(
+        [VerificationKinds.MINECRAFT, VerificationKinds.RUNTIME].sort(),
+      );
     } finally {
       await rm(root, { recursive: true, force: true });
     }

@@ -1,6 +1,5 @@
 import { DownloadCategories, type InstallAction, InstallActionKinds } from "../types/install";
-import type { RepairPlan } from "../types/repair";
-import type { AspectRepairInput } from "../types/repair";
+import type { AspectRepairInput, RepairPlan } from "../types/repair";
 import { planAspectRepair } from "./helpers";
 
 /**

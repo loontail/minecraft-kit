@@ -4,15 +4,6 @@
  *
  * Codes are stable across releases — adding new codes is non-breaking; removing or renaming
  * a code is a breaking change.
- *
- * @example
- * ```ts
- * import { isMinecraftKitError, MinecraftKitErrorCodes } from "@loontail/minecraft-kit";
- *
- * if (isMinecraftKitError(e) && e.code === MinecraftKitErrorCodes.NETWORK_TIMEOUT) {
- *   await scheduleRetry();
- * }
- * ```
  */
 export const MinecraftKitErrorCodes = {
   NETWORK_TIMEOUT: "NETWORK_TIMEOUT",
@@ -54,34 +45,12 @@ export const MinecraftKitErrorCodes = {
 /**
  * Union of every value in {@link MinecraftKitErrorCodes}. Use as the key type when building
  * exhaustive lookup tables that translate kit codes to a consumer-facing taxonomy.
- *
- * @example
- * ```ts
- * import { type MinecraftKitErrorCode, MinecraftKitErrorCodes } from "@loontail/minecraft-kit";
- *
- * type LauncherErrorCode = "NETWORK" | "INTEGRITY" | "RUNTIME";
- *
- * const KIT_TO_LAUNCHER: Partial<Record<MinecraftKitErrorCode, LauncherErrorCode>> = {
- *   [MinecraftKitErrorCodes.NETWORK_TIMEOUT]: "NETWORK",
- *   [MinecraftKitErrorCodes.NETWORK_HTTP_ERROR]: "NETWORK",
- *   [MinecraftKitErrorCodes.INTEGRITY_HASH_MISMATCH]: "INTEGRITY",
- *   [MinecraftKitErrorCodes.RUNTIME_NOT_FOUND]: "RUNTIME",
- * };
- * ```
  */
 export type MinecraftKitErrorCode =
   (typeof MinecraftKitErrorCodes)[keyof typeof MinecraftKitErrorCodes];
 
 /**
  * Structured context attached to errors. Always safe to serialize via `JSON.stringify`.
- *
- * @example
- * ```ts
- * if (isMinecraftKitError(e)) {
- *   const ctx: MinecraftKitErrorContext = e.context;
- *   logger.error("install failed", { code: e.code, url: ctx.url, status: ctx.httpStatus });
- * }
- * ```
  */
 export type MinecraftKitErrorContext = {
   readonly url?: string;
