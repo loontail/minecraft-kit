@@ -72,9 +72,40 @@ jobs:
             exit 1
           fi
 
+  # why this job exists BEFORE bump: the tag and the `chore(release):` commit used to be
+  # pushed to main first, with the gates running only in the publish job afterwards. A
+  # red suite therefore left main permanently carrying a release commit and a tag
+  # pointing at code no gate ever accepted — with no npm publish and no GitHub Release,
+  # a version hole the next run silently skips past. `check:api` runs here rather than
+  # in the publish job on purpose: it diffs the public surface against the LAST tag, so
+  # it is only meaningful before the new tag exists.
+  gate:
+    name: Gate (typecheck / lint / test / build / exports / api)
+    needs: guard
+    if: needs.guard.outputs.proceed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22.12"
+          cache: npm
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npm run check:exports
+      - run: npm run check:api
+
   bump:
     name: Bump version
-    needs: guard
+    needs: [guard, gate]
     if: needs.guard.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     outputs:
