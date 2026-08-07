@@ -144,11 +144,17 @@ Pass `--debug` to surface raw stack traces instead.
 
 ## Programmatic CLI
 
-The `runCli` helper exported from `@loontail/minecraft-kit/cli` lets tests script the
-entire CLI against a stub UI:
+`mckit` is shipped as a binary only — the published package exposes no `./cli` import
+subpath, and `runCli` / `createStubUi` are `@internal`. This section documents the seam the
+repository's own tests use, for contributors working in a checkout; it is not a supported
+consumer API and it is not covered by semver.
+
+`runCli` drives the entire wizard against a stub UI:
 
 ```ts
-import { runCli, createStubUi } from "@loontail/minecraft-kit/cli";
+// from a repository checkout — see tests/cli/main.test.ts
+import { runCli } from "./src/cli/main";
+import { createStubUi } from "./src/cli/ui";
 
 const ui = createStubUi([
   "offline",               // startup auth pick

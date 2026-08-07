@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { filterArgsForJava } from "../../src/launch/jvm-compat";
+import type { Logger } from "../../src/types/logger";
 import { parseMajorVersion } from "../../src/versions/runtime";
 
 describe("parseMajorVersion", () => {
@@ -17,7 +18,7 @@ describe("parseMajorVersion", () => {
 
 describe("filterArgsForJava", () => {
   it("drops --sun-misc-unsafe-memory-access on Java 17", () => {
-    const log = vi.fn();
+    const log = vi.fn<Logger["log"]>();
     const result = filterArgsForJava({
       args: ["-Xmx4G", "--sun-misc-unsafe-memory-access=allow", "-Xms1G"],
       javaMajor: 17,
@@ -25,8 +26,11 @@ describe("filterArgsForJava", () => {
     });
     expect(result).toEqual(["-Xmx4G", "-Xms1G"]);
     expect(log).toHaveBeenCalledTimes(1);
-    expect(log.mock.calls[0][0]).toBe("warn");
-    expect(log.mock.calls[0][1]).toMatch(/Java 23/);
+    expect(log).toHaveBeenCalledWith("warn", expect.stringMatching(/Java 23/), {
+      flag: "--sun-misc-unsafe-memory-access=allow",
+      minJava: 23,
+      runtimeJava: 17,
+    });
   });
 
   it("keeps --sun-misc-unsafe-memory-access on Java 24", () => {

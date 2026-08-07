@@ -28,22 +28,28 @@ Don't bypass with `--no-verify` — CI runs the same checks.
 | Command | What it does |
 |---|---|
 | `npm run typecheck` | `tsc --noEmit` against the strict tsconfig. |
-| `npm run lint` | `biome check ./src ./tests`. |
+| `npm run lint` | `biome check ./src ./tests ./scripts`. |
 | `npm run lint:fix` | Apply safe Biome fixes. |
 | `npm run format` | Apply Biome formatting only. |
 | `npm test` | Run the full Vitest suite once. |
 | `npm run test:watch` | Vitest in watch mode. |
 | `npm run test:coverage` | Vitest with `--coverage` (v8 provider). |
-| `npm run build` | tsup bundle to `dist/` (library + CLI + sourcemaps + declarations). |
+| `npm run build` | tsup bundle to `dist/` (library + CLI + library sourcemaps + declarations). |
+| `npm run check:exports` | `attw --pack .` — packs the tarball and checks how every resolver mode (node10, node16 from CJS and ESM, bundler) resolves the export map's types and JS. Must be 🟢 in all four. Requires `npm run build` first. |
+| `npm run check:api` | Diffs the exported-name set of `src/index.ts` against the last `v*` tag and fails when a name disappeared without the release bump that shields a caret range from it. Needs full git history + tags. |
 | `npm run docs:api` | TypeDoc → `docs-site/api/`. |
 | `npm run docs:dev` | TypeDoc → VitePress dev server. |
 | `npm run docs:build` | TypeDoc → VitePress static build. |
 
-Before opening a PR, all four must pass:
+Before opening a PR, all of these must pass:
 
 ```bash
 npm run typecheck && npm run lint && npm test && npm run build
+npm run check:exports && npm run check:api
 ```
+
+`check:exports` and `check:api` run in CI as the `package shape` job; `check:exports` also gates
+the publish step in `release.yml`.
 
 ## Project conventions
 

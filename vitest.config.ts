@@ -1,5 +1,5 @@
 import { defineConfig } from "vitest/config";
-import pkg from "./package.json";
+import pkg from "./package.json" with { type: "json" };
 
 export default defineConfig({
   define: { __PKG_VERSION__: JSON.stringify(pkg.version) },
@@ -28,7 +28,6 @@ export default defineConfig({
         functions: 84,
         statements: 90,
       },
-      all: true,
       clean: true,
     },
   },

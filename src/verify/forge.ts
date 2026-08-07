@@ -86,6 +86,10 @@ export const verifyForge = async (input: VerifyAspectInput): Promise<Verificatio
       if (existence.status !== VerifyFileStatuses.OK) return;
 
       const parsed = parseJsonOrUndefined<ForgeVersionJson>(await readText(forgeVersionJsonPath));
+      // why: `findForgeVersionJsonPath` already parsed this file to match `inheritsFrom`, so the
+      // only way the parse fails here is a rewrite between the two reads (an install or repair
+      // running concurrently). Unreachable from a single-threaded test; kept because the
+      // alternative is reading `parsed.libraries` off undefined.
       if (parsed === undefined) {
         record({
           path: forgeVersionJsonPath,

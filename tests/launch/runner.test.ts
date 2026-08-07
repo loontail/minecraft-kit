@@ -1,21 +1,29 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { AuthModes } from "../../src";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../../src/core/errors";
 import { runLaunch } from "../../src/launch/runner";
 import type { LaunchComposition } from "../../src/types/launch";
 import type { ProcessStream, SpawnedProcess, Spawner } from "../../src/types/spawner";
 
+// `runLaunch` stats `javaPath` before spawning, so the fixture needs a real file on disk.
+const runtimeDir = mkdtempSync(path.join(tmpdir(), "mckit-launch-runner-"));
+const javaPath = path.join(runtimeDir, "java");
+writeFileSync(javaPath, "#!/bin/sh\n");
+
 const composition: LaunchComposition = {
   targetId: "target",
-  directory: "/minecraft",
-  javaPath: "/runtime/bin/java",
+  directory: runtimeDir,
+  javaPath,
   mainClass: "net.minecraft.client.main.Main",
   jvmArgs: [],
   gameArgs: [],
   classpath: [],
-  nativesDirectory: "/minecraft/versions/target/natives",
+  nativesDirectory: path.join(runtimeDir, "natives"),
   auth: { mode: AuthModes.OFFLINE, username: "Player" },
-  workingDirectory: "/minecraft",
+  workingDirectory: runtimeDir,
 };
 
 const stream: ProcessStream = {
@@ -59,6 +67,61 @@ const createControlledSpawner = (): {
     rejectExit,
   };
 };
+
+afterAll(() => {
+  rmSync(runtimeDir, { recursive: true, force: true });
+});
+
+describe("runLaunch java preflight", () => {
+  it("throws LAUNCH_JAVA_NOT_FOUND without spawning when the binary is absent", () => {
+    const spawn = vi.fn();
+    const missing = path.join(runtimeDir, "does-not-exist", "java");
+
+    let caught: unknown;
+    try {
+      runLaunch({ composition: { ...composition, javaPath: missing }, spawner: { spawn } });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(MinecraftKitError);
+    expect((caught as MinecraftKitError).code).toBe(MinecraftKitErrorCodes.LAUNCH_JAVA_NOT_FOUND);
+    expect((caught as MinecraftKitError).context).toMatchObject({ filePath: missing });
+    expect(spawn).not.toHaveBeenCalled();
+  });
+
+  it("throws LAUNCH_JAVA_NOT_FOUND when javaPath names a directory", () => {
+    const spawn = vi.fn();
+
+    expect(() =>
+      runLaunch({ composition: { ...composition, javaPath: runtimeDir }, spawner: { spawn } }),
+    ).toThrow(/Java executable not found/);
+    expect(spawn).not.toHaveBeenCalled();
+  });
+
+  it("emits no LAUNCH_STARTING event when the java preflight rejects the composition", () => {
+    const events: string[] = [];
+    const spawn = vi.fn();
+
+    expect(() =>
+      runLaunch({
+        composition: { ...composition, javaPath: path.join(runtimeDir, "nope") },
+        spawner: { spawn },
+        options: { onEvent: (event) => events.push(event.type) },
+      }),
+    ).toThrow(MinecraftKitError);
+    expect(events).toEqual([]);
+  });
+
+  // A bare command name resolves against PATH, which a stat cannot see — the check must not
+  // reject it or every consumer passing `javaPath: "java"` stops launching.
+  it("passes a non-absolute javaPath straight through to the spawner", async () => {
+    const { spawner, resolveExit } = createControlledSpawner();
+    const session = runLaunch({ composition: { ...composition, javaPath: "java" }, spawner });
+    resolveExit({ code: 0, signal: null });
+    await expect(session.exited).resolves.toMatchObject({ code: 0 });
+  });
+});
 
 describe("runLaunch", () => {
   afterEach(() => {

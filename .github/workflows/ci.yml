@@ -45,6 +45,34 @@ jobs:
 
       - run: npm run build
 
+  # Two publish-shape gates that the per-OS `check` matrix cannot express: what the tarball
+  # looks like to a consumer's resolver, and whether the exported-name set shrank without the
+  # release bump that shields a caret range from it.
+  package:
+    name: package shape
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # Full history + tags: check:exports diffs src/index.ts against the last v* tag and
+          # replays the release workflow's level derivation over the commits since it.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22.12"
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      # `attw --pack .` packs the tarball itself, so this checks exactly what npm would publish.
+      - run: npm run check:exports
+
+      - run: npm run check:api
+
   coverage:
     name: coverage
     runs-on: ubuntu-latest

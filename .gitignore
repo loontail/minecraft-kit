@@ -6,3 +6,4 @@ docs-site/.vitepress/cache
 docs-site/.vitepress/dist
 *.log
 .DS_Store
+*.tgz

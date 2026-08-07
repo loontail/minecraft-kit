@@ -28,14 +28,15 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs",
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      },
       "default": "./dist/index.mjs"
-    },
-    "./cli": {
-      "types": "./dist/cli/index.d.ts",
-      "default": "./dist/cli/index.mjs"
     },
     "./package.json": "./package.json"
   },
@@ -48,7 +49,6 @@
     "dist/index.d.ts",
     "dist/index.d.cts",
     "dist/cli/index.mjs",
-    "dist/cli/index.d.ts",
     "README.md",
     "LICENSE"
   ],
@@ -63,10 +63,12 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "lint": "biome check ./src ./tests",
-    "lint:fix": "biome check --write ./src ./tests",
-    "format": "biome format --write ./src ./tests",
+    "lint": "biome check ./src ./tests ./scripts",
+    "lint:fix": "biome check --write ./src ./tests ./scripts",
+    "format": "biome format --write ./src ./tests ./scripts",
     "typecheck": "tsc --noEmit",
+    "check:exports": "attw --pack .",
+    "check:api": "node scripts/check-exported-names.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -85,12 +87,13 @@
     "@clack/prompts": "^1.7.0"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
     "@biomejs/biome": "^2.5.7",
     "@commitlint/cli": "^21.2.1",
     "@commitlint/config-conventional": "^21.2.0",
     "@types/node": "^22.12.0",
     "@types/yauzl": "^3.4.0",
-    "@vitest/coverage-v8": "^1.6.1",
+    "@vitest/coverage-v8": "^4.1.10",
     "husky": "^9.1.7",
     "lint-staged": "^17.3.0",
     "tsup": "^8.5.1",
@@ -99,6 +102,6 @@
     "typedoc-vitepress-theme": "~1.1.3",
     "typescript": "~5.9.3",
     "vitepress": "^1.6.4",
-    "vitest": "^1.6.1"
+    "vitest": "^4.1.10"
   }
 }

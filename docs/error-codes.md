@@ -76,7 +76,7 @@ typo on either side surfaces at compile time.
 
 | Code | Thrown when | Context fields |
 |---|---|---|
-| `LAUNCH_JAVA_NOT_FOUND` | Spawning the configured `javaPath` failed with `ENOENT` — the binary does not exist. Rejects the spawned process's `exited` promise. | `filePath`, `errno` |
+| `LAUNCH_JAVA_NOT_FOUND` | `kit.launch.run` was handed a composition whose absolute `javaPath` is not a file — thrown **synchronously**, before anything is spawned. Also raised when a spawn fails with `ENOENT` (a relative `javaPath` resolved against `PATH`, or a binary deleted between the check and the spawn), in which case it rejects the spawned process's `exited` promise. | `filePath`, `errno` (spawn failures only) |
 | `LAUNCH_PROCESS_FAILED` | Minecraft exited with a non-zero code without being aborted; or the process could not be spawned for a reason other than `ENOENT` (`EACCES`, `EPERM`, `ENOEXEC`, …). | `exitCode`, or `filePath` + `errno` on a spawn failure |
 | `LAUNCH_ABORTED` | The install or launch was cancelled via signal. Also used by the install runner's `checkpoint()` helper when an abort is observed mid-operation. | — |
 

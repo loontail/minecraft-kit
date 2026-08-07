@@ -29,6 +29,9 @@ export type LaunchAspect = {
    * Spawn the game. The only `run` in the library that is **not** async: it returns the live
    * {@link LaunchSession} synchronously so the caller holds `pid` and `abort()` immediately.
    * `await`ing it yields the session, not the exit — wait on `session.exited` for that.
+   *
+   * Throws `LAUNCH_JAVA_NOT_FOUND` before spawning when `composition.javaPath` is an absolute
+   * path that is not a file.
    */
   run(composition: LaunchComposition, options?: LaunchRunOptions): LaunchSession;
   /**

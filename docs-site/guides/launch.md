@@ -49,7 +49,14 @@ Log, diff, persist, or modify the composition before passing it to `run()`.
 ## Run
 
 `run()` spawns the Java process via the injected `Spawner` (default
-`ChildProcessSpawner`). The returned `LaunchSession`:
+`ChildProcessSpawner`).
+
+Before spawning, `run()` stats `composition.javaPath` and throws `LAUNCH_JAVA_NOT_FOUND`
+synchronously when an absolute path is not a file — so a missing runtime surfaces at the call
+site, where you can still repair it, instead of as a rejected `exited` on a session that looks
+alive. A relative `javaPath` is passed straight through, because it resolves against `PATH`.
+
+The returned `LaunchSession`:
 
 ```ts
 interface LaunchSession {

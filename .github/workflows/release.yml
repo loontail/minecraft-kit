@@ -167,6 +167,10 @@ jobs:
       - run: npm test
       - run: npm run build
 
+      # Resolution shape of the tarball about to be published. Cheap, and the only gate that
+      # sees the export map the way a consumer's TypeScript will.
+      - run: npm run check:exports
+
       - run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

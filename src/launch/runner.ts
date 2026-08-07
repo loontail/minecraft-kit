@@ -1,3 +1,5 @@
+import { statSync } from "node:fs";
+import path from "node:path";
 import { DEFAULT_KILL_GRACE_MS } from "../constants/defaults";
 import { MinecraftKitError, MinecraftKitErrorCodes } from "../core/errors";
 import { EventTypes } from "../types/events";
@@ -24,11 +26,15 @@ export type RunLaunchInput = {
  * Spawn the configured Java process. Returns a {@link LaunchSession} immediately after the
  * process is created; the `exited` promise resolves when the game terminates.
  *
+ * Throws `LAUNCH_JAVA_NOT_FOUND` synchronously when `composition.javaPath` is an absolute path
+ * that is not a file.
+ *
  * @internal
  */
 export const runLaunch = (input: RunLaunchInput): LaunchSession => {
   const composition = input.composition;
   const options = input.options ?? {};
+  assertJavaExecutable(composition.javaPath);
   const args = [...composition.jvmArgs, composition.mainClass, ...composition.gameArgs];
   options.onEvent?.({
     type: EventTypes.LAUNCH_STARTING,
@@ -107,6 +113,35 @@ export const runLaunch = (input: RunLaunchInput): LaunchSession => {
       doAbort(reason ?? "user");
     },
   };
+};
+
+/**
+ * Reject a composition whose java binary is plainly absent, before anything is spawned.
+ *
+ * why: a `Spawner` reports ENOENT through the async `exited` promise, so a caller that holds the
+ * returned session — reads `pid`, wires `abort()`, flips its UI to "running" — is doing that for a
+ * process that never existed. Failing here hands the caller the code its runtime-repair path
+ * already keys on, at the call site that can still act on it.
+ *
+ * A non-absolute `javaPath` is passed through untouched: it resolves against `PATH`, which a
+ * `stat` cannot see.
+ */
+const assertJavaExecutable = (javaPath: string): void => {
+  if (!path.isAbsolute(javaPath)) return;
+  if (isFile(javaPath)) return;
+  throw new MinecraftKitError(
+    MinecraftKitErrorCodes.LAUNCH_JAVA_NOT_FOUND,
+    `Java executable not found: ${javaPath}`,
+    { context: { filePath: javaPath } },
+  );
+};
+
+const isFile = (filePath: string): boolean => {
+  try {
+    return statSync(filePath).isFile();
+  } catch {
+    return false;
+  }
 };
 
 const reasonFrom = (value: unknown): string => {

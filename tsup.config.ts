@@ -5,7 +5,11 @@ const shared: Omit<Options, "entry" | "format" | "clean" | "banner"> = {
   target: "node22",
   platform: "node",
   dts: true,
-  sourcemap: true,
+  // why: shipping them is 1.54 MB in every install (the package trebles) for a
+  // debug aid nothing enables — the sole consumer runs this in Electron's main
+  // process without --enable-source-maps. Not emitting them is also what removes
+  // the dangling sourceMappingURL, which is the reason they were briefly shipped.
+  sourcemap: false,
   splitting: false,
   treeshake: true,
   shims: false,
@@ -28,5 +32,7 @@ export default defineConfig([
     format: ["esm"],
     clean: false,
     banner: { js: "#!/usr/bin/env node" },
+    // The `mckit` bin is not an import target: no export subpath, no consumer types.
+    dts: false,
   },
 ]);
