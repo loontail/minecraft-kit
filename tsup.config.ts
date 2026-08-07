@@ -1,5 +1,8 @@
+import { rm } from "node:fs/promises";
 import { defineConfig, type Options } from "tsup";
 import pkg from "./package.json";
+
+const OUT_DIR = "dist";
 
 const shared: Omit<Options, "entry" | "format" | "clean" | "banner"> = {
   target: "node22",
@@ -19,12 +22,12 @@ const shared: Omit<Options, "entry" | "format" | "clean" | "banner"> = {
   define: { __PKG_VERSION__: JSON.stringify(pkg.version) },
 };
 
-export default defineConfig([
+export const configs: readonly Options[] = [
   {
     ...shared,
     entry: { index: "src/index.ts" },
     format: ["esm", "cjs"],
-    clean: true,
+    clean: false,
   },
   {
     ...shared,
@@ -35,4 +38,12 @@ export default defineConfig([
     // The `mckit` bin is not an import target: no export subpath, no consumer types.
     dts: false,
   },
-]);
+];
+
+// why: tsup runs the array's configs through `Promise.all`, so a per-config `clean` races the
+// sibling writing `dist/cli/index.mjs` — and npm silently omits a missing `files` entry, so the
+// publish would still succeed with the `mckit` bin pointing at nothing. Wipe once, up front.
+export default defineConfig(async () => {
+  await rm(OUT_DIR, { recursive: true, force: true });
+  return [...configs];
+});

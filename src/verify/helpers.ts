@@ -71,12 +71,14 @@ export type VerifyHashedFileInput = {
 };
 
 /**
- * Verify a file by existence + optional size + optional sha1.
+ * Verify a file by existence + optional size + optional sha1. The signal is handed to the hash so a
+ * cancel lands mid-file instead of after it.
  *
  * @internal
  */
 export const verifyHashedFile = async (
   input: VerifyHashedFileInput,
+  signal?: AbortSignal,
 ): Promise<VerificationFileResult> => {
   if (!(await fileExists(input.path))) {
     return {
@@ -103,7 +105,7 @@ export const verifyHashedFile = async (
     }
   }
   if (input.expectedSha1 !== undefined) {
-    const actualSha1 = await sha1OfFile(input.path);
+    const actualSha1 = await sha1OfFile(input.path, signal);
     if (actualSha1 !== input.expectedSha1) {
       return {
         path: input.path,
@@ -136,8 +138,8 @@ export const verifyHashedFile = async (
  * turns the largest bucket in the kit (~4,000 asset objects) into multi-second silence followed by
  * one burst of 4,000 `verify:file-checked` events on a single tick.
  *
- * The signal is re-checked inside each pooled task so an abort stops the queue from draining
- * instead of only being noticed at the next `record()`.
+ * The signal is re-checked inside each pooled task, and handed to the hash of each file, so an
+ * abort stops the queue from draining instead of only being noticed at the next `record()`.
  *
  * @internal
  */
@@ -162,7 +164,7 @@ export const verifyHashedFiles = async (
     inputs.map((input, index) =>
       limit(async () => {
         assertNotAborted(signal, "Verification aborted by signal");
-        slots[index] = await verifyHashedFile(input);
+        slots[index] = await verifyHashedFile(input, signal);
         flushCompletedPrefix();
       }),
     ),

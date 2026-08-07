@@ -6,6 +6,8 @@ import { targetPaths } from "../core/paths";
 import { listExtractedInstallerArtifacts } from "../install/forge-install";
 import {
   type ForgeProcessorOutput,
+  type ForgeProcessorOutputScan,
+  ForgeProcessorOutputScanKinds,
   listForgeProcessorOutputs,
 } from "../install/forge-processor-outputs";
 import { planLibraryDownloads } from "../install/libraries";
@@ -13,6 +15,7 @@ import type { ForgeVersionJson } from "../types/forge";
 import { DownloadCategories } from "../types/install";
 import { Loaders } from "../types/loader";
 import {
+  type VerificationFileResult,
   VerificationKinds,
   type VerificationResult,
   type VerifyAspectInput,
@@ -72,7 +75,7 @@ export const verifyForge = async (input: VerifyAspectInput): Promise<Verificatio
       if (forgeVersionJsonPath === null) {
         record(
           await verifyExistence({
-            path: targetPaths.versionJson(input.target.directory, loader.fullVersion),
+            path: targetPaths.versionJson(input.target.directory, forgeVersionId(loader)),
             category: VerifyFileCategories.LOADER_LIBRARY,
           }),
         );
@@ -111,11 +114,13 @@ export const verifyForge = async (input: VerifyAspectInput): Promise<Verificatio
         VerifyFileCategories.LOADER_LIBRARY,
         input.signal,
       );
-      const generated = await listForgeProcessorOutputs({
+      const scan = await listForgeProcessorOutputs({
         directory: input.target.directory,
         loader,
         minecraft: input.target.minecraft,
       });
+      const generated =
+        scan.kind === ForgeProcessorOutputScanKinds.DECLARED ? scan.outputs : ([] as const);
       const covered = new Set([
         ...forgeLibraries.downloads.map((action) => action.target),
         ...generated.map((output) => output.path),
@@ -127,6 +132,8 @@ export const verifyForge = async (input: VerifyAspectInput): Promise<Verificatio
         covered,
         ...withOptionalSignal(input.signal),
       });
+      const unreadableInstaller = unreadableInstallerResult(scan);
+      if (unreadableInstaller !== undefined) record(unreadableInstaller);
       await recordProcessorOutputs({
         record,
         generated,
@@ -134,6 +141,36 @@ export const verifyForge = async (input: VerifyAspectInput): Promise<Verificatio
       });
     },
   );
+};
+
+/**
+ * Version id the Forge installer writes under `versions/`, which is *not* `loader.fullVersion`:
+ * that one is the Maven version (`1.20.1-47.2.0`) and the installer's `install_profile.json`
+ * declares `1.20.1-forge-47.2.0`. Reporting the Maven-shaped path left the issue unmatchable
+ * against the install plan's `WRITE_VERSION_JSON` action, so repair never rewrote the missing file.
+ * Same `<mc>-forge-<forge>` convention `findForgeVersionJsonPath` scans for.
+ */
+const forgeVersionId = (loader: { minecraftVersion: string; forgeVersion: string }): string =>
+  `${loader.minecraftVersion}-forge-${loader.forgeVersion}`;
+
+/**
+ * The installer JAR reported as a broken file when it can no longer say what the processors should
+ * have produced. Nothing else in `verify.forge` reads the installer, so staying silent here left
+ * the generated artifacts unchecked and the whole target reported clean — the exact state in which
+ * repair logs "clean", marks the install ready, and the game dies inside Forge's bootstrap.
+ */
+const unreadableInstallerResult = (
+  scan: ForgeProcessorOutputScan,
+): VerificationFileResult | undefined => {
+  if (scan.kind === ForgeProcessorOutputScanKinds.DECLARED) return undefined;
+  return {
+    path: scan.installerPath,
+    category: VerifyFileCategories.LOADER_LIBRARY,
+    status:
+      scan.kind === ForgeProcessorOutputScanKinds.INSTALLER_MISSING
+        ? VerifyFileStatuses.MISSING
+        : VerifyFileStatuses.CORRUPT,
+  };
 };
 
 /**
@@ -170,11 +207,15 @@ const recordExtractedInstallerArtifacts = async (input: {
 /**
  * Hash-check the artifacts the Forge processors generate locally.
  *
- * `install_profile.json` declares a SHA-1 for each one, but nothing downloads them, so they appear
- * in no `DownloadAction` and the plan-derived scan above cannot see them. Without this, a
+ * `install_profile.json` declares a SHA-1 for most of them, but nothing downloads them, so they
+ * appear in no `DownloadAction` and the plan-derived scan above cannot see them. Without this, a
  * truncated `<mc>-srg.jar` — the state a cancelled or crashed install leaves behind — read as a
  * valid Forge install and only surfaced as a launch-time crash inside Forge's bootstrap.
  * `repair.forge` maps an issue reported here back to the processor that produces the file.
+ *
+ * An output the profile publishes no digest for is existence-checked, the same downgrade
+ * {@link recordExtractedInstallerArtifacts} makes for `url: ""` artifacts. Dropping it instead
+ * cost it every check it could have had.
  */
 const recordProcessorOutputs = async (input: {
   readonly record: VerificationRecorder;
@@ -185,7 +226,7 @@ const recordProcessorOutputs = async (input: {
     input.record,
     input.generated.map((output) => ({
       path: output.path,
-      expectedSha1: output.sha1,
+      ...(output.sha1 !== undefined ? { expectedSha1: output.sha1 } : {}),
       category: VerifyFileCategories.FORGE_PROCESSOR_OUTPUT,
     })),
     input.signal,

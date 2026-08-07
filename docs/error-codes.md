@@ -56,7 +56,7 @@ typo on either side surfaces at compile time.
 |---|---|---|
 | `MANIFEST_NOT_FOUND` | Version / loader / runtime metadata was not found upstream, or the on-disk version JSON used for launch could not be located. | `version`, `targetId`, `loaderType` |
 | `MANIFEST_INVALID` | A network-fetched manifest parsed but failed a shape guard from `src/core/guards.ts`. Sources guarded today: Mojang `version_manifest_v2.json` root, per-version manifest, asset index, Java runtimes index, per-component runtime files manifest, Fabric profile JSON. Also raised when a Maven coordinate is malformed. | `version`, `url`, `platform`, `input` |
-| `METADATA_PARSE_ERROR` | A metadata document failed to JSON-parse outside the Forge installer (Forge JSON-parse failures throw `FORGE_INSTALLER_INVALID`). | `url` |
+| `METADATA_PARSE_ERROR` | A response body over the network is not valid JSON (`HttpResponse.json()`). Parse failures with a narrower source keep their own code: `MANIFEST_INVALID` for the on-disk version JSON, `FORGE_INSTALLER_INVALID` for installer entries. | `url`, `status` |
 
 ## Runtime
 
@@ -104,13 +104,16 @@ network failed vs. Xbox Live missing).
 |---|---|---|
 | `INVALID_INPUT` | A public API was called with an obviously wrong argument (empty username, wrong loader type for an aspect verifier, malformed coordinate). | varies |
 | `VERIFICATION_FAILED` | Reserved for future use. | — |
-| `NOT_IMPLEMENTED` | A code path is intentionally not implemented yet. | — |
-| `UNSUPPORTED_VERSION` | The selected Minecraft / loader / runtime version is outside a supported range for the requested operation. | `version` |
+| `NOT_IMPLEMENTED` | Reserved for future use — intended for an intentionally unimplemented code path. | — |
+| `UNSUPPORTED_VERSION` | Reserved for future use — intended for a Minecraft / loader / runtime version outside a supported range for the requested operation. | — |
 
 ## Conventions
 
 - All thrown errors must extend `MinecraftKitError`. Wrapping a lower-level error
   preserves it as `cause`.
+- A code no throw site reaches yet is documented as `Reserved …`. `tests/api-surface.test.ts`
+  fails on any other row whose code appears nowhere in `src/`, so this table cannot promise a
+  trigger the library does not have and no consumer branches on an unreachable code.
 - Context fields are *additive* — adding a new field is non-breaking, removing one is breaking.
 - Field names follow the union in `MinecraftKitErrorContext` (`url`, `filePath`, `expectedHash`,
   `actualHash`, `expectedSize`, `actualSize`, `httpStatus`, `exitCode`, `platform`, `version`).

@@ -12,6 +12,7 @@ import type { FakeHttpClient } from "../helpers/fake-http";
 import {
   buildForgeTarget,
   createForgeHttp,
+  FORGE_FULL_VERSION,
   FORGE_LIBRARY_BODY,
   FORGE_PATCHED_BODY,
   FORGE_PATCHED_RELATIVE,
@@ -88,5 +89,20 @@ describe("planForgeRepair — broken processor outputs", () => {
     const plan = await planRepairWithOutput(FORGE_PATCHED_BODY);
 
     expect(plan.actions).toEqual([]);
+  });
+
+  // Verify reports the installer itself when it can no longer say what the processors should have
+  // produced. Repair has to treat that as "re-run everything": the outputs on disk may be fine or
+  // may be truncated, and nothing left on disk can tell the difference.
+  it("re-runs every processor when verify could not read the installer", async () => {
+    await fs.writeFile(patchedJar, FORGE_PATCHED_BODY);
+    await fs.rm(targetPaths.forgeInstaller(directory, FORGE_FULL_VERSION));
+    const target = buildForgeTarget(directory);
+    const cache = createMemoryCache();
+    const verification = await verifyForge({ target, http, cache });
+
+    const plan = await planForgeRepair({ target, http, cache, from: verification });
+
+    expect(processorActions(plan.actions)).toHaveLength(1);
   });
 });

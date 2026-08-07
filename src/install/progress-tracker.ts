@@ -118,7 +118,13 @@ export type InstallProgressTracker = {
   snapshot(): ProgressSnapshot;
   /** First push fires immediately with the initial snapshot. */
   subscribe(listener: (snapshot: ProgressSnapshot) => void): () => void;
-  /** Force-emit a final 100% snapshot and stop the throttle timer. */
+  /**
+   * Force-emit a final snapshot and stop the throttle timer. The snapshot's stage is `finalize`,
+   * whose byte pair carries the bytes the run ACTUALLY moved — so a run that downloaded everything
+   * ends at 100%, while one that failed or was cancelled ends where it stopped instead of claiming
+   * the whole plan. `overallBytesDownloaded` / `overallTotalBytes` are left untouched, so
+   * `overallPercent` stays the honest figure on every path.
+   */
   finish(): void;
 };
 
@@ -156,14 +162,6 @@ const PROGRESS_STAGE_FOR_ASPECT: Record<VerificationKind, ProgressStage> = {
   [VerificationKinds.FABRIC]: ProgressStages.LOADER,
   [VerificationKinds.FORGE]: ProgressStages.LOADER,
 };
-
-const ALL_STAGES: readonly ProgressStage[] = [
-  ProgressStages.PREPARE,
-  ProgressStages.RUNTIME,
-  ProgressStages.MINECRAFT,
-  ProgressStages.LOADER,
-  ProgressStages.FINALIZE,
-];
 
 /**
  * Aggregate `ProgressEvent`s from one install/repair run into throttled UI snapshots.
@@ -230,14 +228,21 @@ export const createInstallProgressTracker = (
   let pendingTimer: NodeJS.Timeout | null = null;
   let finished = false;
 
+  const percentOf = (bytes: number, total: number): number => {
+    if (total > 0) return clamp((bytes / total) * 100);
+    // why: a run with nothing to download (an already-complete repair) has no denominator, so it
+    // only reads as 100% once the run is over.
+    return finished ? 100 : 0;
+  };
+
   const snapshot = (): ProgressSnapshot => {
     const stageTotal = stageTotals[currentStage];
     const stageBytes = stageDone[currentStage] + stageInFlight[currentStage];
     const overallBytes = totalDone + totalInFlight;
     return {
       stage: currentStage,
-      stagePercent: stageTotal > 0 ? clamp((stageBytes / stageTotal) * 100) : 0,
-      overallPercent: overallTotal > 0 ? clamp((overallBytes / overallTotal) * 100) : 0,
+      stagePercent: percentOf(stageBytes, stageTotal),
+      overallPercent: percentOf(overallBytes, overallTotal),
       bytesDownloaded: stageBytes,
       totalBytes: stageTotal,
       overallBytesDownloaded: overallBytes,
@@ -273,6 +278,20 @@ export const createInstallProgressTracker = (
     pendingTimer = setTimeout(push, throttleMs - elapsed);
   };
 
+  /**
+   * Give back the bytes of an attempt that is being abandoned. A retry re-streams the file from
+   * byte 0 (no HTTP Range resumption) and `downloadFile` emits a fresh `download:started` per
+   * attempt, so without this the abandoned attempt's bytes stay in `stageInFlight` forever and the
+   * numerator overruns the denominator.
+   */
+  const reclaimInFlight = (target: string): void => {
+    const entry = inFlightByTarget.get(target);
+    if (!entry) return;
+    stageInFlight[entry.stage] -= entry.bytes;
+    totalInFlight -= entry.bytes;
+    inFlightByTarget.delete(target);
+  };
+
   const applyCompletionWhenStartWasMissed = (
     target: string,
     eventBytes: number | undefined,
@@ -305,6 +324,7 @@ export const createInstallProgressTracker = (
       case EventTypes.DOWNLOAD_STARTED: {
         const stage =
           stageOfTarget.get(event.file.target) ?? setStageFromAspect(event.aspect) ?? currentStage;
+        reclaimInFlight(event.file.target);
         inFlightByTarget.set(event.file.target, { stage, bytes: 0 });
         currentFile = event.file.target;
         schedulePush();
@@ -340,15 +360,18 @@ export const createInstallProgressTracker = (
         const entry = inFlightByTarget.get(event.file.target);
         if (entry) {
           const finalBytes = event.bytes ?? entry.bytes;
-          stageInFlight[entry.stage] -= entry.bytes;
-          totalInFlight -= entry.bytes;
+          reclaimInFlight(event.file.target);
           stageDone[entry.stage] += finalBytes;
           totalDone += finalBytes;
-          inFlightByTarget.delete(event.file.target);
         } else {
           applyCompletionWhenStartWasMissed(event.file.target, event.bytes);
           setStageFromAspect(event.aspect);
         }
+        schedulePush();
+        return;
+      }
+      case EventTypes.DOWNLOAD_FAILED: {
+        reclaimInFlight(event.file.target);
         schedulePush();
         return;
       }
@@ -376,12 +399,22 @@ export const createInstallProgressTracker = (
       clearTimer();
       currentStage = ProgressStages.FINALIZE;
       currentFile = undefined;
-      totalDone = overallTotal;
+      // why: no DownloadCategory maps to FINALIZE, so its own total is structurally 0 and the stage
+      // pair would report 0/0 — the bar snapping back to 0% on the very last event of the run.
+      // FINALIZE stands for the run ending, so it carries the bytes the run ACTUALLY moved rather
+      // than the plan total: finish() also runs on failure and on cancel, and reporting the plan
+      // there turned a run that died at 4% with its temp file already unlinked into a final
+      // "23.8 MB / 23.8 MB downloaded". On the success path the two are equal, so that path is
+      // unchanged. Only FINALIZE's own counters are touched — overwriting every stage's `done`
+      // with its total made the per-stage denominators sum to twice the run, which double-counts
+      // for any consumer drawing a segmented bar, and it inflated overallPercent to 100% on a
+      // run that failed.
+      const moved = totalDone + totalInFlight;
+      totalDone = moved;
       totalInFlight = 0;
-      for (const stage of ALL_STAGES) {
-        stageDone[stage] = stageTotals[stage];
-        stageInFlight[stage] = 0;
-      }
+      stageTotals[ProgressStages.FINALIZE] = moved;
+      stageDone[ProgressStages.FINALIZE] = moved;
+      stageInFlight[ProgressStages.FINALIZE] = 0;
       const snap = snapshot();
       for (const listener of listeners) listener(snap);
     },

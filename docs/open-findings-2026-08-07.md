@@ -1,4 +1,13 @@
-# Open findings — 2026-08-07 adversarial review
+# Findings — 2026-08-07 adversarial review
+
+**Status 2026-08-08: everything below is FIXED**, each with a test that fails without the
+fix. Kept as the record of what the defects were and why the fixes are shaped as they are.
+Two items are not code and remain open:
+
+- The published **v0.9.0** on npm still carries dangling `//# sourceMappingURL=` comments
+  with no map files. Fixed at HEAD; it clears itself on the next release.
+- `npm run check:api` fails on the `./cli` subpath removal until a release marks it
+  breaking. That is deliberate — the gate is doing its job.
 
 Verified against the code. The release-ordering fix from the same review already landed.
 

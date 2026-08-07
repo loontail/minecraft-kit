@@ -4,10 +4,11 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { targetPaths } from "../../src/core/paths";
 import { createMemoryCache } from "../../src/http/cache";
+import type { Target } from "../../src/types/target";
 import { VerifyFileCategories, VerifyFileStatuses } from "../../src/types/verify";
 import { verifyForge } from "../../src/verify/forge";
 import { FakeHttpClient } from "../helpers/fake-http";
-import { buildForgeTarget, FORGE_FULL_VERSION } from "../helpers/forge-fixture";
+import { buildForgeTarget, FORGE_FULL_VERSION, forgeLoader } from "../helpers/forge-fixture";
 
 // verify.forge stays offline for these cases: it never reaches a manifest fetch, so an
 // unmocked client is the strongest assertion that nothing tries.
@@ -58,6 +59,26 @@ describe("verifyForge with no usable version JSON", () => {
         },
       ]);
       expect(result.checkedFiles).toBe(1);
+    });
+  });
+
+  // `loader.fullVersion` is the Maven version (`1.20.1-47.2.0`), not the version id Forge's
+  // installer writes (`1.20.1-forge-47.2.0`). Reporting the Maven-shaped path made the issue
+  // unmatchable against the install plan's WRITE_VERSION_JSON action, so repair silently skipped
+  // rewriting the one file it was asked to restore.
+  it("reports the version id the install plan writes, not the Maven full version", async () => {
+    await withRoot(async (root) => {
+      const target: Target = {
+        ...buildForgeTarget(root),
+        loader: { ...forgeLoader(), fullVersion: "1.20.1-47.2.0" },
+      };
+      await fs.mkdir(path.join(targetPaths.versionsDir(root), "1.20.1"), { recursive: true });
+
+      const result = await verifyForge({ target, ...offline() });
+
+      expect(result.issues.map((issue) => issue.path)).toEqual([
+        targetPaths.versionJson(root, FORGE_FULL_VERSION),
+      ]);
     });
   });
 

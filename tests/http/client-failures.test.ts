@@ -226,4 +226,28 @@ describe("FetchHttpClient request shaping", () => {
 
     expect(new TextDecoder().decode(await response.bytes())).toBe("bytes");
   });
+
+  // why this matters beyond tidiness: every other failure in FetchHttpClient leaves as a
+  // MinecraftKitError, so a consumer can branch on the code and offer a repair. A bad
+  // JSON body used to escape as the platform's own SyntaxError, reach the launcher
+  // unclassified, and render as a generic failure with no actionable text.
+  it("wraps a malformed JSON body as METADATA_PARSE_ERROR, not a bare SyntaxError", async () => {
+    harness.serve(() => ({
+      headers: { "content-type": "application/json" },
+      body: "<html>gateway timeout</html>",
+    }));
+
+    const response = await new FetchHttpClient().request(harness.url("/manifest.json"));
+    const failure = await response.json().then(
+      () => null,
+      (caught: unknown) => caught,
+    );
+
+    expect(failure).toBeInstanceOf(MinecraftKitError);
+    expect((failure as MinecraftKitError).code).toBe(MinecraftKitErrorCodes.METADATA_PARSE_ERROR);
+    expect((failure as MinecraftKitError).context).toMatchObject({
+      url: harness.url("/manifest.json"),
+      status: 200,
+    });
+  });
 });

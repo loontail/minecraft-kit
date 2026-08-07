@@ -131,9 +131,20 @@ class FetchHttpResponse implements HttpResponse {
     }
   }
 
+  // why the wrap: every other failure in this class leaves as a MinecraftKitError, so a
+  // caller can branch on a code. A malformed response body was the one exception — the
+  // platform's SyntaxError escaped unwrapped, reached the consumer as an unclassified
+  // error, and rendered as a generic failure with no actionable text and no repair
+  // offer. This is the path METADATA_PARSE_ERROR was registered and documented for.
   async json<T = unknown>(): Promise<T> {
     try {
       return (await this.response.json()) as T;
+    } catch (cause) {
+      throw new MinecraftKitError(
+        MinecraftKitErrorCodes.METADATA_PARSE_ERROR,
+        `Response body is not valid JSON: ${this.url}`,
+        { cause, context: { url: this.url, status: this.response.status } },
+      );
     } finally {
       this.stopForwardingAbort();
     }

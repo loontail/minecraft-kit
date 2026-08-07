@@ -149,18 +149,160 @@ describe("createInstallProgressTracker", () => {
     expect(snap.overallTotalBytes).toBe(300);
   });
 
-  it("reports both pairs complete after finish()", () => {
+  // A retry re-streams the file from byte 0, and download.ts emits a fresh `download:started` per
+  // attempt, so the abandoned attempt's bytes must be given back — otherwise they are counted
+  // forever and the numerator overruns the denominator.
+  it("does not double-count bytes when an attempt restarts", () => {
+    const tracker = createInstallProgressTracker(planOf([download("/mc/a", "library", 1000)]), {
+      throttleMs: 0,
+    });
+    tracker.onEvent({
+      type: "install:phase-changed",
+      phase: InstallPhases.DOWNLOADING_LIBRARIES,
+      previous: null,
+    });
+    tracker.onEvent({
+      type: "download:started",
+      file: { url: "x", target: "/mc/a" },
+      expectedSize: 1000,
+    });
+    tracker.onEvent({
+      type: "download:progress",
+      file: { url: "x", target: "/mc/a" },
+      bytesDownloaded: 600,
+      totalBytes: 1000,
+    });
+    tracker.onEvent({
+      type: "download:started",
+      file: { url: "x", target: "/mc/a" },
+      expectedSize: 1000,
+    });
+    expect(tracker.snapshot().bytesDownloaded).toBe(0);
+
+    tracker.onEvent({
+      type: "download:progress",
+      file: { url: "x", target: "/mc/a" },
+      bytesDownloaded: 1000,
+      totalBytes: 1000,
+    });
+    tracker.onEvent({
+      type: "download:completed",
+      file: { url: "x", target: "/mc/a" },
+      durationMs: 1,
+      bytes: 1000,
+    });
+
+    const snap = tracker.snapshot();
+    expect(snap.bytesDownloaded).toBe(1000);
+    expect(snap.totalBytes).toBe(1000);
+    expect(snap.stagePercent).toBe(100);
+    expect(snap.overallBytesDownloaded).toBe(1000);
+  });
+
+  it("releases in-flight bytes when a download fails", () => {
+    const tracker = createInstallProgressTracker(planOf([download("/mc/a", "library", 1000)]), {
+      throttleMs: 0,
+    });
+    tracker.onEvent({
+      type: "install:phase-changed",
+      phase: InstallPhases.DOWNLOADING_LIBRARIES,
+      previous: null,
+    });
+    tracker.onEvent({
+      type: "download:started",
+      file: { url: "x", target: "/mc/a" },
+      expectedSize: 1000,
+    });
+    tracker.onEvent({
+      type: "download:progress",
+      file: { url: "x", target: "/mc/a" },
+      bytesDownloaded: 600,
+      totalBytes: 1000,
+    });
+    tracker.onEvent({
+      type: "download:failed",
+      file: { url: "x", target: "/mc/a" },
+      error: new Error("stalled"),
+      willRetry: false,
+    });
+
+    expect(tracker.snapshot().bytesDownloaded).toBe(0);
+    expect(tracker.snapshot().overallBytesDownloaded).toBe(0);
+  });
+
+  it("reports both pairs complete after finish() on a run that downloaded everything", () => {
     const tracker = createInstallProgressTracker(
       planOf([download("/rt/a", "runtime-file", 100), download("/mc/a", "client-jar", 200)]),
       { throttleMs: 0 },
     );
 
+    tracker.onEvent({
+      type: "download:completed",
+      file: { url: "x", target: "/rt/a" },
+      durationMs: 1,
+      bytes: 100,
+    });
+    tracker.onEvent({
+      type: "download:completed",
+      file: { url: "x", target: "/mc/a" },
+      durationMs: 1,
+      bytes: 200,
+    });
     tracker.finish();
 
     const snap = tracker.snapshot();
-    expect(snap.bytesDownloaded).toBe(snap.totalBytes);
-    expect(snap.overallBytesDownloaded).toBe(snap.overallTotalBytes);
+    expect(snap.stage).toBe(ProgressStages.FINALIZE);
+    expect(snap.bytesDownloaded).toBe(300);
+    expect(snap.totalBytes).toBe(300);
+    expect(snap.stagePercent).toBe(100);
+    expect(snap.overallBytesDownloaded).toBe(300);
     expect(snap.overallTotalBytes).toBe(300);
+    expect(snap.overallPercent).toBe(100);
+  });
+
+  // finish() also runs on failure and on cancel. Reporting the PLAN total there turned a
+  // run that died early into a final "everything downloaded" line, with the temp file
+  // already unlinked and nothing on disk.
+  it("does not claim the plan was downloaded when the run failed part-way", () => {
+    const tracker = createInstallProgressTracker(planOf([download("/mc/a", "client-jar", 1000)]), {
+      throttleMs: 0,
+    });
+
+    tracker.onEvent({
+      type: "download:started",
+      file: { url: "x", target: "/mc/a" },
+      expectedSize: 1000,
+    });
+    tracker.onEvent({
+      type: "download:progress",
+      file: { url: "x", target: "/mc/a" },
+      bytesDownloaded: 40,
+      totalBytes: 1000,
+    });
+    tracker.onEvent({
+      type: "download:failed",
+      file: { url: "x", target: "/mc/a" },
+      error: new Error("every mirror exhausted"),
+      willRetry: false,
+    });
+    tracker.finish();
+
+    const snap = tracker.snapshot();
+    expect(snap.overallTotalBytes).toBe(1000);
+    expect(snap.overallBytesDownloaded).toBe(0);
+    expect(snap.overallPercent).toBe(0);
+    expect(snap.totalBytes).toBe(0);
+  });
+
+  it("reports 100% after finish() even when the plan downloads nothing", () => {
+    const tracker = createInstallProgressTracker(planOf([]), { throttleMs: 0 });
+    const seen: number[] = [];
+    tracker.subscribe((s) => seen.push(s.stagePercent));
+
+    tracker.finish();
+
+    expect(seen.at(-1)).toBe(100);
+    expect(tracker.snapshot().overallPercent).toBe(100);
   });
 
   it("uses aspect metadata for verification-only repair events", () => {
@@ -211,6 +353,16 @@ describe("createInstallProgressTracker", () => {
       });
     }
     expect(seen.length).toBeLessThan(5);
+
+    // The download has to actually finish for the final snapshot to read 100%: finish()
+    // reports the bytes the run moved, not the plan, so that a failed or cancelled run
+    // does not end on a full bar.
+    tracker.onEvent({
+      type: "download:completed",
+      file: { url: "x", target: "/mc/a" },
+      durationMs: 1,
+      bytes: 100,
+    });
 
     tracker.finish();
     expect(seen.at(-1)).toBe(100);

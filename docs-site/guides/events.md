@@ -81,6 +81,19 @@ byte pairs that each share a denominator: `bytesDownloaded` / `totalBytes` for t
 stage, `overallBytesDownloaded` / `overallTotalBytes` for the whole run. Divide within a
 pair, never across them.
 
+Two things about those pairs are worth knowing before you wire a bar to them:
+
+- A stage's total is the sum of its planned `expectedSize`s, and some downloads have no
+  declared size — every Fabric loader library, and Forge profile libraries with no
+  `downloads` block. Their bytes still land in the numerator, so a stage total of `0`
+  means "unknown", not "nothing to do". Fall back to the overall pair when
+  `totalBytes` is `0` rather than hiding the progress UI.
+- `finish()` sets the stage to `finalize` and makes its pair carry the bytes the run
+  actually moved. A run that downloaded everything therefore ends at 100%; one that
+  failed or was cancelled ends where it stopped. `finalize` downloads nothing of its
+  own, so do not sum the per-stage denominators to reconstruct the run total — use
+  `overallTotalBytes`.
+
 `ProgressStages` are deliberately separate from `InstallPhases`: the latter is the
 fine-grained sequence the install runner walks through (`PLANNING`,
 `DOWNLOADING_CLIENT_JAR`, `EXTRACTING_NATIVES`, `RUNNING_FORGE_PROCESSORS`, …) and the

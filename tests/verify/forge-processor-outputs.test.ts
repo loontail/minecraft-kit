@@ -114,25 +114,44 @@ describe("verifyForge — generated processor outputs", () => {
     expect(http.requests.length).toBe(requestsAfterPlanning);
   });
 
-  it("checks nothing generated when the installer JAR is no longer on disk", async () => {
-    await fs.rm(targetPaths.forgeInstaller(directory, FORGE_FULL_VERSION));
+  // Fail-closed: "no outputs to check" and "cannot tell what the outputs should be" must not
+  // produce the same clean report. Nothing else in verify.forge looks at the installer JAR, so
+  // without this the generated artifacts go silently unchecked and repair reports a clean target.
+  it("reports the installer as missing when it is no longer on disk", async () => {
+    await writePatchedJar(FORGE_PATCHED_BODY);
+    const installerPath = targetPaths.forgeInstaller(directory, FORGE_FULL_VERSION);
+    await fs.rm(installerPath);
 
     const result = await verify();
 
-    expect(result.issues).toEqual([]);
-    expect(result.checkedFiles).toBe(3);
+    expect(result.issues).toEqual([
+      {
+        path: installerPath,
+        category: VerifyFileCategories.LOADER_LIBRARY,
+        status: VerifyFileStatuses.MISSING,
+      },
+    ]);
+    expect(result.isValid).toBe(false);
   });
 
-  // An installer that no longer reads must not turn a verification into a throw: the damage it
-  // implies is reported by the version-JSON and library checks, and the install/repair path reads
-  // the same archive and does throw.
-  it("checks nothing generated when the installer JAR no longer parses", async () => {
-    await fs.writeFile(targetPaths.forgeInstaller(directory, FORGE_FULL_VERSION), "not-a-zip");
+  // An installer that no longer reads must not turn a verification into a throw either: it is
+  // reported as a broken file like any other, and repair re-downloads it before re-running the
+  // processors whose outputs it can no longer describe.
+  it("reports the installer as corrupt when it no longer parses", async () => {
+    await writePatchedJar(FORGE_PATCHED_BODY);
+    const installerPath = targetPaths.forgeInstaller(directory, FORGE_FULL_VERSION);
+    await fs.writeFile(installerPath, "not-a-zip");
 
     const result = await verify();
 
-    expect(result.issues).toEqual([]);
-    expect(result.checkedFiles).toBe(3);
+    expect(result.issues).toEqual([
+      {
+        path: installerPath,
+        category: VerifyFileCategories.LOADER_LIBRARY,
+        status: VerifyFileStatuses.CORRUPT,
+      },
+    ]);
+    expect(result.isValid).toBe(false);
   });
 
   it("checks nothing generated for a legacy 1.7.x profile, which has no processors", async () => {
